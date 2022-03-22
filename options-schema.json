@@ -1,0 +1,86 @@
+{
+  "$schema": "http://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/piiano/cellotape/router/options",
+  "$ref": "#/$defs/Options",
+  "$defs": {
+    "OperationValidationOptions": {
+      "properties": {
+        "validateRequestBody": {
+          "type": "string",
+          "enum": ["propagate-error", "print-warning", "ignore"],
+          "default": "propagate-error"
+        },
+        "validatePathParams": {
+          "type": "string",
+          "enum": ["propagate-error", "print-warning", "ignore"],
+          "default": "propagate-error"
+        },
+        "handleAllPathParams": {
+          "type": "string",
+          "enum": ["propagate-error", "print-warning", "ignore"],
+          "default": "propagate-error"
+        },
+        "validateQueryParams": {
+          "type": "string",
+          "enum": ["propagate-error", "print-warning", "ignore"],
+          "default": "propagate-error"
+        },
+        "handleAllQueryParams": {
+          "type": "string",
+          "enum": ["propagate-error", "print-warning", "ignore"],
+          "default": "propagate-error"
+        },
+        "validateResponses": {
+          "type": "string",
+          "enum": ["propagate-error", "print-warning", "ignore"],
+          "default": "propagate-error"
+        },
+        "handleAllOperationResponses": {
+          "type": "string",
+          "enum": ["propagate-error", "print-warning", "ignore"],
+          "default": "propagate-error"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "Options": {
+      "properties": {
+        "$schema": {
+          "type": "string"
+        },
+        "recoverOnPanic": {
+          "type": "boolean"
+        },
+        "logLevel": {
+          "type": "string",
+          "enum": ["off", "error", "warn", "info"],
+          "default": "info"
+        },
+        "operationValidations": {
+          "patternProperties": {
+            ".*": {
+              "$ref": "#/$defs/OperationValidationOptions"
+            }
+          },
+          "type": "object"
+        },
+        "defaultOperationValidation": {
+          "$ref": "#/$defs/OperationValidationOptions"
+        },
+        "mustHandleAllOperations": {
+          "type": "string",
+          "enum": ["propagate-error", "print-warning", "ignore"],
+          "default": "propagate-error"
+        },
+        "handleAllContentTypes": {
+          "type": "string",
+          "enum": ["propagate-error", "print-warning", "ignore"],
+          "default": "propagate-error"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    }
+  }
+}

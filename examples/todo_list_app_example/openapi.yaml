@@ -1,0 +1,199 @@
+openapi: 3.0.3
+info:
+  title: "TODO List Example API"
+  version: 1.0.0
+servers:
+  - url: http:localhost:8080
+paths:
+  /tasks:
+    get:
+      operationId: getTasksPage
+      summary: Get all tasks
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            default: 10
+            maximum: 20
+            minimum: 1
+      responses:
+        200:
+          description: Tasks Page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TasksPage"
+        401:
+          $ref: "#/components/responses/401"
+
+    post:
+      operationId: createNewTask
+      summary: Create new task
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Task"
+      responses:
+        200:
+          description: successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Identifiable"
+        401:
+          $ref: "#/components/responses/401"
+  /tasks/{id}:
+    get:
+      operationId: getTaskByID
+      summary: Get task by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            $ref: "#/components/schemas/Id"
+      responses:
+        200:
+          description: The requested task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        400:
+          $ref: "#/components/responses/400"
+        401:
+          $ref: "#/components/responses/401"
+        404:
+          $ref: "#/components/responses/404"
+    delete:
+      operationId: deleteTaskByID
+      summary: Delete task by ID
+      parameters:
+        - in: path
+          required: true
+          name: id
+          schema:
+            $ref: "#/components/schemas/Id"
+      responses:
+        204:
+          description: Deleted successfully
+        400:
+          $ref: "#/components/responses/400"
+        401:
+          $ref: "#/components/responses/401"
+        410:
+          $ref: "#/components/responses/410"
+    put:
+      operationId: updateTaskByID
+      summary: Update task by ID
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Task"
+      parameters:
+        - in: path
+          required: true
+          name: id
+          schema:
+            $ref: "#/components/schemas/Id"
+      responses:
+        204:
+          description: Updated successfully
+        400:
+          $ref: "#/components/responses/400"
+        401:
+          $ref: "#/components/responses/401"
+        404:
+          $ref: "#/components/responses/404"
+
+components:
+  schemas:
+    Id:
+      type: string
+      format: uuid
+      nullable: false
+    Identifiable:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/Id"
+    Task:
+      type: object
+      required:
+        - summary
+        - description
+      properties:
+        summary:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          default: open
+          enum:
+            - open
+            - in progress
+            - closed
+    Page:
+      type: object
+      properties:
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        isLast:
+          type: boolean
+    TasksPage:
+      type: object
+      allOf:
+        - type: object
+          properties:
+            results:
+              type: array
+              items:
+                allOf:
+                  - $ref: "#/components/schemas/Identifiable"
+                  - $ref: "#/components/schemas/Task"
+        - $ref: '#/components/schemas/Page'
+    HttpError:
+      type: object
+      properties:
+        error:
+          type: string
+        reason:
+          type: string
+  responses:
+    400:
+      description: bad request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/HttpError"
+    401:
+      description: unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/HttpError"
+    404:
+      description: not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/HttpError"
+    410:
+      description: gone
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/HttpError"
+
