@@ -1,8 +1,6 @@
 package restcontroller
 
 import (
-	"encoding/json"
-	"fmt"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3gen"
 	"reflect"
@@ -12,9 +10,9 @@ type OperationOptions struct {
 	Errors openapi3.Responses
 }
 
-func Operation[B, P, Q, R any](ID string, controller Controller[B, P, Q, R], options *OperationOptions) (*openapi3.Operation, error) {
+func (fn ControllerFn[B, P, Q, R]) OpenAPIOperation(ID string, options *OperationOptions) (*openapi3.Operation, error) {
 	generator := openapi3gen.NewGenerator()
-	controllerTypes := extractControllerTypeInfo[B, P, Q, R](controller)
+	controllerTypes := fn.TypeInfo()
 	operation := openapi3.NewOperation()
 	operation.OperationID = ID
 	if err := appendResponses(generator, operation, controllerTypes.SuccessfulResponseBody, &options.Errors); err != nil {
@@ -29,27 +27,7 @@ func Operation[B, P, Q, R any](ID string, controller Controller[B, P, Q, R], opt
 	if err := appendParams(generator, operation, controllerTypes.QueryParams, openapi3.NewQueryParameter); err != nil {
 		return nil, err
 	}
-	refs := make(map[string]*openapi3.Schema, len(generator.Types))
-	for t, schema := range generator.Types {
-		refs[t.Name()] = schema.Value
-	}
-	types, err := json.MarshalIndent(refs, "", "  ")
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Printf("%+v\n", generator.Types)
-	fmt.Printf("%s\n", types)
 	return operation, nil
-}
-func extractControllerTypeInfo[B, P, Q, R any](controller Controller[B, P, Q, R]) ControllerTypeInfo {
-	controllerType := reflect.TypeOf(controller)
-	paramsType := controllerType.In(0)
-	return ControllerTypeInfo{
-		RequestBody:            paramsType.Field(0).Type,
-		PathParams:             paramsType.Field(1).Type,
-		QueryParams:            paramsType.Field(2).Type,
-		SuccessfulResponseBody: controllerType.Out(0),
-	}
 }
 
 // Append request body to operation based on body type
