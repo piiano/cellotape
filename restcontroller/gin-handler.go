@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-func GinHandler[B, P, Q, R any](controller Controller[B, P, Q, R]) gin.HandlerFunc {
+func (fn ControllerFn[B, P, Q, R]) GinHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var params Params[B, P, Q]
 		if err := c.Bind(&params.Body); err != nil {
@@ -21,7 +21,7 @@ func GinHandler[B, P, Q, R any](controller Controller[B, P, Q, R]) gin.HandlerFu
 			return
 		}
 		params.Headers = c.Request.Header
-		resp, err := controller(params)
+		resp, err := fn(params)
 		if err != nil {
 			c.JSON(500, err.Error())
 			return

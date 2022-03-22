@@ -13,14 +13,17 @@ func main() {
 	operationOptions := &restcontroller.OperationOptions{Errors: openapi3.NewResponses()}
 	gin.SetMode(gin.ReleaseMode)
 	ctx := gin.New()
-
-	group := ctx.Group("/greet")
-	group.POST("/", restcontroller.GinHandler(example.GreetController))
-	operation, err := restcontroller.Operation("Greet", example.GreetController, operationOptions)
-
-	if err != nil {
-		panic(err)
+	controllers := map[string]restcontroller.Controller{
+		"greet": example.GreetController,
 	}
-	operationJson, err := yaml.Marshal(operation)
-	fmt.Println(string(operationJson))
+	for operationID, controller := range controllers {
+		group := ctx.Group("/greet")             // TODO extract path from spec
+		group.POST("/", controller.GinHandler()) // TODO extract method from spec
+		operation, err := controller.OpenAPIOperation(operationID, operationOptions)
+		if err != nil {
+			panic(err)
+		}
+		operationJson, err := yaml.Marshal(operation)
+		fmt.Println(string(operationJson))
+	}
 }

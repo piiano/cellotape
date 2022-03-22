@@ -25,7 +25,7 @@ type GreetPathParams struct {
 	ID string `json:"id"`
 }
 
-func GreetController(params restcontroller.Params[Body, GreetPathParams, any]) (Response, error) {
+var GreetController restcontroller.ControllerFn[Body, GreetPathParams, any, Response] = func(params restcontroller.Params[Body, GreetPathParams, any]) (Response, error) {
 	greeting, err := Greet(params.Body.Name)
 	return Response{Greeting: greeting}, err
 }
