@@ -10,9 +10,10 @@ type OperationOptions struct {
 	Errors openapi3.Responses
 }
 
+// OpenAPIOperation represents the Controller as an OpenAPI Operation model.
 func (fn ControllerFn[B, P, Q, R]) OpenAPIOperation(ID string, options *OperationOptions) (*openapi3.Operation, error) {
 	generator := openapi3gen.NewGenerator()
-	controllerTypes := fn.TypeInfo()
+	controllerTypes := fn.typeInfo()
 	operation := openapi3.NewOperation()
 	operation.OperationID = ID
 	if err := appendResponses(generator, operation, controllerTypes.SuccessfulResponseBody, &options.Errors); err != nil {
