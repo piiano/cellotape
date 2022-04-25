@@ -1,24 +1,28 @@
 package example
 
 import (
-	"github.com/piiano/restcontroller/restcontroller"
+	_ "embed"
+	"github.com/piiano/restcontroller/router"
 	"time"
 )
 
+//go:embed hello_world_openapi.yaml
+var Spec []byte
+
 // We export the REST controller to be loaded by the REST engine.
 
-var GreetController = restcontroller.NewController(greetController)
+var GreetOperationHandler = router.NewOperationHandler(greetHandler)
 
 // All types of the REST controller are defined in package scope.
 // This should always be the case to clarify they are strictly used for defining the REST interface and for nothing else.
 // This way it is much easier to maintain healthy decoupling between the REST controllers to the service layer.
 
-func greetController(params restcontroller.Params[body, pathParams, queryParams]) (response, error) {
-	if params.Path.Version == "v1" {
-		greeting, err := GreetV1(params.Body.Name)
+func greetHandler(request router.Request[body, pathParams, queryParams]) (response, error) {
+	if request.PathParameters.Version == "v1" {
+		greeting, err := GreetV1(request.Body.Name)
 		return response{Greeting: greeting}, err
 	}
-	greeting, err := GreetV2(params.Body.Name, params.Body.DayOfBirth, params.Query.GreetTemplate)
+	greeting, err := GreetV2(request.Body.Name, request.Body.DayOfBirth, request.QueryParameters.GreetTemplate)
 	return response{Greeting: greeting}, err
 }
 

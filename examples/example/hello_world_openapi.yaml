@@ -8,7 +8,7 @@ paths:
   /{version}/greet:
     post:
       operationId: greet
-      summary: Greet athe caller
+      summary: Greet the caller
       requestBody:
         content:
           application/json:

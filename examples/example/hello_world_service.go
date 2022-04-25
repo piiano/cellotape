@@ -16,6 +16,9 @@ func GreetV1(name string) (string, error) {
 }
 
 func GreetV2(name string, dayOfBirth time.Time, greetTemplate string) (string, error) {
+	if name == "" {
+		name = "World"
+	}
 	today := time.Now()
 	if dayOfBirth.Month() == today.Month() && dayOfBirth.Day() == today.Day() {
 		return fmt.Sprintf("Happy Birthday %s!", name), nil
