@@ -8,32 +8,33 @@ import (
 	"testing"
 )
 
-var identifiableSchema = (&openapi3.Schema{Type: string(objectSchemaType)}).
-	WithProperty("id", openapi3.NewStringSchema())
-var personSchema = (&openapi3.Schema{Type: string(objectSchemaType)}).
-	WithProperty("name", openapi3.NewStringSchema())
-var identifiablePersonSchema = &openapi3.Schema{
-	AllOf: openapi3.SchemaRefs{
-		identifiableSchema.NewRef(),
-		personSchema.NewRef(),
-	},
-}
+type (
+	Identifiable struct {
+		ID string `json:"id"`
+	}
+	Person struct {
+		Name string `json:"name"`
+	}
+	IdentifiablePerson struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+	}
+)
 
-type Identifiable struct {
-	ID string `json:"id"`
-}
-type Person struct {
-	Name string `json:"name"`
-}
-type IdentifiablePerson struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-}
-
-var identifiableType = reflect.TypeOf(Identifiable{ID: ""})
-var personType = reflect.TypeOf(Person{Name: ""})
-var identifiablePersonType = reflect.TypeOf(IdentifiablePerson{ID: "", Name: ""})
-var stringToStringMapType = reflect.TypeOf(map[string]string{})
+var (
+	identifiableSchema       = openapi3.NewObjectSchema().WithProperty("id", openapi3.NewStringSchema())
+	personSchema             = openapi3.NewObjectSchema().WithProperty("name", openapi3.NewStringSchema())
+	identifiablePersonSchema = &openapi3.Schema{
+		AllOf: openapi3.SchemaRefs{
+			identifiableSchema.NewRef(),
+			personSchema.NewRef(),
+		},
+	}
+	identifiableType       = reflect.TypeOf(Identifiable{ID: ""})
+	personType             = reflect.TypeOf(Person{Name: ""})
+	identifiablePersonType = reflect.TypeOf(IdentifiablePerson{ID: "", Name: ""})
+	stringToStringMapType  = reflect.TypeOf(map[string]string{})
+)
 
 func TestSchemaAllOfValidatorPass(t *testing.T) {
 	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *identifiablePersonSchema, router.Options{})

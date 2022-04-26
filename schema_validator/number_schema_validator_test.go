@@ -21,6 +21,19 @@ func TestNumberSchemaValidatorPassForIntType(t *testing.T) {
 	}
 }
 
+// according to the spec the number validation properties should apply only when the type is set to number
+func TestNumberSchemaValidatorWithUntypedSchema(t *testing.T) {
+	untypedSchemaWithDoubleFormat := openapi3.NewSchema().WithFormat(string(doubleFormat))
+	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *untypedSchemaWithDoubleFormat, router.Options{})
+	for _, validType := range types {
+		t.Run(validType.String(), func(t *testing.T) {
+			if err := validator.WithType(validType).validateNumberSchema(); err != nil {
+				t.Errorf("expect untyped schema to be compatible with %s type", validType)
+			}
+		})
+	}
+}
+
 func TestNumberSchemaValidatorFailOnWrongType(t *testing.T) {
 	numberSchema := openapi3.NewSchema()
 	numberSchema.Type = string(numberSchemaType)

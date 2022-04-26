@@ -7,6 +7,20 @@ import (
 	"testing"
 )
 
+// according to the spec the array validation properties should apply oly when the type is set to array
+func TestArraySchemaValidatorWithUntypedSchema(t *testing.T) {
+	// create with NewSchema and not with NewArraySchema for an untyped schema
+	untypedSchemaWithItemsProperty := openapi3.NewSchema().WithItems(openapi3.NewStringSchema())
+	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *untypedSchemaWithItemsProperty, router.Options{})
+	for _, validType := range types {
+		t.Run(validType.String(), func(t *testing.T) {
+			if err := validator.WithType(validType).validateArraySchema(); err != nil {
+				t.Errorf("expect untyped schema to be compatible with %s type", validType)
+			}
+		})
+	}
+}
+
 func TestArraySchemaValidatorPassForSimpleArray(t *testing.T) {
 	stringArraySchema := openapi3.NewArraySchema().WithItems(openapi3.NewStringSchema())
 	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *stringArraySchema, router.Options{})

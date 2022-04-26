@@ -3,7 +3,6 @@ package schema_validator
 import (
 	"fmt"
 	"github.com/piiano/restcontroller/utils"
-	"math"
 	"reflect"
 )
 
@@ -18,10 +17,6 @@ func (c typeSchemaValidatorContext) validateNumberSchema() utils.MultiError {
 		reflect.Float32, reflect.Float64:
 	default:
 		errs.AddIfNotNil(fmt.Errorf("number schema is incompatible with type %s", c.goType))
-	}
-	isMultipleOfFraction := c.schema.MultipleOf != nil && *c.schema.MultipleOf != math.Trunc(*c.schema.MultipleOf)
-	if isMultipleOfFraction && c.goType.Kind() != reflect.Float32 && c.goType.Kind() != reflect.Float64 {
-		errs.AddIfNotNil(fmt.Errorf("multipleOf value of %d isn't compatible with type %s", c.schema.MultipleOf, c.goType))
 	}
 	switch SchemaFormat(c.schema.Format) {
 	case floatFormat:

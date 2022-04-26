@@ -16,8 +16,8 @@ func (c typeSchemaValidatorContext) validateObjectSchema() utils.MultiError {
 	switch c.goType.Kind() {
 	case reflect.Struct:
 		if c.schema.Properties != nil {
+			fields := structJsonFields(c.goType)
 			for name, property := range c.schema.Properties {
-				fields := structJsonFields(c.goType)
 				field, ok := fields[name]
 				if !ok {
 					errs.AddIfNotNil(fmt.Errorf("property %q is not maped to a field in type %s", name, c.goType))
@@ -61,24 +61,28 @@ func (c typeSchemaValidatorContext) validateObjectSchema() utils.MultiError {
 
 // Extract the struct fields that are serializable as JSON
 func structJsonFields(structType reflect.Type) map[string]reflect.StructField {
-	stringPointerFields := make([]reflect.StructField, structType.NumField())
+	stringFields := make([]reflect.StructField, structType.NumField())
 	for i := 0; i < structType.NumField(); i++ {
 		field := structType.Field(i)
-		// change field type to pointer to prevent it from being omitted in json
-		stringPointerFields[i] = reflect.StructField{
-			Type:      reflect.PointerTo(reflect.TypeOf("")),
-			Name:      field.Name,
+		// change field type to string to prevent it from being omitted in json
+		stringFields[i] = reflect.StructField{
+			Type:      reflect.TypeOf(""),
 			PkgPath:   field.PkgPath,
+			Name:      field.Name,
 			Tag:       field.Tag,
 			Offset:    field.Offset,
 			Index:     field.Index,
 			Anonymous: field.Anonymous,
 		}
 	}
-	// make all field types pointers to prevent them from being omitted in json
-	stringStructType := reflect.StructOf(stringPointerFields)
-	stringStructValue := reflect.New(stringStructType).Interface()
-	structJson, _ := json.Marshal(stringStructValue)
+	stringStructValue := reflect.New(reflect.StructOf(stringFields)).Elem()
+	for _, field := range reflect.VisibleFields(stringStructValue.Type()) {
+		fieldValue := stringStructValue.FieldByIndex(field.Index)
+		if fieldValue.CanSet() {
+			fieldValue.SetString("x")
+		}
+	}
+	structJson, _ := json.Marshal(stringStructValue.Interface())
 	mapValue := make(map[string]any)
 	_ = json.Unmarshal(structJson, &mapValue)
 	fields := make(map[string]reflect.StructField, len(mapValue))
