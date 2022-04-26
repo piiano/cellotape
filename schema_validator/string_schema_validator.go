@@ -19,11 +19,11 @@ func (c typeSchemaValidatorContext) validateStringSchema() utils.MultiError {
 			errs.AddIfNotNil(fmt.Errorf("received type %s for string schema", c.goType))
 		}
 	case uuidFormat:
-		if c.goType.Kind() != reflect.String || c.goType == reflect.TypeOf(uuid.New()) {
+		if c.goType.Kind() != reflect.String && c.goType != reflect.TypeOf(uuid.New()) {
 			errs.AddIfNotNil(fmt.Errorf("string schema with uuid format is not compatible with type %s", c.goType))
 		}
 	case timeFormat:
-		if c.goType.Kind() != reflect.String || c.goType == reflect.TypeOf(time.Now()) {
+		if c.goType.Kind() != reflect.String && c.goType != reflect.TypeOf(time.Now()) {
 			errs.AddIfNotNil(fmt.Errorf("string schema with time format is not compatible with type %s", c.goType))
 		}
 	// TODO: add support for more formats compatible types (dateTimeFormat, dateFormat, durationFormat, etc.)

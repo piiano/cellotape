@@ -20,6 +20,19 @@ func TestIntegerSchemaValidatorPassForIntType(t *testing.T) {
 	}
 }
 
+// according to the spec the integer validation properties should apply only when the type is set to integer
+func TestIntegerSchemaValidatorWithUntypedSchema(t *testing.T) {
+	untypedSchemaWithInt64Format := openapi3.NewSchema().WithFormat(string(int64Format))
+	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *untypedSchemaWithInt64Format, router.Options{})
+	for _, validType := range types {
+		t.Run(validType.String(), func(t *testing.T) {
+			if err := validator.WithType(validType).validateIntegerSchema(); err != nil {
+				t.Errorf("expect untyped schema to be compatible with %s type", validType)
+			}
+		})
+	}
+}
+
 func TestIntegerSchemaValidatorFailOnWrongType(t *testing.T) {
 	integerSchema := openapi3.NewIntegerSchema()
 	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *integerSchema, router.Options{})
