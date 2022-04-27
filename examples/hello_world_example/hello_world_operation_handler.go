@@ -1,4 +1,4 @@
-package example
+package hello_world_example
 
 import (
 	_ "embed"

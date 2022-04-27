@@ -1,0 +1,120 @@
+openapi: 3.0.3
+info:
+  title: "TODO List Example API"
+  version: 1.0.0
+paths:
+  /tasks:
+    get:
+      operationId: getTasksPage
+      summary: Get all tasks
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            default: 10
+            maximum: 20
+            minimum: 1
+      responses:
+        200:
+          description: Tasks Page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TasksPage"
+
+    post:
+      operationId: createNewTask
+      summary: Create new task
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Task"
+      responses:
+        200:
+          description: successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Identifiable"
+  /tasks/{id}:
+    get:
+      operationId: getTaskByID
+      summary: Get task by ID
+      parameters:
+        - in: path
+          name: id
+          schema:
+            $ref: "#/components/schemas/Id"
+      responses:
+        200:
+          description: The requested task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+    delete:
+      operationId: deleteTaskByID
+      summary: Delete task by ID
+      parameters:
+        - in: path
+          name: id
+          schema:
+            $ref: "#/components/schemas/Id"
+      responses:
+        204:
+          description: Deleted successfully
+
+components:
+  schemas:
+    Id:
+      type: string
+      format: uuid
+      nullable: false
+    Identifiable:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/Id"
+    Task:
+      type: object
+      properties:
+        summary:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum:
+            - open
+            - in progress
+            - closed
+    Page:
+      type: object
+      properties:
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        isLast:
+          type: boolean
+    TasksPage:
+      type: object
+      allOf:
+        - type: object
+          properties:
+            results:
+              type: array
+              items:
+                allOf:
+                  - $ref: "#/components/schemas/Identifiable"
+                  - $ref: "#/components/schemas/Task"
+        - $ref: '#/components/schemas/Page'
+
