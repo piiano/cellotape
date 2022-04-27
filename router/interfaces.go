@@ -1,7 +1,6 @@
 package router
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -12,14 +11,6 @@ const (
 	PathParametersFieldName  = "PathParameters"
 	QueryParametersFieldName = "QueryParameters"
 )
-
-type Request[B, P, Q any] struct {
-	Context         context.Context
-	Body            B
-	PathParameters  P
-	QueryParameters Q
-	Headers         http.Header
-}
 
 type OperationHandler interface {
 	requestTypes() (map[string]reflect.Type, error)

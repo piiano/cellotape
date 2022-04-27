@@ -1,8 +1,6 @@
 package router
 
 import (
-	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/getkin/kin-openapi/openapi3"
@@ -10,8 +8,6 @@ import (
 )
 
 type OpenAPI interface {
-	// WithContext Adds a go context that is passed to OperationHandler
-	WithContext(context.Context) OpenAPI
 	// WithOptions Sets options for the openapi validation and routing mechanism
 	WithOptions(Options) OpenAPI
 	// Use middlewares on the root handler
@@ -25,8 +21,6 @@ type OpenAPI interface {
 	WithResponse(HttpResponse) OpenAPI
 	// WithContentType Add support for encoding additional content type
 	WithContentType(ContentType) OpenAPI
-	// WithSpec Sets the OpenAPISpec to be used for OpenAPI router and validations
-	WithSpec(OpenAPISpec) OpenAPI
 	// Spec returns the OpenAPISpec object
 	Spec() OpenAPISpec
 	// AsHandler validates the validity of the specified implementation with the registered OpenAPISpec
@@ -34,12 +28,12 @@ type OpenAPI interface {
 	AsHandler() (http.Handler, error)
 }
 
-func NewOpenAPI() OpenAPI {
+// NewOpenAPI creates new OpenAPI router with the provided OpenAPISpec
+func NewOpenAPI(spec OpenAPISpec) OpenAPI {
 	return openapi{
-		spec:       OpenAPISpec{},
+		spec:       spec,
 		operations: map[string]operationHandler{},
 		handlers:   []http.Handler{},
-		ctx:        nil,
 		responses:  []HttpResponse{},
 		options:    Options{},
 		errors:     []error{},
@@ -50,7 +44,6 @@ type openapi struct {
 	spec         OpenAPISpec
 	errors       []error
 	options      Options
-	ctx          context.Context
 	operations   map[string]operationHandler
 	contentTypes map[string]ContentType
 	handlers     []http.Handler
@@ -73,10 +66,6 @@ func (oa *openapi) appendErrIfNotNil(err error) {
 	}
 }
 
-func (oa openapi) WithContext(ctx context.Context) OpenAPI {
-	oa.ctx = ctx
-	return oa
-}
 func (oa openapi) WithOptions(options Options) OpenAPI {
 	oa.options = options
 	return oa
@@ -113,14 +102,7 @@ func (oa openapi) WithResponse(response HttpResponse) OpenAPI {
 	oa.responses = append(oa.responses, response)
 	return oa
 }
-func (oa openapi) WithSpec(spec OpenAPISpec) OpenAPI {
-	bytes, err := json.Marshal(spec)
-	oa.appendErrIfNotNil(err)
-	clonedSpec, err := openapi3.NewLoader().LoadFromData(bytes)
-	oa.appendErrIfNotNil(err)
-	oa.spec = OpenAPISpec(*clonedSpec)
-	return oa
-}
+
 func (oa openapi) Spec() OpenAPISpec {
 	return oa.spec
 }
@@ -131,9 +113,9 @@ func (oa openapi) AsHandler() (http.Handler, error) {
 		return nil, oa.errors[0]
 	}
 	specResponses := oa.spec.Components.Responses
-	if oa.options.FailOnMissing.Responses && len(specResponses) != len(oa.responses) {
-		return nil, fmt.Errorf("spec responses (%d) don't match provided responses (%d)", len(specResponses), len(oa.responses))
-	}
+	//if oa.options.FailOnMissing.Responses && len(specResponses) != len(oa.responses) {
+	//	return nil, fmt.Errorf("spec responses (%d) don't match provided responses (%d)", len(specResponses), len(oa.responses))
+	//}
 	for _, r := range oa.responses {
 		respRef := specResponses.Get(r.getStatus())
 		if respRef == nil {
