@@ -4,37 +4,42 @@ import (
 	_ "embed"
 	"errors"
 	"github.com/google/uuid"
-	"github.com/piiano/restcontroller/examples/todo_list_app_example/models"
+	m "github.com/piiano/restcontroller/examples/todo_list_app_example/models"
 	"github.com/piiano/restcontroller/examples/todo_list_app_example/services"
-	"github.com/piiano/restcontroller/router"
+	r "github.com/piiano/restcontroller/router"
 )
 
-func TasksOperationsGroup(taskService services.TasksService) router.Group {
-	getAllTasksOperationHandler := router.NewOperationHandler(func(request router.Request[router.Nil, router.Nil, PaginationQueryParams]) (models.Page[models.IdentifiableTask], error) {
-		page := taskService.GetTasksPage(request.QueryParameters.Page, request.QueryParameters.PageSize)
-		return page, nil
-	})
-	createTaskOperationHandler := router.NewOperationHandler(func(request router.Request[models.Task, router.Nil, router.Nil]) (models.Identifiable, error) {
-		id := taskService.CreateTask(request.Body)
-		return models.Identifiable{ID: id}, nil
-	})
-	getTaskByIDOperationHandler := router.NewOperationHandler(func(request router.Request[router.Nil, IDPathParam, router.Nil]) (models.Task, error) {
-		if task, found := taskService.GetTaskByID(request.PathParameters.ID); found {
-			return task, nil
-		}
-		return models.Task{}, errors.New("not found") // TODO: return HTTP error
-	})
-	deleteTaskByIDOperationHandler := router.NewOperationHandler(func(request router.Request[router.Nil, IDPathParam, router.Nil]) (router.Nil, error) {
-		if deleted := taskService.DeleteTaskByID(request.PathParameters.ID); deleted {
-			return 0, nil
-		}
-		return 0, errors.New("gone") // TODO: return HTTP error
-	})
-	return router.NewGroup().
-		WithOperation("getTasksPage", getAllTasksOperationHandler).
-		WithOperation("createNewTask", createTaskOperationHandler).
-		WithOperation("getTaskByID", getTaskByIDOperationHandler).
-		WithOperation("deleteTaskByID", deleteTaskByIDOperationHandler)
+func TasksOperationsGroup(tasks services.TasksService) r.Group {
+	return r.NewGroup().
+		WithOperation("getTasksPage",
+			r.OperationFunc(func(request r.Request[r.Nil, r.Nil, PaginationQueryParams]) (m.IdentifiableTasksPage, error) {
+				return tasks.GetTasksPage(request.QueryParams.Page, request.QueryParams.PageSize), nil
+			})).
+		WithOperation("createNewTask",
+			r.OperationFunc(func(request r.Request[m.Task, r.Nil, r.Nil]) (m.Identifiable, error) {
+				return m.Identifiable{ID: tasks.CreateTask(request.Body)}, nil
+			})).
+		WithOperation("getTaskByID",
+			r.OperationFunc(func(request r.Request[r.Nil, IDPathParam, r.Nil]) (m.Task, error) {
+				if task, found := tasks.GetTaskByID(uuid.MustParse(request.PathParams.ID)); found {
+					return task, nil
+				}
+				return m.Task{}, errors.New("404 not found") // TODO: return HTTP error
+			})).
+		WithOperation("deleteTaskByID",
+			r.OperationFunc(func(request r.Request[r.Nil, IDPathParam, r.Nil]) (r.Nil, error) {
+				if deleted := tasks.DeleteTaskByID(uuid.MustParse(request.PathParams.ID)); deleted {
+					return nil, nil
+				}
+				return nil, errors.New("410 gone") // TODO: return HTTP error
+			})).
+		WithOperation("updateTaskByID",
+			r.OperationFunc(func(request r.Request[m.Task, IDPathParam, r.Nil]) (r.Nil, error) {
+				if updated := tasks.UpdateTaskByID(uuid.MustParse(request.PathParams.ID), request.Body); updated {
+					return nil, nil
+				}
+				return nil, errors.New("404 not found") // TODO: return HTTP error
+			}))
 }
 
 type PaginationQueryParams struct {
@@ -43,5 +48,6 @@ type PaginationQueryParams struct {
 }
 
 type IDPathParam struct {
-	ID uuid.UUID `uri:"id"`
+	// https://github.com/gin-gonic/gin/issues/2423
+	ID string `uri:"id"`
 }

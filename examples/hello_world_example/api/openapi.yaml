@@ -19,6 +19,7 @@ paths:
                   type: string
                 day_of_birth:
                   type: string
+                  format: time
       parameters:
         - in: path
           name: version

@@ -61,9 +61,11 @@ func (c typeSchemaValidatorContext) validateObjectSchema() utils.MultiError {
 
 // Extract the struct fields that are serializable as JSON
 func structJsonFields(structType reflect.Type) map[string]reflect.StructField {
-	stringFields := make([]reflect.StructField, structType.NumField())
-	for i := 0; i < structType.NumField(); i++ {
-		field := structType.Field(i)
+	visibleFields := utils.Filter(reflect.VisibleFields(structType), func(field reflect.StructField) bool {
+		return !field.Anonymous
+	})
+	stringFields := make([]reflect.StructField, len(visibleFields))
+	for i, field := range visibleFields {
 		// change field type to string to prevent it from being omitted in json
 		stringFields[i] = reflect.StructField{
 			Type:      reflect.TypeOf(""),
@@ -75,6 +77,9 @@ func structJsonFields(structType reflect.Type) map[string]reflect.StructField {
 			Anonymous: field.Anonymous,
 		}
 	}
+	//for i := 0; i < structType.NumField(); i++ {
+	//	field := structType.Field(i)
+	//}
 	stringStructValue := reflect.New(reflect.StructOf(stringFields)).Elem()
 	for _, field := range reflect.VisibleFields(stringStructValue.Type()) {
 		fieldValue := stringStructValue.FieldByIndex(field.Index)
@@ -97,5 +102,6 @@ func structJsonFields(structType reflect.Type) map[string]reflect.StructField {
 			return name == key
 		})
 	}
+
 	return fields
 }

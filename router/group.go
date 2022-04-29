@@ -1,78 +1,79 @@
 package router
 
 import (
-	"fmt"
+	"github.com/piiano/restcontroller/utils"
 	"net/http"
 )
 
 type Group interface {
 	// Use middlewares on the root handler
-	Use(...http.Handler) Group
+	Use(...http.HandlerFunc) Group
 	// WithGroup defines a virtual group that allow defining middlewares for group of routes more easily
 	WithGroup(Group) Group
 	// WithOperation attaches an OperationHandler for an operation ID string on the OpenAPISpec
-	WithOperation(string, OperationHandler, ...http.Handler) Group
-
-	getErrors() []error
-	getOperations() map[string]operationHandler
-	getHandlers() []http.Handler
+	WithOperation(string, OperationHandler, ...http.HandlerFunc) Group
+	groupInternals
 }
 
 func NewGroup() Group {
-	return group{
-		operations: map[string]operationHandler{},
-		handlers:   []http.Handler{},
-		errors:     []error{},
+	return &group{
+		handlers:   []http.HandlerFunc{},
+		groups:     []groupInternals{},
+		operations: map[string]Operation{},
 	}
 }
 
 type group struct {
-	errors     []error
-	operations map[string]operationHandler
-	handlers   []http.Handler
+	groups     []groupInternals
+	handlers   []http.HandlerFunc
+	operations map[string]Operation
 }
 
-func (g group) getErrors() []error {
-	return g.errors
-}
-func (g group) getOperations() map[string]operationHandler {
-	return g.operations
-}
-func (g group) getHandlers() []http.Handler {
-	return g.handlers
-}
-
-func (g *group) appendErrIfNotNil(err error) {
-	if err != nil {
-		g.errors = append(g.errors, err)
-	}
-}
-func (g group) Use(handlers ...http.Handler) Group {
+func (g *group) Use(handlers ...http.HandlerFunc) Group {
 	g.handlers = append(g.handlers, handlers...)
 	return g
 }
-func (g group) WithGroup(group Group) Group {
-	for _, err := range group.getErrors() {
-		g.appendErrIfNotNil(err)
-	}
-	handlers := group.getHandlers()
-	for id, oh := range group.getOperations() {
-		if _, ok := g.operations[id]; ok {
-			g.appendErrIfNotNil(fmt.Errorf("operation with id %q already declared", id))
-			continue
-		}
-		g.operations[id] = operationHandler{
-			handlers:         append(handlers, oh.handlers...),
-			operationHandler: oh.operationHandler,
-		}
+func (g *group) WithGroup(group Group) Group {
+	g.groups = append(g.groups, group)
+	return g
+}
+func (g *group) WithOperation(id string, handlerFunc OperationHandler, handlers ...http.HandlerFunc) Group {
+	g.operations[id] = operation{
+		operationHandler: handlerFunc,
+		handlers:         handlers,
 	}
 	return g
 }
 
-func (g group) WithOperation(id string, handler OperationHandler, handlers ...http.Handler) Group {
-	g.operations[id] = operationHandler{
-		operationHandler: handler,
-		handlers:         handlers,
+func (g group) getGroups() []groupInternals         { return g.groups }
+func (g group) getHandlers() []http.HandlerFunc     { return g.handlers }
+func (g group) getOperations() map[string]Operation { return g.operations }
+
+type groupInternals interface {
+	getGroups() []groupInternals
+	getHandlers() []http.HandlerFunc
+	getOperations() map[string]Operation
+}
+
+// flattenOperations takes a group with separate operations, handlers, and nested groups and flatten them into a flat
+// Operation slice that include for each Operation its own OperationFunc, attached handlers, and attached group handlers.
+func flattenOperations(g groupInternals) []Operation {
+	flatOperations := make([]Operation, 0)
+	for id, op := range g.getOperations() {
+		flatOperations = append(flatOperations, operation{
+			id:               id,
+			handlers:         utils.ConcatSlices(g.getHandlers(), op.getHandlers()),
+			operationHandler: op.getHandlerFunc(),
+		})
 	}
-	return g
+	for _, nestedGroup := range g.getGroups() {
+		for _, flatOp := range flattenOperations(nestedGroup) {
+			flatOperations = append(flatOperations, operation{
+				id:               flatOp.getId(),
+				handlers:         utils.ConcatSlices(g.getHandlers(), flatOp.getHandlers()),
+				operationHandler: flatOp.getHandlerFunc(),
+			})
+		}
+	}
+	return flatOperations
 }

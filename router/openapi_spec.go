@@ -26,3 +26,22 @@ func NewSpec() OpenAPISpec {
 	spec, _ := NewSpecFromData([]byte("{}"))
 	return spec
 }
+
+func (s OpenAPISpec) findSpecOperationByID(id string) (specOperation, bool) {
+	for path, pathItem := range s.Paths {
+		for method, specOp := range pathItem.Operations() {
+			if specOp.OperationID == id {
+				return specOperation{
+					path: path, method: method, Operation: specOp,
+				}, true
+			}
+		}
+	}
+	return specOperation{}, false
+}
+
+type specOperation struct {
+	path   string
+	method string
+	*openapi3.Operation
+}

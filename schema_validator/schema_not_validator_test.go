@@ -2,7 +2,6 @@ package schema_validator
 
 import (
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/piiano/restcontroller/router"
 	"github.com/piiano/restcontroller/utils"
 	"reflect"
 	"testing"
@@ -11,7 +10,7 @@ import (
 func TestSchemaNotValidatorPass(t *testing.T) {
 	notBooleanSchema := openapi3.NewSchema()
 	notBooleanSchema.Not = openapi3.NewBoolSchema().NewRef()
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *notBooleanSchema, router.Options{})
+	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *notBooleanSchema, Options{})
 	// filter bool type from all defined test types
 	var nonBoolTypes = utils.Filter[reflect.Type](types, func(t reflect.Type) bool {
 		return t != boolType
@@ -27,7 +26,7 @@ func TestSchemaNotValidatorPass(t *testing.T) {
 func TestSchemaNotValidatorFailOnWrongType(t *testing.T) {
 	notBooleanSchema := openapi3.NewSchema()
 	notBooleanSchema.Not = openapi3.NewBoolSchema().NewRef()
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *notBooleanSchema, router.Options{})
+	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *notBooleanSchema, Options{})
 	errTemplate := "expect schema with not bool schema to be incompatible with %s type"
 	expectTypeToBeIncompatible(t, validator, boolType, errTemplate, boolType)
 }

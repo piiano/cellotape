@@ -2,7 +2,6 @@ package schema_validator
 
 import (
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/piiano/restcontroller/router"
 	"github.com/piiano/restcontroller/utils"
 	"reflect"
 	"testing"
@@ -115,9 +114,9 @@ func expectTypeToBeIncompatible(t *testing.T, validator TypeSchemaValidator, tes
 
 func TestSchemaValidatorWithOptions(t *testing.T) {
 	stringSchema := openapi3.NewStringSchema()
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *stringSchema, router.Options{}).
+	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *stringSchema, Options{}).
 		// test call to with options
-		WithOptions(router.Options{})
+		WithOptions(Options{})
 	errTemplate := "expect string schema with time format to be %s with %s type"
 	expectTypeToBeCompatible(t, validator, stringType, errTemplate, "compatible", stringType)
 	// omit the string type from all defined test types

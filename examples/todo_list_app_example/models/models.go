@@ -1,9 +1,6 @@
 package models
 
-import (
-	_ "embed"
-	"github.com/google/uuid"
-)
+import "github.com/google/uuid"
 
 type Task struct {
 	Summary     string `json:"summary"`
@@ -24,3 +21,5 @@ type Page[T any] struct {
 	PageSize int  `json:"pageSize"`
 	IsLast   bool `json:"isLast"`
 }
+
+type IdentifiableTasksPage Page[IdentifiableTask]

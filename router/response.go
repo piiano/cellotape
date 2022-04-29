@@ -12,6 +12,8 @@ type HttpResponse interface {
 	bytes(contentTypes map[string]ContentType) ([]byte, error)
 }
 
+type ResponseType reflect.Type
+
 func NewHttpResponse[R any](status int, contentType string) HttpResponse {
 	return httpResponse[R]{
 		status:      status,
@@ -45,3 +47,13 @@ func (r httpResponse[R]) getBodyType() (reflect.Type, error) {
 	var body R
 	return reflect.TypeOf(body), nil
 }
+
+/*
+
+
+
+ */
+
+//func Resp[]() O {
+//
+//}

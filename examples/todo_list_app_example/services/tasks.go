@@ -11,10 +11,11 @@ import (
 // They can be potentially be exposed in additional ways with other protocols, CLI, Golang SDK, etc.
 
 type TasksService interface {
-	GetTasksPage(page int, pageSize int) models.Page[models.IdentifiableTask]
-	CreateTask(task models.Task) uuid.UUID
-	DeleteTaskByID(id uuid.UUID) bool
-	GetTaskByID(id uuid.UUID) (models.Task, bool)
+	GetTasksPage(page int, pageSize int) models.IdentifiableTasksPage
+	CreateTask(models.Task) uuid.UUID
+	GetTaskByID(uuid.UUID) (models.Task, bool)
+	UpdateTaskByID(uuid.UUID, models.Task) bool
+	DeleteTaskByID(uuid.UUID) bool
 }
 
 type tasks map[uuid.UUID]models.Task
@@ -23,7 +24,7 @@ func NewTasksService() TasksService {
 	return &tasks{}
 }
 
-func (t *tasks) GetTasksPage(page int, pageSize int) models.Page[models.IdentifiableTask] {
+func (t *tasks) GetTasksPage(page int, pageSize int) models.IdentifiableTasksPage {
 	tasksWithId := make([]models.IdentifiableTask, 0, page)
 	for id, task := range *t {
 		tasksWithId = append(tasksWithId, models.IdentifiableTask{
@@ -31,7 +32,7 @@ func (t *tasks) GetTasksPage(page int, pageSize int) models.Page[models.Identifi
 			Task:         task,
 		})
 	}
-	last := len(tasksWithId) - 1
+	last := len(tasksWithId)
 	from := page * pageSize
 	to := (page + 1) * pageSize
 	isLast := last <= to
@@ -39,7 +40,7 @@ func (t *tasks) GetTasksPage(page int, pageSize int) models.Page[models.Identifi
 		to = last
 	}
 	pageSlice := tasksWithId[from:to]
-	return models.Page[models.IdentifiableTask]{
+	return models.IdentifiableTasksPage{
 		Results:  pageSlice,
 		Page:     page,
 		PageSize: pageSize,
@@ -64,4 +65,12 @@ func (t *tasks) DeleteTaskByID(id uuid.UUID) bool {
 func (t *tasks) GetTaskByID(id uuid.UUID) (models.Task, bool) {
 	task, ok := (*t)[id]
 	return task, ok
+}
+
+func (t *tasks) UpdateTaskByID(id uuid.UUID, task models.Task) bool {
+	_, ok := (*t)[id]
+	if ok {
+		(*t)[id] = task
+	}
+	return ok
 }
