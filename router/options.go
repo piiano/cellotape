@@ -1,6 +1,9 @@
 package router
 
+import "github.com/piiano/restcontroller/schema_validator"
+
 type Options struct {
+	InitializationSchemaValidation schema_validator.Options
 	//	TODO: Add support for options
 	//	// Return error in OpenAPI.Validate if there are missing implementation for components of the OpenAPISpec.
 	//	FailOnMissing struct {

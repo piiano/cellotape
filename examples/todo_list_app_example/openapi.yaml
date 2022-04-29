@@ -2,6 +2,8 @@ openapi: 3.0.3
 info:
   title: "TODO List Example API"
   version: 1.0.0
+servers:
+  - url: http:localhost:8080
 paths:
   /tasks:
     get:
@@ -21,6 +23,8 @@ paths:
             default: 10
             maximum: 20
             minimum: 1
+      security:
+
       responses:
         200:
           description: Tasks Page
@@ -51,6 +55,7 @@ paths:
       parameters:
         - in: path
           name: id
+          required: true
           schema:
             $ref: "#/components/schemas/Id"
       responses:
@@ -65,12 +70,30 @@ paths:
       summary: Delete task by ID
       parameters:
         - in: path
+          required: true
           name: id
           schema:
             $ref: "#/components/schemas/Id"
       responses:
         204:
           description: Deleted successfully
+    put:
+      operationId: updateTaskByID
+      summary: Update task by ID
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Task"
+      parameters:
+        - in: path
+          required: true
+          name: id
+          schema:
+            $ref: "#/components/schemas/Id"
+      responses:
+        204:
+          description: Updated successfully
 
 components:
   schemas:
@@ -85,6 +108,9 @@ components:
           $ref: "#/components/schemas/Id"
     Task:
       type: object
+      required:
+        - summary
+        - description
       properties:
         summary:
           type: string
@@ -92,6 +118,7 @@ components:
           type: string
         status:
           type: string
+          default: open
           enum:
             - open
             - in progress

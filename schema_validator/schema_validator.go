@@ -3,10 +3,12 @@ package schema_validator
 import (
 	"encoding"
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/piiano/restcontroller/router"
 	"github.com/piiano/restcontroller/utils"
 	"reflect"
 )
+
+type Options struct {
+}
 
 var textMarshallerType = reflect.TypeOf((*encoding.TextMarshaler)(nil)).Elem()
 
@@ -25,7 +27,7 @@ const (
 // TypeSchemaValidator helps validate reflect.Type and openapi3.Schema compatibility using the validation Options.
 type TypeSchemaValidator interface {
 	// WithOptions immutably returns a new TypeSchemaValidator with the specified validation options.
-	WithOptions(router.Options) TypeSchemaValidator
+	WithOptions(Options) TypeSchemaValidator
 	// WithType immutably returns a new TypeSchemaValidator with the specified reflect.Type to validate.
 	WithType(reflect.Type) TypeSchemaValidator
 	// WithSchema immutably returns a new TypeSchemaValidator with the specified openapi3.Schema to validate.
@@ -47,7 +49,7 @@ type TypeSchemaValidator interface {
 }
 
 // NewTypeSchemaValidator returns a new TypeSchemaValidator that helps validate reflect.Type and openapi3.Schema compatibility using the validation Options.
-func NewTypeSchemaValidator(goType reflect.Type, schema openapi3.Schema, options router.Options) TypeSchemaValidator {
+func NewTypeSchemaValidator(goType reflect.Type, schema openapi3.Schema, options Options) TypeSchemaValidator {
 	return typeSchemaValidatorContext{
 		goType:  goType,
 		schema:  schema,
@@ -59,10 +61,10 @@ func NewTypeSchemaValidator(goType reflect.Type, schema openapi3.Schema, options
 type typeSchemaValidatorContext struct {
 	goType  reflect.Type
 	schema  openapi3.Schema
-	options router.Options
+	options Options
 }
 
-func (c typeSchemaValidatorContext) WithOptions(options router.Options) TypeSchemaValidator {
+func (c typeSchemaValidatorContext) WithOptions(options Options) TypeSchemaValidator {
 	c.options = options
 	return c
 }

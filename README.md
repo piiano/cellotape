@@ -35,14 +35,18 @@ to init the server and map to the relevant controller.
   
   The new approach, is taking a design-first spec and an operationId to Controller map and using them to init a Gin router with builtin validations based on the spec.
   
+- [x] Reflection validation during initialization for request body & params based on the OpenAPI spec.
+  
+- [x] Add support for middlewares - Require some designing of how this API will look like.
+  
+- [x] Add support for custom binders - support for more content-types and ways to bind them to the relevant params.
+  
+- [ ] Reflection validation during initialization for responses and possible errors based on the OpenAPI spec.
+  
 - [ ] Runtime validation for request body & params based on the OpenAPI spec.
-  
+
   We currently use [getkin/kin-openapi](https://github.com/getkin/kin-openapi) that from a quick look seems to have only basic validations support.
-  
+
   We might want to use [xeipuuv/gojsonschema](https://github.com/xeipuuv/gojsonschema) that seems to have a good support for JSON schema validation (which is part of OpenAPI).
-  
+
 - [ ] We might want to add support for [julienschmidt/httprouter](https://github.com/julienschmidt/httprouter).
-  
-- [ ] Add support for middlewares - Require some designing of how this API will look like.
-  
-- [ ] Add support for custom binders - support for more content-types and ways to bind them to the relevant params.

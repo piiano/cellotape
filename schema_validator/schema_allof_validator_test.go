@@ -2,7 +2,6 @@ package schema_validator
 
 import (
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/piiano/restcontroller/router"
 	"github.com/piiano/restcontroller/utils"
 	"reflect"
 	"testing"
@@ -37,21 +36,21 @@ var (
 )
 
 func TestSchemaAllOfValidatorPass(t *testing.T) {
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *identifiablePersonSchema, router.Options{})
+	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *identifiablePersonSchema, Options{})
 	errTemplate := "expect schema with allOf property to be compatible with %s type"
 	expectTypeToBeCompatible(t, validator, identifiablePersonType, errTemplate, identifiablePersonType)
 	expectTypeToBeCompatible(t, validator, stringToStringMapType, errTemplate, stringToStringMapType)
 }
 
 func TestSchemaAllOfValidatorFailOnPartialMatchedType(t *testing.T) {
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *identifiablePersonSchema, router.Options{})
+	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *identifiablePersonSchema, Options{})
 	errTemplate := "expect schema with allOf property to be incompatible with %s type"
 	expectTypeToBeIncompatible(t, validator, identifiableType, errTemplate, identifiableType)
 	expectTypeToBeIncompatible(t, validator, personType, errTemplate, personType)
 }
 
 func TestSchemaAllOfValidatorFailOnNoMatchedType(t *testing.T) {
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *identifiablePersonSchema, router.Options{})
+	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *identifiablePersonSchema, Options{})
 	errTemplate := "expect schema with allOf property to be incompatible with %s type"
 	invalidTypes := utils.Filter(types, func(t reflect.Type) bool {
 		return t != stringToStringMapType

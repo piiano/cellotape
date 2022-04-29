@@ -2,7 +2,6 @@ package schema_validator
 
 import (
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/piiano/restcontroller/router"
 	"reflect"
 	"testing"
 )
@@ -11,7 +10,7 @@ import (
 func TestArraySchemaValidatorWithUntypedSchema(t *testing.T) {
 	// create with NewSchema and not with NewArraySchema for an untyped schema
 	untypedSchemaWithItemsProperty := openapi3.NewSchema().WithItems(openapi3.NewStringSchema())
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *untypedSchemaWithItemsProperty, router.Options{})
+	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *untypedSchemaWithItemsProperty, Options{})
 	for _, validType := range types {
 		t.Run(validType.String(), func(t *testing.T) {
 			if err := validator.WithType(validType).validateArraySchema(); err != nil {
@@ -23,7 +22,7 @@ func TestArraySchemaValidatorWithUntypedSchema(t *testing.T) {
 
 func TestArraySchemaValidatorPassForSimpleArray(t *testing.T) {
 	stringArraySchema := openapi3.NewArraySchema().WithItems(openapi3.NewStringSchema())
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *stringArraySchema, router.Options{})
+	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *stringArraySchema, Options{})
 	stringArraySchema.Title = "StringArray"
 	stringArrayType := reflect.TypeOf([1]string{""})
 	if err := validator.WithType(stringArrayType).Validate(); err != nil {
@@ -39,7 +38,7 @@ func TestArraySchemaValidatorPassForSimpleArray(t *testing.T) {
 
 func TestArraySchemaValidatorFailOnWrongType(t *testing.T) {
 	stringArraySchema := openapi3.NewArraySchema().WithItems(openapi3.NewStringSchema())
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *stringArraySchema, router.Options{})
+	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *stringArraySchema, Options{})
 	stringArraySchema.Title = "StringArray"
 	intArrayType := reflect.TypeOf([1]int{1})
 	if err := validator.WithType(intArrayType).Validate(); err == nil {

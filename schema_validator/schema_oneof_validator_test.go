@@ -2,7 +2,6 @@ package schema_validator
 
 import (
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/piiano/restcontroller/router"
 	"github.com/piiano/restcontroller/utils"
 	"reflect"
 	"testing"
@@ -15,7 +14,7 @@ func TestSchemaOneOfValidatorPass(t *testing.T) {
 		openapi3.NewStringSchema().NewRef(),
 		openapi3.NewInt64Schema().NewRef(),
 	}
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *notBooleanSchema, router.Options{})
+	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *notBooleanSchema, Options{})
 	var validTypes = []reflect.Type{boolType, stringType, int64Type}
 	errTemplate := "expect schema with oneOf property to be compatible with %s type"
 	for _, validType := range validTypes {
@@ -35,7 +34,7 @@ func TestSchemaOneOfValidatorFailOnMoreThanOneMatchedType(t *testing.T) {
 		openapi3.NewInt64Schema().NewRef(),
 		numberSchema.NewRef(),
 	}
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *notBooleanSchema, router.Options{})
+	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *notBooleanSchema, Options{})
 	errTemplate := "expect schema with oneOf property to be incompatible with %s type"
 	expectTypeToBeIncompatible(t, validator, int64Type, errTemplate, int64Type)
 }
@@ -47,7 +46,7 @@ func TestSchemaOneOfValidatorFailOnNoMatchedType(t *testing.T) {
 		openapi3.NewStringSchema().NewRef(),
 		openapi3.NewInt64Schema().NewRef(),
 	}
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *notBooleanSchema, router.Options{})
+	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *notBooleanSchema, Options{})
 	invalidTypes := utils.Filter(types, func(t reflect.Type) bool {
 		return t != boolType && t != stringType && t != int64Type
 	})
