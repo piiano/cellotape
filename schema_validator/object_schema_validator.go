@@ -9,6 +9,7 @@ import (
 )
 
 func (c typeSchemaValidatorContext) validateObjectSchema() utils.MultiError {
+	// TODO: validate required properties, nullable, additionalProperties, etc.
 	errs := utils.NewErrorsCollector()
 	if SchemaType(c.schema.Type) != objectSchemaType {
 		return nil
@@ -16,6 +17,7 @@ func (c typeSchemaValidatorContext) validateObjectSchema() utils.MultiError {
 	switch c.goType.Kind() {
 	case reflect.Struct:
 		if c.schema.Properties != nil {
+			// TODO: add support for receiving in options how to extract type keys (to support schema for non-json serializers)
 			fields := structJsonFields(c.goType)
 			for name, property := range c.schema.Properties {
 				field, ok := fields[name]
@@ -59,37 +61,38 @@ func (c typeSchemaValidatorContext) validateObjectSchema() utils.MultiError {
 	return errs.ErrorOrNil()
 }
 
-// Extract the struct fields that are serializable as JSON
+// structJsonFields Extract the struct fields that are serializable as JSON corresponding to their JSON key
 func structJsonFields(structType reflect.Type) map[string]reflect.StructField {
+	// this method care only about the json keys of the current struct in following json/encoding rules.
+	// for simplification, we marshal an instance of the struct to json and unmarshal it to back to a map to get all json keys.
+	//
+	// To avoid fields filtering by omitempty tag we use bool type and set them with reflection to a non nil value.
+	// this guarantee that we don't miss fields annotated with omitempty tag.
+	// the original field types can be later extracted from the original structType
+
+	// get all visible fields, embedded structs are excluded but their fields are included
 	visibleFields := utils.Filter(reflect.VisibleFields(structType), func(field reflect.StructField) bool {
 		return !field.Anonymous
 	})
-	stringFields := make([]reflect.StructField, len(visibleFields))
-	for i, field := range visibleFields {
-		// change field type to string to prevent it from being omitted in json
-		stringFields[i] = reflect.StructField{
-			Type:      reflect.TypeOf(""),
-			PkgPath:   field.PkgPath,
-			Name:      field.Name,
-			Tag:       field.Tag,
-			Offset:    field.Offset,
-			Index:     field.Index,
-			Anonymous: field.Anonymous,
-		}
-	}
-	//for i := 0; i < structType.NumField(); i++ {
-	//	field := structType.Field(i)
-	//}
-	stringStructValue := reflect.New(reflect.StructOf(stringFields)).Elem()
-	for _, field := range reflect.VisibleFields(stringStructValue.Type()) {
-		fieldValue := stringStructValue.FieldByIndex(field.Index)
+	// change field type to bool type
+	boolFields := utils.Map(visibleFields, func(field reflect.StructField) reflect.StructField {
+		field.Type = reflect.TypeOf(true)
+		return field
+	})
+	//instantiate the struct type and set field values to true to prevent them from being omitted by omitempty tag
+	boolStructValue := reflect.New(reflect.StructOf(boolFields)).Elem()
+	for _, field := range reflect.VisibleFields(boolStructValue.Type()) {
+		fieldValue := boolStructValue.FieldByIndex(field.Index)
 		if fieldValue.CanSet() {
-			fieldValue.SetString("x")
+			fieldValue.SetBool(true)
 		}
 	}
-	structJson, _ := json.Marshal(stringStructValue.Interface())
-	mapValue := make(map[string]any)
+	// marshal the struct to JSON
+	structJson, _ := json.Marshal(boolStructValue.Interface())
+	mapValue := make(map[string]bool)
+	// unmarshal the JSON to map of bool
 	_ = json.Unmarshal(structJson, &mapValue)
+	// find the original StructField for each JSON key
 	fields := make(map[string]reflect.StructField, len(mapValue))
 	for key := range mapValue {
 		fields[key], _ = structType.FieldByNameFunc(func(name string) bool {
@@ -102,6 +105,5 @@ func structJsonFields(structType reflect.Type) map[string]reflect.StructField {
 			return name == key
 		})
 	}
-
 	return fields
 }

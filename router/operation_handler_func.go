@@ -6,43 +6,36 @@ import (
 )
 
 type OperationHandler interface {
-	requestTypes() (RequestTypes, error)
-	responseTypes() (ResponseType, error)
-	types() (OperationTypes, error)
+	types() operationTypes
 	asGinHandler(oa OpenAPI) gin.HandlerFunc
 }
 
-type OperationTypes struct {
+type operationTypes struct {
 	RequestTypes
-	ResponseType
+	responsesType reflect.Type
 }
 
-type operationFunc[B, P, Q, R any] func(Request[B, P, Q]) (R, error)
+type operationFunc[B, P, Q, R any] func(Request[B, P, Q], Send[R])
 
-func OperationFunc[B, P, Q, R any](opFunc func(Request[B, P, Q]) (R, error)) OperationHandler {
-	return operationFunc[B, P, Q, R](opFunc)
+func OperationFunc[B, P, Q, R any](opFunc operationFunc[B, P, Q, R]) OperationHandler {
+	return opFunc
 }
 
-func (fn operationFunc[B, P, Q, R]) requestTypes() (RequestTypes, error) {
-	return requestTypes(fn)
-}
-
-func (fn operationFunc[B, P, Q, R]) responseTypes() (ResponseType, error) {
-	fnType := reflect.TypeOf(fn)
-	successType := fnType.Out(0)
-	return ResponseType(successType), nil
-}
-
-func (fn operationFunc[B, P, Q, R]) types() (OperationTypes, error) {
-	operationTypes := OperationTypes{}
-	var err error
-	if operationTypes.RequestTypes, err = fn.requestTypes(); err != nil {
-		return operationTypes, err
+func (fn operationFunc[B, P, Q, R]) types() operationTypes {
+	var (
+		body      B
+		path      P
+		query     Q
+		responses R
+	)
+	return operationTypes{
+		RequestTypes: RequestTypes{
+			requestBody: reflect.TypeOf(body),
+			pathParams:  reflect.TypeOf(path),
+			queryParams: reflect.TypeOf(query),
+		},
+		responsesType: reflect.TypeOf(responses),
 	}
-	if operationTypes.ResponseType, err = fn.responseTypes(); err != nil {
-		return operationTypes, err
-	}
-	return operationTypes, nil
 }
 
 type HandlerContentTypes struct {
@@ -58,22 +51,18 @@ func (fn operationFunc[B, P, Q, R]) asGinHandler(oa OpenAPI) gin.HandlerFunc {
 			Headers: c.Request.Header,
 		}
 		if err := binders.requestBodyBinder(c, &(request.Body)); err != nil {
-			binders.errorResponseBinder(c, &err)
+			binders.sendError(c, err)
 			return
 		}
 		if err := binders.pathParamsBinder(c, &(request.PathParams)); err != nil {
-			binders.errorResponseBinder(c, &err)
+			binders.sendError(c, err)
 			return
 		}
 		if err := binders.queryParamsBinder(c, &(request.QueryParams)); err != nil {
-			binders.errorResponseBinder(c, &err)
+			binders.sendError(c, err)
 			return
 		}
-		response, err := fn(request)
-		if err != nil {
-			binders.errorResponseBinder(c, &err)
-			return
-		}
-		binders.successfulResponseBinder(c, &response)
+		sendFunc := binders.sendFactory(c)
+		fn(request, sendFunc)
 	}
 }

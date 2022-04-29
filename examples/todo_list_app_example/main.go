@@ -14,13 +14,13 @@ import (
 var specData []byte
 
 func main() {
-	tasksService := services.NewTasksService()
 	spec, err := router.NewSpecFromData(specData)
 	if err != nil {
 		fmt.Println("failed loading the spec")
 		fmt.Println(err)
-		os.Exit(1)
+		os.Exit(2)
 	}
+	tasksService := services.NewTasksService()
 	handler, err := router.NewOpenAPI(spec).
 		WithContentType(router.JsonContentType{}).
 		WithGroup(models.TasksOperationsGroup(tasksService)).
@@ -28,7 +28,7 @@ func main() {
 	if err != nil {
 		fmt.Println("failed creating an handler from the spec")
 		fmt.Println(err)
-		os.Exit(1)
+		os.Exit(2)
 	}
 	if err = http.ListenAndServe(":8080", handler); err != nil {
 		panic(err)

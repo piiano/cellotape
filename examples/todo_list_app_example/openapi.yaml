@@ -23,8 +23,6 @@ paths:
             default: 10
             maximum: 20
             minimum: 1
-      security:
-
       responses:
         200:
           description: Tasks Page
@@ -65,6 +63,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Task"
+        400:
+          $ref: "#/components/responses/400"
+        404:
+          $ref: "#/components/responses/404"
     delete:
       operationId: deleteTaskByID
       summary: Delete task by ID
@@ -77,6 +79,10 @@ paths:
       responses:
         204:
           description: Deleted successfully
+        400:
+          $ref: "#/components/responses/400"
+        410:
+          $ref: "#/components/responses/410"
     put:
       operationId: updateTaskByID
       summary: Update task by ID
@@ -94,6 +100,10 @@ paths:
       responses:
         204:
           description: Updated successfully
+        400:
+          $ref: "#/components/responses/400"
+        404:
+          $ref: "#/components/responses/404"
 
 components:
   schemas:
@@ -144,4 +154,30 @@ components:
                   - $ref: "#/components/schemas/Identifiable"
                   - $ref: "#/components/schemas/Task"
         - $ref: '#/components/schemas/Page'
+    HttpError:
+      type: object
+      properties:
+        error:
+          type: string
+        reason:
+          type: string
+  responses:
+    400:
+      description: bad request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/HttpError"
+    404:
+      description: not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/HttpError"
+    410:
+      description: gone
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/HttpError"
 

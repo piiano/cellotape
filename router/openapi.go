@@ -15,9 +15,6 @@ type OpenAPI interface {
 	WithGroup(Group) OpenAPI
 	// WithOperation attaches an OperationHandler for an operation ID string on the OpenAPISpec
 	WithOperation(string, OperationHandler, ...http.HandlerFunc) OpenAPI
-	// WithResponse Define a reusable response
-	// Responses are validated with the OpenAPISpec when calling Validate with proper options
-	WithResponse(HttpResponse) OpenAPI
 	// WithContentType Add support for encoding additional content type
 	WithContentType(ContentType) OpenAPI
 	// AsHandler validates the validity of the specified implementation with the registered OpenAPISpec
@@ -39,7 +36,6 @@ func NewOpenAPI(spec OpenAPISpec) OpenAPI {
 		groups:       []groupInternals{},
 		operations:   map[string]Operation{},
 		contentTypes: ContentTypes{},
-		responses:    []HttpResponse{},
 	}
 }
 
@@ -52,7 +48,6 @@ func NewOpenAPIWithOptions(spec OpenAPISpec, options Options) OpenAPI {
 		groups:       []groupInternals{},
 		operations:   map[string]Operation{},
 		contentTypes: ContentTypes{},
-		responses:    []HttpResponse{},
 	}
 }
 
@@ -63,7 +58,6 @@ type openapi struct {
 	groups       []groupInternals
 	operations   map[string]Operation
 	contentTypes ContentTypes
-	responses    []HttpResponse
 }
 
 func (oa *openapi) Use(handlers ...http.HandlerFunc) OpenAPI {
@@ -79,10 +73,6 @@ func (oa *openapi) WithOperation(id string, handlerFunc OperationHandler, handle
 		operationHandler: handlerFunc,
 		handlers:         handlers,
 	}
-	return oa
-}
-func (oa *openapi) WithResponse(response HttpResponse) OpenAPI {
-	oa.responses = append(oa.responses, response)
 	return oa
 }
 func (oa *openapi) WithContentType(contentType ContentType) OpenAPI {
@@ -129,21 +119,3 @@ func (oa openapi) getOperations() map[string]Operation { return oa.operations }
 func (oa *openapi) getSpec() OpenAPISpec               { return oa.spec }
 func (oa *openapi) getOptions() Options                { return oa.options }
 func (oa *openapi) getContentTypes() ContentTypes      { return oa.contentTypes }
-
-//specResponses := oa.spec.Components.Responses
-////if oa.options.FailOnMissing.Responses && len(specResponses) != len(oa.responses) {
-////	return nil, fmt.Errorf("spec responses (%d) don't match provided responses (%d)", len(specResponses), len(oa.responses))
-////}
-//for _, r := range oa.responses {
-//	respRef := specResponses.Get(r.getStatus())
-//	if respRef == nil {
-//		return nil, fmt.Errorf("response for status %d is missing in the spec", r.getStatus())
-//	}
-//	contentType := r.getContentType()
-//	respMedia := respRef.Value.Content.Get(contentType)
-//	if respMedia == nil {
-//		return nil, fmt.Errorf("response for status %d is missing content type %q in the spec", r.getStatus(), contentType)
-//	}
-//	r.getBodyType()
-//	openapi3.NewSchema()
-//}

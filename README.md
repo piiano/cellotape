@@ -19,12 +19,21 @@ This project allow you to do it by either a design-first or code-first approach.
   
   The purpose of the spec produced in the code-first approach is to only describe the API signatures for compatability checks, API Gateways and for client generation.
 
-## Example
+## Examples
 
-You can check the [Hello World Example](./example) to see how it works.
-We use the following [hello-world-openapi.yaml](./example/hello-world-openapi.yaml)
+### Hello World Example
+
+You can check the [Hello World Example](./examples/hello_world_example) to see how it works.
+We use the following [openapi.yaml](./examples/hello_world_example/openapi.yaml)
 ([see with UI](https://editor.swagger.io?url=https://raw.githubusercontent.com/piiano/restcontroller/main/example/hello-world-openapi.yaml?token%3DGHSAT0AAAAAABSHBLZSQVEWSF62YUJLYSK6YSDMK5A))
-to init the server and map to the relevant controller. 
+to init the server and map to the relevant handlers. 
+
+### TODO List API Example
+
+You can check the [TODO List API Example](./examples/todo_list_app_example) to see how it works with a more realistic usage.
+We use the following [openapi.yaml](./examples/todo_list_app_example/openapi.yaml)
+([see with UI](https://editor.swagger.io?url=https://raw.githubusercontent.com/piiano/restcontroller/main/example/hello-world-openapi.yaml?token%3DGHSAT0AAAAAABSHBLZSQVEWSF62YUJLYSK6YSDMK5A))
+to init the server and map to the relevant handlers.
 
 
 ## Roadmap
@@ -50,3 +59,11 @@ to init the server and map to the relevant controller.
   We might want to use [xeipuuv/gojsonschema](https://github.com/xeipuuv/gojsonschema) that seems to have a good support for JSON schema validation (which is part of OpenAPI).
 
 - [ ] We might want to add support for [julienschmidt/httprouter](https://github.com/julienschmidt/httprouter).
+  
+- [ ] We might want to create a version that validates signature at compile time using the AST
+  
+  The advantages of this approach is it can capture all return statements of a function and extract their exact type.
+  
+  It can also result with a final cleaner API for the user.
+
+  
