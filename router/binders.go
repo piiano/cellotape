@@ -9,47 +9,73 @@ import (
 )
 
 type handlerBinders[B, P, Q, R any] struct {
-	requestBodyBinder        func(*gin.Context, *B) error
-	pathParamsBinder         func(*gin.Context, *P) error
-	queryParamsBinder        func(*gin.Context, *Q) error
-	successfulResponseBinder func(*gin.Context, *R)
-	errorResponseBinder      func(*gin.Context, *error)
+	requestBodyBinder func(*gin.Context, *B) error
+	pathParamsBinder  func(*gin.Context, *P) error
+	queryParamsBinder func(*gin.Context, *Q) error
+	sendFactory       func(*gin.Context) Send[R]
+	sendError         func(*gin.Context, error)
+}
+
+type internalServerError struct {
+	Error string `json:"error"`
 }
 
 func bindersFactory[B, P, Q, R any](oa OpenAPI, fn operationFunc[B, P, Q, R]) handlerBinders[B, P, Q, R] {
-	types, _ := fn.types()
+	types := fn.types()
 	var binders = handlerBinders[B, P, Q, R]{
-		requestBodyBinder:        requestBodyBinderFactory[B](types.RequestBody, oa.getContentTypes()),
-		pathParamsBinder:         pathBinderFactory[P](types.PathParams),
-		queryParamsBinder:        queryBinderFactory[Q](types.QueryParams),
-		successfulResponseBinder: responseBinderFactory[R](200, types.ResponseType, oa.getContentTypes()),
-		errorResponseBinder:      responseBinderFactory[error](500, reflect.TypeOf(errors.New("")), oa.getContentTypes()),
+		requestBodyBinder: requestBodyBinderFactory[B](types.requestBody, oa.getContentTypes()),
+		pathParamsBinder:  pathBinderFactory[P](types.pathParams),
+		queryParamsBinder: queryBinderFactory[Q](types.queryParams),
+		sendFactory:       responseBinderFactory[R](types.responsesType, oa.getContentTypes()),
+		sendError:         sendErrorFactory(oa.getContentTypes()),
 	}
 	return binders
 }
 
-func responseBinderFactory[R any](status int, responseType reflect.Type, contentTypes ContentTypes) func(*gin.Context, *R) {
-	if responseType == nilType {
-		return func(c *gin.Context, response *R) {
-			c.Status(status)
-		}
-	}
-	return func(c *gin.Context, response *R) {
-		if status >= 400 {
-			fmt.Printf("[ERROR] %+v\n", *response)
-		}
+func sendErrorFactory(contentTypes ContentTypes) func(*gin.Context, error) {
+	return func(c *gin.Context, err error) {
 		contentType, err := responseContentType(c, contentTypes, JsonContentType{})
 		if err != nil {
 			fmt.Printf("[WARNING] %s. fallback to %s\n", err, contentType.Mime())
 		}
-		responseBytes, err := contentType.Marshal(response)
+		errResponse := internalServerError{Error: err.Error()}
+		responseBytes, err := contentType.Marshal(errResponse)
 		if err != nil {
 			fmt.Printf("[ERROR] %s\n", err)
-			fmt.Printf("[ERROR] failed serializing response %+v for mime type %s\n", *response, contentType.Mime())
+			fmt.Printf("[ERROR] failed serializing response %+v for mime type %s\n", errResponse, contentType.Mime())
 			c.Data(500, contentType.Mime(), []byte(`{ "error": "failed serializing error response" }`))
 			return
 		}
-		c.Data(status, contentType.Mime(), responseBytes)
+		c.Data(500, contentType.Mime(), responseBytes)
+	}
+}
+
+func responseBinderFactory[R any](responsesType reflect.Type, contentTypes ContentTypes) func(*gin.Context) Send[R] {
+	responseTypesMap, err := extractResponses(responsesType)
+	if err != nil {
+
+	}
+	return func(c *gin.Context) Send[R] {
+		return func(status int, responses R) {
+			responseType, _ := responseTypesMap[status]
+			if responseType.isNilType {
+				c.Status(status)
+				return
+			}
+			response := reflect.ValueOf(responses).FieldByIndex(responseType.fieldIndex).Interface()
+			contentType, err := responseContentType(c, contentTypes, JsonContentType{})
+			if err != nil {
+				fmt.Printf("[WARNING] %s. fallback to %s\n", err, contentType.Mime())
+			}
+			responseBytes, err := contentType.Marshal(response)
+			if err != nil {
+				fmt.Printf("[ERROR] %s\n", err)
+				fmt.Printf("[ERROR] failed serializing response %+v for mime type %s\n", response, contentType.Mime())
+				c.Data(500, contentType.Mime(), []byte(`{ "error": "failed serializing error response" }`))
+				return
+			}
+			c.Data(status, contentType.Mime(), responseBytes)
+		}
 	}
 }
 

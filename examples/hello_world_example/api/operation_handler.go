@@ -8,12 +8,18 @@ import (
 
 var GreetOperationHandler = router.OperationFunc(greetHandler)
 
-func greetHandler(request router.Request[body, pathParams, queryParams]) (response, error) {
-	if request.PathParams.Version != "v1" {
-		return response{}, fmt.Errorf("unsupported version %q", request.PathParams.Version)
+func greetHandler(request router.Request[body, pathParams, queryParams], send router.Send[responses]) {
+	if request.PathParams.Version != "v1" && request.PathParams.Version != "1" && request.PathParams.Version != "1.0" {
+		errMessage := fmt.Sprintf("unsupported version %q", request.PathParams.Version)
+		send(400, responses{BadRequest: BadRequest{Message: errMessage}})
+		return
 	}
 	greeting, err := Greet(request.Body.Name, request.Body.DayOfBirth, request.QueryParams.GreetTemplate)
-	return response{Greeting: greeting}, err
+	if err != nil {
+		send(400, responses{BadRequest: BadRequest{Message: err.Error()}})
+		return
+	}
+	send(200, responses{OK: OK{Greeting: greeting}})
 }
 
 type body struct {
@@ -26,6 +32,14 @@ type pathParams struct {
 type queryParams struct {
 	GreetTemplate string `form:"greetTemplate"`
 }
-type response struct {
+type responses struct {
+	OK         `status:"200"`
+	BadRequest `status:"400"`
+}
+
+type OK struct {
 	Greeting string `json:"greeting" schema:"{Hello World!}"`
+}
+type BadRequest struct {
+	Message string `json:"message"`
 }

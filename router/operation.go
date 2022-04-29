@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/piiano/restcontroller/schema_validator"
-	"math/bits"
+	"github.com/piiano/restcontroller/utils"
 	"net/http"
 	"reflect"
-	"strconv"
 )
 
 type Operation interface {
@@ -27,98 +26,144 @@ func (o operation) getHandlerFunc() OperationHandler { return o.operationHandler
 func (o operation) getHandlers() []http.HandlerFunc  { return o.handlers }
 
 func (o operation) validateHandlerTypes(oa OpenAPI) error {
-	types, err := o.getHandlerFunc().types()
-	if err != nil {
-		return err
-	}
-	schemaValidator := schema_validator.NewTypeSchemaValidator(reflect.TypeOf(nil), openapi3.Schema{}, oa.getOptions().InitializationSchemaValidation)
+	errs := utils.NewErrorsCollector()
+	types := o.getHandlerFunc().types()
 	specOp, found := oa.getSpec().findSpecOperationByID(o.id)
 	if !found {
 		return fmt.Errorf("operation id %q not found in spec", o.id)
 	}
-	if err := ValidateRequestBody(types.RequestBody, specOp.RequestBody, oa.getContentTypes()); err != nil {
-		return err
-	}
-
-	for _, param := range specOp.Parameters {
-		// TODO: validate path params schema
-		//paramSchema := param.Value.Schema.Value
-		if param.Value.In == "path" {
-			//fmt.Println(paramSchema, types.PathParams)
-		}
-		// TODO: validate query params schema
-		if param.Value.In == "query" {
-			//fmt.Println(paramSchema, types.QueryParams)
-		}
-	}
-
-	responseValidator := schemaValidator.WithType(types.ResponseType)
-	for statusStr, response := range specOp.Responses {
-		for mime, mediaType := range response.Value.Content {
-			_, found = oa.getContentTypes()[mime]
-			if !found {
-				return fmt.Errorf("content type with mime value %q not found in spec", mime)
-			}
-			if err = responseValidator.WithSchema(*mediaType.Schema.Value).Validate(); err != nil {
-				return err
-			}
-			status, err := strconv.ParseInt(statusStr, 10, bits.UintSize)
-			if err != nil {
-				return err
-			}
-			// spec responses can be for both error and successful cases.
-			// there might be more than one successful and one error response.
-			// we only have one success type and one error type.
-			// we need to think what is the validation strategy here.
-			// TODO: validate responses schema
-			if status < 300 && status >= 200 {
-				continue
-			}
-			// TODO: validate http error schema
-
-		}
-	}
-	return nil
+	errs.AddIfNotNil(validatePathParamsType(types.pathParams, specPathParameters(specOp), oa))
+	errs.AddIfNotNil(validateQueryParamsType(types.queryParams, specQueryParameters(specOp), oa))
+	errs.AddIfNotNil(validateRequestBodyType(types.requestBody, specOp.RequestBody, oa.getContentTypes()))
+	errs.AddIfNotNil(validateResponseTypes(types.responsesType, specOp.Responses, oa))
+	return errs.ErrorOrNil()
 }
 
-//
-//// how to represent multiple response options in a way their type can be extracted?
-//type responseFunc[B, P, Q, R any, H interface {
-//	~func(request Request[B, P, Q]) (R, error)
-//}] func(int, contentType, value R) HttpResponse
-//
-////type responseFunc[R any] func(int, contentType, value R) HttpResponse
-//type operationHandlerFuncV2[B, P, Q, R any] func(request Request[B, P, Q], send responseFunc[R]) error
+func specPathParameters(specOp specOperation) openapi3.Parameters {
+	return utils.Filter(specOp.Parameters, func(param *openapi3.ParameterRef) bool {
+		return param != nil && param.Value != nil && param.Value.In == "path"
+	})
+}
+func specQueryParameters(specOp specOperation) openapi3.Parameters {
+	return utils.Filter(specOp.Parameters, func(param *openapi3.ParameterRef) bool {
+		return param != nil && param.Value != nil && param.Value.In == "query"
+	})
+}
 
-/*
-# Response Validation Flow
+func validatePathParamsType(pathParamsType reflect.Type, specPathParameters openapi3.Parameters, oa OpenAPI) error {
+	errs := utils.NewErrorsCollector()
+	specParameterNames := utils.Map(specPathParameters, func(parameter *openapi3.ParameterRef) string {
+		return parameter.Value.Name
+	})
+	if pathParamsType == nilType && len(specPathParameters) > 0 {
+		return fmt.Errorf("path params type %s is incompatible with the spec defines path parameters %q", pathParamsType, specParameterNames)
+	}
+	if pathParamsType == nilType {
+		return nil
+	}
+	validator := schema_validator.NewTypeSchemaValidator(nilType, openapi3.Schema{}, oa.getOptions().InitializationSchemaValidation)
+	declaredParams := make(map[string]bool)
+	for _, field := range reflect.VisibleFields(pathParamsType) {
+		name := field.Tag.Get("uri")
+		if name == "-" {
+			continue
+		}
+		if name == "" {
+			name = field.Name
+		}
+		declaredParams[name] = true
+		specParameter := specPathParameters.GetByInAndName("path", name)
+		if specParameter == nil {
+			errs.AddIfNotNil(fmt.Errorf("path param %q defined in path params type %s is missing in the spec", name, pathParamsType))
+			continue
+		}
+		// TODO: schema validator check object schemas with json keys
+		errs.AddIfNotNil(validator.WithType(field.Type).WithSchema(*specParameter.Schema.Value).Validate())
+	}
+	for _, name := range specParameterNames {
+		if !declaredParams[name] {
+			errs.AddIfNotNil(fmt.Errorf("path param %q defined spec but is missing in path params type %s", name, pathParamsType))
+		}
+	}
+	return errs.ErrorOrNil()
+}
+func validateQueryParamsType(queryParamsType reflect.Type, specQueryParameters openapi3.Parameters, oa OpenAPI) error {
+	errs := utils.NewErrorsCollector()
+	specParameterNames := utils.Map(specQueryParameters, func(parameter *openapi3.ParameterRef) string {
+		return parameter.Value.Name
+	})
+	if queryParamsType == nilType && len(specQueryParameters) > 0 {
+		return fmt.Errorf("query params type %s is incompatible with the spec defines query parameters %q", queryParamsType, specParameterNames)
+	}
+	if queryParamsType == nilType {
+		return nil
+	}
+	validator := schema_validator.NewTypeSchemaValidator(nilType, openapi3.Schema{}, oa.getOptions().InitializationSchemaValidation)
+	declaredParams := make(map[string]bool)
+	for _, field := range reflect.VisibleFields(queryParamsType) {
+		name := field.Tag.Get("form")
+		if name == "-" {
+			continue
+		}
+		if name == "" {
+			name = field.Name
+		}
+		declaredParams[name] = true
+		specParameter := specQueryParameters.GetByInAndName("query", name)
+		if specParameter == nil {
+			errs.AddIfNotNil(fmt.Errorf("query param %q defined in query params type %s is missing in the spec", name, queryParamsType))
+			continue
+		}
+		// TODO: schema validator check object schemas with json keys
+		errs.AddIfNotNil(validator.WithType(field.Type).WithSchema(*specParameter.Schema.Value).Validate())
+	}
+	for _, name := range specParameterNames {
+		if !declaredParams[name] {
+			errs.AddIfNotNil(fmt.Errorf("query param %q defined spec but is missing in query params type %s", name, queryParamsType))
+		}
+	}
+	return errs.ErrorOrNil()
+}
 
-type Response[T any] func(status, value T) HttpResponse
-
-
-WithOperation(
-	NewOperation(func... (...) HttpResponse).
-	WithResponse(200, any?) // Content Type?
-	WithResponse(410, any?)
-)
-*/
-//
-//type HttpResponseV2 interface {
-//	getStatus() int
-//	getContentType() string
-//	getBodyType() (reflect.Type, error)
-//	bytes() ([]byte, error)
-//}
-//
-//type httpResponseV2[T any] struct {
-//	status      int
-//	contentType string
-//	body        T
-//}
-//
-//func NewHTTPResponseV2[T any](status int, contentType string) HttpResponseV2 {
-//	return httpResponse[T]{
-//		status:      status,
-//		contentType: contentType,
-//	}
-//}
+func validateResponseTypes(responsesType reflect.Type, operationResponses openapi3.Responses, oa OpenAPI) error {
+	errs := utils.NewErrorsCollector()
+	responsesMap, err := extractResponses(responsesType)
+	if err != nil {
+		return err
+	}
+	supportedContentTypes := oa.getContentTypes()
+	schemaValidator := schema_validator.NewTypeSchemaValidator(
+		reflect.TypeOf(nil),
+		openapi3.Schema{},
+		oa.getOptions().InitializationSchemaValidation,
+	)
+	declaredResponses := make(map[int]bool)
+	for statusStr, specResponse := range operationResponses {
+		status, err := parseStatus(statusStr)
+		if errs.AddIfNotNil(err) {
+			continue
+		}
+		responseType, found := responsesMap[status]
+		if !found {
+			errs.AddIfNotNil(fmt.Errorf("spec response for status %d is not declared in the responses type %s", status, responsesType))
+			continue
+		}
+		declaredResponses[status] = true
+		responseValidator := schemaValidator.WithType(responseType.responseType)
+		for mime, mediaType := range specResponse.Value.Content {
+			_, found := supportedContentTypes[mime]
+			if !found {
+				errs.AddIfNotNil(fmt.Errorf("response content type with mime value %q is missing", mime))
+				continue
+			}
+			errs.AddIfNotNil(responseValidator.WithSchema(*mediaType.Schema.Value).Validate())
+		}
+	}
+	for status, _ := range responsesMap {
+		if declaredResponses[status] {
+			continue
+		}
+		errs.AddIfNotNil(fmt.Errorf("response status %d of responses type %s is not declared in the spec", status, responsesType))
+	}
+	return errs.ErrorOrNil()
+}

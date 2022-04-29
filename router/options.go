@@ -25,8 +25,8 @@ type Options struct {
 	//	}
 	//	// Enforce schema validation at runtime using the OpenAPISpec schema.
 	//	RuntimeSchemaValidation struct {
-	//		// Enforce schema validation at runtime for RequestBody.
-	//		RequestBody bool
+	//		// Enforce schema validation at runtime for requestBody.
+	//		requestBody bool
 	//		// Enforce schema validation at runtime for ResponseBody.
 	//		ResponseBody bool
 	//	}
