@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"io"
+	"log"
 	"reflect"
 )
 
@@ -122,12 +123,12 @@ func responseBinderFactory[R any](responsesType reflect.Type, contentTypes Conte
 		response := reflect.ValueOf(responses).FieldByIndex(responseType.fieldIndex).Interface()
 		contentType, err := responseContentType(c, contentTypes, JsonContentType{})
 		if err != nil {
-			fmt.Printf("[WARNING] %s. fallback to %s\n", err, contentType.Mime())
+			log.Printf("[WARNING] %s. fallback to %s\n", err, contentType.Mime())
 		}
 		responseBytes, err := contentType.Encode(response)
 		if err != nil {
-			fmt.Printf("[ERROR] %s\n", err)
-			fmt.Printf("[ERROR] failed serializing httpResponse %+v for mime type %s\n", response, contentType.Mime())
+			log.Printf("[ERROR] %s\n", err)
+			log.Printf("[ERROR] failed serializing httpResponse %+v for mime type %s\n", response, contentType.Mime())
 			c.Data(500, contentType.Mime(), []byte(`{ "error": "failed serializing error httpResponse" }`))
 			return
 		}
@@ -139,13 +140,13 @@ func errorBinderFactory(contentTypes ContentTypes) func(*gin.Context, error) {
 	return func(c *gin.Context, errResponse error) {
 		contentType, err := responseContentType(c, contentTypes, JsonContentType{})
 		if err != nil {
-			fmt.Printf("[WARNING] %s. fallback to %s\n", err, contentType.Mime())
+			log.Printf("[WARNING] %s. fallback to %s\n", err, contentType.Mime())
 		}
 		errHTTPResponse := internalServerError{Error: errResponse.Error()}
 		responseBytes, err := contentType.Encode(errHTTPResponse)
 		if err != nil {
-			fmt.Printf("[ERROR] %s\n", err)
-			fmt.Printf("[ERROR] failed serializing httpResponse %+v for mime type %s\n", errResponse, contentType.Mime())
+			log.Printf("[ERROR] %s\n", err)
+			log.Printf("[ERROR] failed serializing httpResponse %+v for mime type %s\n", errResponse, contentType.Mime())
 			c.Data(500, contentType.Mime(), []byte(`{ "error": "failed serializing error httpResponse" }`))
 			return
 		}
