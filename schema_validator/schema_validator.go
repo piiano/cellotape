@@ -12,16 +12,14 @@ type Options struct {
 
 var textMarshallerType = reflect.TypeOf((*encoding.TextMarshaler)(nil)).Elem()
 
-type SchemaType string
-
 // schema types allowed by OpenAPI specification.
 const (
-	objectSchemaType  SchemaType = "object"
-	arraySchemaType   SchemaType = "array"
-	stringSchemaType  SchemaType = "string"
-	booleanSchemaType SchemaType = "boolean"
-	numberSchemaType  SchemaType = "number"
-	integerSchemaType SchemaType = "integer"
+	objectSchemaType  = "object"
+	arraySchemaType   = "array"
+	stringSchemaType  = "string"
+	booleanSchemaType = "boolean"
+	numberSchemaType  = "number"
+	integerSchemaType = "integer"
 )
 
 // TypeSchemaValidator helps validate reflect.Type and openapi3.Schema compatibility using the validation Options.
@@ -86,7 +84,7 @@ func (c typeSchemaValidatorContext) Validate() utils.MultiError {
 	errs.AddIfNotNil(c.validateSchemaNot())
 
 	// Test specific schema types validations
-	switch SchemaType(c.schema.Type) {
+	switch c.schema.Type {
 	case objectSchemaType:
 		errs.AddIfNotNil(c.validateObjectSchema())
 	case arraySchemaType:

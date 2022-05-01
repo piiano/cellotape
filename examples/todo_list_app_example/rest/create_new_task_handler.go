@@ -6,16 +6,13 @@ import (
 	r "github.com/piiano/restcontroller/router"
 )
 
-type createNewTaskResponses struct {
-	OK m.Identifiable `status:"200"`
+func createNewTaskOperation(tasks services.TasksService) r.OperationHandler {
+	return r.OperationFunc(func(request r.Request[m.Task, r.Nil, r.Nil]) (int, createNewTaskResponses) {
+		id := tasks.CreateTask(request.Body)
+		return 200, createNewTaskResponses{OK: m.Identifiable{ID: id}}
+	})
 }
 
-func createNewTaskOperation(tasks services.TasksService) r.OperationHandler {
-	return r.OperationFunc(func(
-		request r.Request[m.Task, r.Nil, r.Nil],
-		send r.Send[createNewTaskResponses],
-	) {
-		id := tasks.CreateTask(request.Body)
-		send(200, createNewTaskResponses{OK: m.Identifiable{ID: id}})
-	})
+type createNewTaskResponses struct {
+	OK m.Identifiable `status:"200"`
 }

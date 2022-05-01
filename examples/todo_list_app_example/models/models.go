@@ -15,11 +15,11 @@ type IdentifiableTask struct {
 	Task
 }
 
-type Page[T any] struct {
+type page[T any] struct {
 	Results  []T  `json:"results"`
 	Page     int  `json:"page"`
 	PageSize int  `json:"pageSize"`
 	IsLast   bool `json:"isLast"`
 }
 
-type IdentifiableTasksPage Page[IdentifiableTask]
+type IdentifiableTasksPage page[IdentifiableTask]

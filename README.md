@@ -1,27 +1,62 @@
-# restcontroller
+# OpenAPI Router
 
-A DRY approach to REST Controller with OpenAPI in Golang.
+A safe DRY approach to HTTP routing with OpenAPI in Golang.
 We aim to simplify the way REST APIs are developed with OpenAPI.
-This project allow you to do it by either a design-first or code-first approach.
+This project allow you to do it in a **design-first** approach.
 
-- **Design First** - Load an OpenAPI spec and use it as a router to call relevant controllers in your code.
-- **Code First** - Write your code and use reflection on the controllers signatures to produce an OpenAPI spec.
+Load an OpenAPI spec and use it as a router to call relevant handlers in your code.
+The router handler signatures are validated with your OpenAPI spec and you can rest assured your code is implementing
+your design correctly with no gaps between your code and your spec. 
 
 ## What this project isn't doing
 
 - It's not using code generation to support design-first approach.
   
   Code generators have their issues, code can get outdated, changes to generated code are hard to maintain because they might be overridden whenever the spec changes.
-  
-  We load the spec on server initialization and init a router based on it.
 
-- It's not producing all the extra documentation properties in the spec such as descriptions, examples, etc. 
+- It's not using comments on your code. Some approaches might suggest you comment your code in a way that produce an OpenAPI spec that can be compared to the spec you design.
   
-  The purpose of the spec produced in the code-first approach is to only describe the API signatures for compatability checks, API Gateways and for client generation.
+  The issue with this approach is that same as code the spec, code and comments can get out of sync too.
+
+  Especially when HTTP handlers in go provide an opaque interface with no type information.
+
+Our approach using strongly typed handlers can help you create an implementation for your API that never gets out of sync and are easily maintained. 
+
+## Features
+
+- [x] Load, parse and validate an OpenAPI spec (`router.OpenAPISpec`).
+
+- [x] Init an HTTP router driven from an OpenAPI spec (`router.OpenAPI`).
+
+- [x] Provide SDK for defining strongly typed handler mapped to spec operations.
+
+- [x] Verify the handler signature types are compatible with those defined in the spec.
+  
+  This enforces during initialization that the handlers correctly implement the spec. 
+ 
+  Validated components includes:
+  
+  - **Request Body Schema**
+    
+  - **Path Parameters**
+    
+  - **Query Parameters**
+    
+  - **Responses**
+  
+- [x] Support for middleware chains and group mechanism that allow applying middlewares to specific operations or specific groups
+  
+- [x] Compatability with the `http.Handler` interface for both the router itself and the middlewares to allow easy integration of the router in any popular framework
+
+- [x] Support for custom content types to align with content types defined in the spec. 
+ 
+  This can be done by implementing the `router.ContentType` interface
 
 ## Examples
 
-### Hello World Example
+You can learn more about how to use this package by reviewing the following examples.  
+
+### Hello World API Example
 
 You can check the [Hello World Example](./examples/hello_world_example) to see how it works.
 We use the following [openapi.yaml](./examples/hello_world_example/openapi.yaml)
@@ -37,33 +72,19 @@ to init the server and map to the relevant handlers.
 
 
 ## Roadmap
-
-- [x] Shift to a design-first API approaches for building Gin REST Routers from a spec and operationId to Controller map.
-    
-  The original goal was to create specs in both design-first and code-first approaches and then check for compatability between them using an OpenAPI diff tool. 
-  
-  The new approach, is taking a design-first spec and an operationId to Controller map and using them to init a Gin router with builtin validations based on the spec.
-  
-- [x] Reflection validation during initialization for request body & params based on the OpenAPI spec.
-  
-- [x] Add support for middlewares - Require some designing of how this API will look like.
-  
-- [x] Add support for custom binders - support for more content-types and ways to bind them to the relevant params.
-  
-- [ ] Reflection validation during initialization for responses and possible errors based on the OpenAPI spec.
-  
+ 
 - [ ] Runtime validation for request body & params based on the OpenAPI spec.
-
-  We currently use [getkin/kin-openapi](https://github.com/getkin/kin-openapi) that from a quick look seems to have only basic validations support.
-
-  We might want to use [xeipuuv/gojsonschema](https://github.com/xeipuuv/gojsonschema) that seems to have a good support for JSON schema validation (which is part of OpenAPI).
-
-- [ ] We might want to add support for [julienschmidt/httprouter](https://github.com/julienschmidt/httprouter).
   
-- [ ] We might want to create a version that validates signature at compile time using the AST
+  We might want to look at few options for that:
   
-  The advantages of this approach is it can capture all return statements of a function and extract their exact type.
+  - https://github.com/go-playground/validator
+    
+  - https://github.com/xeipuuv/gojsonschema
   
-  It can also result with a final cleaner API for the user.
+- [ ] Add support for better customization using an `router.Options` parameter 
+  
+- [ ] Add support for additional OpenAPI features such as Header Params, Cookie Params, etc.
 
-  
+- [ ] We might want to replace the internal implementation with [julienschmidt/httprouter](https://github.com/julienschmidt/httprouter).
+
+- [ ] Improve test coverage for the router package

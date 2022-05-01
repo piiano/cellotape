@@ -8,7 +8,7 @@ import (
 
 func (c typeSchemaValidatorContext) validateBooleanSchema() utils.MultiError {
 	errs := utils.NewErrorsCollector()
-	if SchemaType(c.schema.Type) != booleanSchemaType {
+	if c.schema.Type != booleanSchemaType {
 		return nil
 	}
 	if c.goType.Kind() != reflect.Bool {
