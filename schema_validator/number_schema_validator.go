@@ -8,7 +8,7 @@ import (
 
 func (c typeSchemaValidatorContext) validateNumberSchema() utils.MultiError {
 	errs := utils.NewErrorsCollector()
-	if SchemaType(c.schema.Type) != numberSchemaType {
+	if c.schema.Type != numberSchemaType {
 		return nil
 	}
 	switch c.goType.Kind() {
@@ -18,7 +18,7 @@ func (c typeSchemaValidatorContext) validateNumberSchema() utils.MultiError {
 	default:
 		errs.AddIfNotNil(fmt.Errorf("number schema is incompatible with type %s", c.goType))
 	}
-	switch SchemaFormat(c.schema.Format) {
+	switch c.schema.Format {
 	case floatFormat:
 		if c.goType.Kind() != reflect.Float32 {
 			errs.AddIfNotNil(fmt.Errorf("number schema with float format is not compatible with type %s", c.goType))

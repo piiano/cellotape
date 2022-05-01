@@ -27,7 +27,7 @@ func TestSchemaAnyOfValidatorPass(t *testing.T) {
 func TestSchemaAnyOfValidatorPassOnMoreThanOneMatchedType(t *testing.T) {
 	notBooleanSchema := openapi3.NewSchema()
 	numberSchema := openapi3.NewSchema()
-	numberSchema.Type = string(numberSchemaType)
+	numberSchema.Type = numberSchemaType
 	notBooleanSchema.AnyOf = openapi3.SchemaRefs{
 		openapi3.NewBoolSchema().NewRef(),
 		openapi3.NewStringSchema().NewRef(),

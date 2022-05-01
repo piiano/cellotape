@@ -11,7 +11,7 @@ import (
 // These services are exposed as REST APIs only by their usage in a REST controller.
 // They can be potentially be exposed in additional ways with other protocols, CLI, Golang SDK, etc.
 
-func Greet(name string, dayOfBirth time.Time, greetTemplate string) (string, error) {
+func greet(name string, dayOfBirth time.Time, greetTemplate string) (string, error) {
 	if name == "" {
 		name = "World"
 	}

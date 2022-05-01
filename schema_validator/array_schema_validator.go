@@ -7,7 +7,7 @@ import (
 )
 
 func (c typeSchemaValidatorContext) validateArraySchema() utils.MultiError {
-	if SchemaType(c.schema.Type) != arraySchemaType {
+	if c.schema.Type != arraySchemaType {
 		return nil
 	}
 	errs := utils.NewErrorsCollector()

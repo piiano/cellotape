@@ -8,18 +8,16 @@ import (
 
 var GreetOperationHandler = router.OperationFunc(greetHandler)
 
-func greetHandler(request router.Request[body, pathParams, queryParams], send router.Send[responses]) {
+func greetHandler(request router.Request[body, pathParams, queryParams]) (int, responses) {
 	if request.PathParams.Version != "v1" && request.PathParams.Version != "1" && request.PathParams.Version != "1.0" {
 		errMessage := fmt.Sprintf("unsupported version %q", request.PathParams.Version)
-		send(400, responses{BadRequest: BadRequest{Message: errMessage}})
-		return
+		return 400, responses{BadRequest: badRequest{Message: errMessage}}
 	}
-	greeting, err := Greet(request.Body.Name, request.Body.DayOfBirth, request.QueryParams.GreetTemplate)
+	greeting, err := greet(request.Body.Name, request.Body.DayOfBirth, request.QueryParams.GreetTemplate)
 	if err != nil {
-		send(400, responses{BadRequest: BadRequest{Message: err.Error()}})
-		return
+		return 400, responses{BadRequest: badRequest{Message: err.Error()}}
 	}
-	send(200, responses{OK: OK{Greeting: greeting}})
+	return 200, responses{OK: ok{Greeting: greeting}}
 }
 
 type body struct {
@@ -33,13 +31,13 @@ type queryParams struct {
 	GreetTemplate string `form:"greetTemplate"`
 }
 type responses struct {
-	OK         `status:"200"`
-	BadRequest `status:"400"`
+	OK         ok         `status:"200"`
+	BadRequest badRequest `status:"400"`
 }
 
-type OK struct {
+type ok struct {
 	Greeting string `json:"greeting" schema:"{Hello World!}"`
 }
-type BadRequest struct {
+type badRequest struct {
 	Message string `json:"message"`
 }

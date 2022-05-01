@@ -25,21 +25,20 @@ func NewTasksService() TasksService {
 }
 
 func (t *tasks) GetTasksPage(page int, pageSize int) models.IdentifiableTasksPage {
-	tasksWithId := make([]models.IdentifiableTask, 0, page)
+	tasksWithIds := make([]models.IdentifiableTask, 0, page)
 	for id, task := range *t {
-		tasksWithId = append(tasksWithId, models.IdentifiableTask{
+		tasksWithIds = append(tasksWithIds, models.IdentifiableTask{
 			Identifiable: models.Identifiable{ID: id},
 			Task:         task,
 		})
 	}
-	last := len(tasksWithId)
 	from := page * pageSize
 	to := (page + 1) * pageSize
-	isLast := last <= to
+	isLast := to >= len(tasksWithIds)
 	if isLast {
-		to = last
+		to = len(tasksWithIds)
 	}
-	pageSlice := tasksWithId[from:to]
+	pageSlice := tasksWithIds[from:to]
 	return models.IdentifiableTasksPage{
 		Results:  pageSlice,
 		Page:     page,

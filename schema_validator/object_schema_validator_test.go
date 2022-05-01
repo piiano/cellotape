@@ -23,8 +23,8 @@ func TestObjectSchemaValidatorWithSimpleStruct(t *testing.T) {
 	type SimpleStruct struct {
 		Field1 string
 		Field2 struct {
-			Field2_A string `json:"renamed_field_2_a,omitempty"`
-			Field2_B []bool
+			Field2A string `json:"renamed_field_2_a,omitempty"`
+			Field2B []bool
 		}
 		Field3 int
 	}
@@ -32,7 +32,7 @@ func TestObjectSchemaValidatorWithSimpleStruct(t *testing.T) {
 		WithProperty("Field1", openapi3.NewStringSchema()).
 		WithProperty("Field2", openapi3.NewObjectSchema().
 			WithProperty("renamed_field_2_a", openapi3.NewStringSchema()).
-			WithProperty("Field2_B", openapi3.NewArraySchema().WithItems(openapi3.NewBoolSchema()))).
+			WithProperty("Field2B", openapi3.NewArraySchema().WithItems(openapi3.NewBoolSchema()))).
 		WithProperty("Field3", openapi3.NewIntegerSchema())
 	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *simpleStructSchema, Options{})
 	simpleStructType := reflect.TypeOf(SimpleStruct{})

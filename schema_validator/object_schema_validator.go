@@ -11,7 +11,7 @@ import (
 func (c typeSchemaValidatorContext) validateObjectSchema() utils.MultiError {
 	// TODO: validate required properties, nullable, additionalProperties, etc.
 	errs := utils.NewErrorsCollector()
-	if SchemaType(c.schema.Type) != objectSchemaType {
+	if c.schema.Type != objectSchemaType {
 		return nil
 	}
 	switch c.goType.Kind() {

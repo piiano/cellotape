@@ -8,74 +8,59 @@ import (
 	"regexp"
 )
 
-type OpenAPI interface {
+type OpenAPIRouter interface {
 	// Use middlewares on the root handler
-	Use(...http.HandlerFunc) OpenAPI
+	Use(...http.HandlerFunc) OpenAPIRouter
 	// WithGroup defines a virtual group that allow defining middlewares for group of routes more easily
-	WithGroup(Group) OpenAPI
+	WithGroup(Group) OpenAPIRouter
 	// WithOperation attaches an OperationHandler for an operation ID string on the OpenAPISpec
-	WithOperation(string, OperationHandler, ...http.HandlerFunc) OpenAPI
+	WithOperation(string, OperationHandler, ...http.HandlerFunc) OpenAPIRouter
 	// WithContentType Add support for encoding additional content type
-	WithContentType(ContentType) OpenAPI
+	WithContentType(ContentType) OpenAPIRouter
 	// AsHandler validates the validity of the specified implementation with the registered OpenAPISpec
 	// returns a http.Handler that implements nil value if all checks passed correctly
 	AsHandler() (http.HandlerFunc, error)
-
-	getSpec() OpenAPISpec
-	getOptions() Options
-	getContentTypes() ContentTypes
-	groupInternals
 }
 
-// NewOpenAPI creates new OpenAPI router with the provided OpenAPISpec
-func NewOpenAPI(spec OpenAPISpec) OpenAPI {
-	return &openapi{
-		spec:         spec,
-		options:      Options{},
-		handlers:     []http.HandlerFunc{},
-		groups:       []groupInternals{},
-		operations:   map[string]Operation{},
-		contentTypes: ContentTypes{},
-	}
+// NewOpenAPIRouter creates new OpenAPIRouter router with the provided OpenAPISpec
+func NewOpenAPIRouter(spec OpenAPISpec) OpenAPIRouter {
+	return NewOpenAPIRouterWithOptions(spec, Options{})
 }
 
-// NewOpenAPIWithOptions creates new OpenAPI router with the provided OpenAPISpec and custom options
-func NewOpenAPIWithOptions(spec OpenAPISpec, options Options) OpenAPI {
+// NewOpenAPIRouterWithOptions creates new OpenAPIRouter router with the provided OpenAPISpec and custom options
+func NewOpenAPIRouterWithOptions(spec OpenAPISpec, options Options) OpenAPIRouter {
 	return &openapi{
 		spec:         spec,
 		options:      options,
-		handlers:     []http.HandlerFunc{},
-		groups:       []groupInternals{},
-		operations:   map[string]Operation{},
-		contentTypes: ContentTypes{},
+		contentTypes: DefaultContentTypes(),
+		group: group{
+			handlers:   []http.HandlerFunc{},
+			groups:     []group{},
+			operations: map[string]operation{},
+		},
 	}
 }
 
 type openapi struct {
 	spec         OpenAPISpec
 	options      Options
-	handlers     []http.HandlerFunc
-	groups       []groupInternals
-	operations   map[string]Operation
 	contentTypes ContentTypes
+	group
 }
 
-func (oa *openapi) Use(handlers ...http.HandlerFunc) OpenAPI {
-	oa.handlers = append(oa.handlers, handlers...)
+func (oa *openapi) Use(handlers ...http.HandlerFunc) OpenAPIRouter {
+	oa.group.Use(handlers...)
 	return oa
 }
-func (oa *openapi) WithGroup(group Group) OpenAPI {
-	oa.groups = append(oa.groups, group)
+func (oa *openapi) WithGroup(group Group) OpenAPIRouter {
+	oa.group.WithGroup(group)
 	return oa
 }
-func (oa *openapi) WithOperation(id string, handlerFunc OperationHandler, handlers ...http.HandlerFunc) OpenAPI {
-	oa.operations[id] = operation{
-		operationHandler: handlerFunc,
-		handlers:         handlers,
-	}
+func (oa *openapi) WithOperation(id string, handlerFunc OperationHandler, handlers ...http.HandlerFunc) OpenAPIRouter {
+	oa.group.WithOperation(id, handlerFunc, handlers...)
 	return oa
 }
-func (oa *openapi) WithContentType(contentType ContentType) OpenAPI {
+func (oa *openapi) WithContentType(contentType ContentType) OpenAPIRouter {
 	oa.contentTypes[contentType.Mime()] = contentType
 	return oa
 }
@@ -84,26 +69,29 @@ func (oa *openapi) AsHandler() (http.HandlerFunc, error) {
 	pathParamsMatcher := regexp.MustCompile(`\{([^/]*)}`)
 	errs := utils.NewErrorsCollector()
 	engine := gin.New()
-	flatOperations := flattenOperations(oa)
+	flatOperations := flattenOperations(oa.group)
 	declaredOperation := make(map[string]bool, len(flatOperations))
 	for _, flatOp := range flatOperations {
-		if declaredOperation[flatOp.getId()] {
-			errs.AddIfNotNil(fmt.Errorf("multiple handlers found for operation id %q", flatOp.getId()))
+		if declaredOperation[flatOp.id] {
+			errs.AddIfNotNil(fmt.Errorf("multiple handlers found for operation id %q", flatOp.id))
 			continue
 		}
-		declaredOperation[flatOp.getId()] = true
-		specOp, found := oa.getSpec().findSpecOperationByID(flatOp.getId())
+		declaredOperation[flatOp.id] = true
+		specOp, found := oa.spec.findSpecOperationByID(flatOp.id)
 		if !found {
-			errs.AddIfNotNil(fmt.Errorf("handler recieved for non exising operation id %q is spec", flatOp.getId()))
+			errs.AddIfNotNil(fmt.Errorf("handler recieved for non exising operation id %q is spec", flatOp.id))
 		}
-		errs.AddIfNotNil(flatOp.validateHandlerTypes(oa))
-		handler := flatOp.getHandlerFunc().asGinHandler(oa)
+		errs.AddIfNotNil(flatOp.validateHandlerTypes(*oa))
+		if errs.ErrorOrNil() != nil {
+			continue
+		}
+		handler := flatOp.operationHandler.asGinHandler(*oa)
 		path := pathParamsMatcher.ReplaceAllString(specOp.path, ":$1")
-		engine.Handle(specOp.method, path, append(utils.Map(flatOp.getHandlers(), func(h http.HandlerFunc) gin.HandlerFunc {
+		engine.Handle(specOp.method, path, append(utils.Map(flatOp.handlers, func(h http.HandlerFunc) gin.HandlerFunc {
 			return gin.WrapH(h)
 		}), handler)...)
 	}
-	for _, pathItem := range oa.getSpec().Paths {
+	for _, pathItem := range oa.spec.Paths {
 		for _, specOp := range pathItem.Operations() {
 			if !declaredOperation[specOp.OperationID] {
 				errs.AddIfNotNil(fmt.Errorf("missing handler for operation id %q", specOp.OperationID))
@@ -113,9 +101,25 @@ func (oa *openapi) AsHandler() (http.HandlerFunc, error) {
 	return engine.ServeHTTP, errs.ErrorOrNil()
 }
 
-func (oa openapi) getGroups() []groupInternals         { return oa.groups }
-func (oa openapi) getHandlers() []http.HandlerFunc     { return oa.handlers }
-func (oa openapi) getOperations() map[string]Operation { return oa.operations }
-func (oa *openapi) getSpec() OpenAPISpec               { return oa.spec }
-func (oa *openapi) getOptions() Options                { return oa.options }
-func (oa *openapi) getContentTypes() ContentTypes      { return oa.contentTypes }
+// flattenOperations takes a group with separate operations, handlers, and nested groups and flatten them into a flat
+// Operation slice that include for each Operation its own OperationFunc, attached handlers, and attached group handlers.
+func flattenOperations(g group) []operation {
+	flatOperations := make([]operation, 0)
+	for id, op := range g.operations {
+		flatOperations = append(flatOperations, operation{
+			id:               id,
+			handlers:         utils.ConcatSlices(g.handlers, op.handlers),
+			operationHandler: op.operationHandler,
+		})
+	}
+	for _, nestedGroup := range g.groups {
+		for _, flatOp := range flattenOperations(nestedGroup) {
+			flatOperations = append(flatOperations, operation{
+				id:               flatOp.id,
+				handlers:         utils.ConcatSlices(g.handlers, flatOp.handlers),
+				operationHandler: flatOp.operationHandler,
+			})
+		}
+	}
+	return flatOperations
+}

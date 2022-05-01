@@ -10,10 +10,10 @@ import (
 
 func (c typeSchemaValidatorContext) validateStringSchema() utils.MultiError {
 	errs := utils.NewErrorsCollector()
-	if SchemaType(c.schema.Type) != stringSchemaType {
+	if c.schema.Type != stringSchemaType {
 		return nil
 	}
-	switch SchemaFormat(c.schema.Format) {
+	switch c.schema.Format {
 	case "":
 		if c.goType.Kind() != reflect.String {
 			errs.AddIfNotNil(fmt.Errorf("received type %s for string schema", c.goType))

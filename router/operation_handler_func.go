@@ -1,21 +1,44 @@
 package router
 
 import (
+	"context"
 	"github.com/gin-gonic/gin"
+	"net/http"
 	"reflect"
 )
 
+type operation struct {
+	id               string
+	handlers         []http.HandlerFunc
+	operationHandler OperationHandler
+}
+
 type OperationHandler interface {
 	types() operationTypes
-	asGinHandler(oa OpenAPI) gin.HandlerFunc
+	asGinHandler(oa openapi) gin.HandlerFunc
 }
 
 type operationTypes struct {
-	RequestTypes
+	requestBody   reflect.Type
+	pathParams    reflect.Type
+	queryParams   reflect.Type
 	responsesType reflect.Type
 }
 
-type operationFunc[B, P, Q, R any] func(Request[B, P, Q], Send[R])
+type operationFunc[B, P, Q, R any] func(Request[B, P, Q]) (int, R)
+
+type Request[B, P, Q any] struct {
+	Context     context.Context
+	Body        B
+	PathParams  P
+	QueryParams Q
+	Headers     http.Header
+}
+
+type Nil *uintptr
+
+var nilValue Nil
+var nilType = reflect.TypeOf(nilValue)
 
 func OperationFunc[B, P, Q, R any](opFunc operationFunc[B, P, Q, R]) OperationHandler {
 	return opFunc
@@ -29,40 +52,22 @@ func (fn operationFunc[B, P, Q, R]) types() operationTypes {
 		responses R
 	)
 	return operationTypes{
-		RequestTypes: RequestTypes{
-			requestBody: reflect.TypeOf(body),
-			pathParams:  reflect.TypeOf(path),
-			queryParams: reflect.TypeOf(query),
-		},
+		requestBody:   reflect.TypeOf(body),
+		pathParams:    reflect.TypeOf(path),
+		queryParams:   reflect.TypeOf(query),
 		responsesType: reflect.TypeOf(responses),
 	}
 }
 
-type HandlerContentTypes struct {
-	request  ContentType
-	response ContentType
-}
-
-func (fn operationFunc[B, P, Q, R]) asGinHandler(oa OpenAPI) gin.HandlerFunc {
+func (fn operationFunc[B, P, Q, R]) asGinHandler(oa openapi) gin.HandlerFunc {
 	binders := bindersFactory[B, P, Q, R](oa, fn)
 	return func(c *gin.Context) {
-		var request = Request[B, P, Q]{
-			Context: c,
-			Headers: c.Request.Header,
-		}
-		if err := binders.requestBodyBinder(c, &(request.Body)); err != nil {
-			binders.sendError(c, err)
+		request, err := binders.requestBinder(c)
+		if err != nil {
+			binders.errorBinder(c, err)
 			return
 		}
-		if err := binders.pathParamsBinder(c, &(request.PathParams)); err != nil {
-			binders.sendError(c, err)
-			return
-		}
-		if err := binders.queryParamsBinder(c, &(request.QueryParams)); err != nil {
-			binders.sendError(c, err)
-			return
-		}
-		sendFunc := binders.sendFactory(c)
-		fn(request, sendFunc)
+		status, responses := fn(request)
+		binders.responseBinder(c, status, responses)
 	}
 }

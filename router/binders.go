@@ -9,76 +9,49 @@ import (
 )
 
 type handlerBinders[B, P, Q, R any] struct {
-	requestBodyBinder func(*gin.Context, *B) error
-	pathParamsBinder  func(*gin.Context, *P) error
-	queryParamsBinder func(*gin.Context, *Q) error
-	sendFactory       func(*gin.Context) Send[R]
-	sendError         func(*gin.Context, error)
+	requestBinder  func(*gin.Context) (Request[B, P, Q], error)
+	responseBinder func(*gin.Context, int, R)
+	errorBinder    func(*gin.Context, error)
 }
 
 type internalServerError struct {
 	Error string `json:"error"`
 }
 
-func bindersFactory[B, P, Q, R any](oa OpenAPI, fn operationFunc[B, P, Q, R]) handlerBinders[B, P, Q, R] {
+// produce set of binder functions that can be called at runtime to handle each request
+func bindersFactory[B, P, Q, R any](oa openapi, fn operationFunc[B, P, Q, R]) handlerBinders[B, P, Q, R] {
 	types := fn.types()
 	var binders = handlerBinders[B, P, Q, R]{
-		requestBodyBinder: requestBodyBinderFactory[B](types.requestBody, oa.getContentTypes()),
-		pathParamsBinder:  pathBinderFactory[P](types.pathParams),
-		queryParamsBinder: queryBinderFactory[Q](types.queryParams),
-		sendFactory:       responseBinderFactory[R](types.responsesType, oa.getContentTypes()),
-		sendError:         sendErrorFactory(oa.getContentTypes()),
+		requestBinder:  requestBinderFactory[B, P, Q](oa, types),
+		responseBinder: responseBinderFactory[R](types.responsesType, oa.contentTypes),
+		errorBinder:    errorBinderFactory(oa.contentTypes),
 	}
 	return binders
 }
 
-func sendErrorFactory(contentTypes ContentTypes) func(*gin.Context, error) {
-	return func(c *gin.Context, err error) {
-		contentType, err := responseContentType(c, contentTypes, JsonContentType{})
-		if err != nil {
-			fmt.Printf("[WARNING] %s. fallback to %s\n", err, contentType.Mime())
+// produce the binder function that can be called at runtime to create the request object for the handler
+func requestBinderFactory[B, P, Q any](oa openapi, types operationTypes) func(*gin.Context) (Request[B, P, Q], error) {
+	requestBodyBinder := requestBodyBinderFactory[B](types.requestBody, oa.contentTypes)
+	pathParamsBinder := pathBinderFactory[P](types.pathParams)
+	queryParamsBinder := queryBinderFactory[Q](types.queryParams)
+
+	// this is what actually build the request object at runtime for the handler
+	return func(c *gin.Context) (Request[B, P, Q], error) {
+		var request = Request[B, P, Q]{Context: c, Headers: c.Request.Header}
+		if err := requestBodyBinder(c, &request.Body); err != nil {
+			return request, err
 		}
-		errResponse := internalServerError{Error: err.Error()}
-		responseBytes, err := contentType.Marshal(errResponse)
-		if err != nil {
-			fmt.Printf("[ERROR] %s\n", err)
-			fmt.Printf("[ERROR] failed serializing response %+v for mime type %s\n", errResponse, contentType.Mime())
-			c.Data(500, contentType.Mime(), []byte(`{ "error": "failed serializing error response" }`))
-			return
+		if err := pathParamsBinder(c, &request.PathParams); err != nil {
+			return request, err
 		}
-		c.Data(500, contentType.Mime(), responseBytes)
+		if err := queryParamsBinder(c, &request.QueryParams); err != nil {
+			return request, err
+		}
+		return request, nil
 	}
 }
 
-func responseBinderFactory[R any](responsesType reflect.Type, contentTypes ContentTypes) func(*gin.Context) Send[R] {
-	responseTypesMap, err := extractResponses(responsesType)
-	if err != nil {
-
-	}
-	return func(c *gin.Context) Send[R] {
-		return func(status int, responses R) {
-			responseType, _ := responseTypesMap[status]
-			if responseType.isNilType {
-				c.Status(status)
-				return
-			}
-			response := reflect.ValueOf(responses).FieldByIndex(responseType.fieldIndex).Interface()
-			contentType, err := responseContentType(c, contentTypes, JsonContentType{})
-			if err != nil {
-				fmt.Printf("[WARNING] %s. fallback to %s\n", err, contentType.Mime())
-			}
-			responseBytes, err := contentType.Marshal(response)
-			if err != nil {
-				fmt.Printf("[ERROR] %s\n", err)
-				fmt.Printf("[ERROR] failed serializing response %+v for mime type %s\n", response, contentType.Mime())
-				c.Data(500, contentType.Mime(), []byte(`{ "error": "failed serializing error response" }`))
-				return
-			}
-			c.Data(status, contentType.Mime(), responseBytes)
-		}
-	}
-}
-
+// produce the request body binder that can be used in runtime
 func requestBodyBinderFactory[B any](requestBodyType reflect.Type, contentTypes ContentTypes) func(*gin.Context, *B) error {
 	if requestBodyType == nilType {
 		return func(c *gin.Context, body *B) error {
@@ -97,13 +70,14 @@ func requestBodyBinderFactory[B any](requestBodyType reflect.Type, contentTypes 
 		if err != nil {
 			return err
 		}
-		if err = contentType.Unmarshal(bodyBytes, body); err != nil {
+		if err = contentType.Decode(bodyBytes, body); err != nil {
 			return err
 		}
 		return nil
 	}
 }
 
+// produce the path params binder that can be used in runtime
 func pathBinderFactory[P any](pathParamsType reflect.Type) func(*gin.Context, *P) error {
 	if pathParamsType == nilType {
 		return func(c *gin.Context, body *P) error {
@@ -121,6 +95,7 @@ func pathBinderFactory[P any](pathParamsType reflect.Type) func(*gin.Context, *P
 	}
 }
 
+// produce the query params binder that can be used in runtime
 func queryBinderFactory[Q any](queryParamsType reflect.Type) func(*gin.Context, *Q) error {
 	if queryParamsType == nilType {
 		// do nothing if there are query params in the request when no params expected
@@ -131,6 +106,50 @@ func queryBinderFactory[Q any](queryParamsType reflect.Type) func(*gin.Context, 
 			return err
 		}
 		return nil
+	}
+}
+func responseBinderFactory[R any](responsesType reflect.Type, contentTypes ContentTypes) func(*gin.Context, int, R) {
+	responseTypesMap, err := extractResponses(responsesType)
+	if err != nil {
+
+	}
+	return func(c *gin.Context, status int, responses R) {
+		responseType, _ := responseTypesMap[status]
+		if responseType.isNilType {
+			c.Status(status)
+			return
+		}
+		response := reflect.ValueOf(responses).FieldByIndex(responseType.fieldIndex).Interface()
+		contentType, err := responseContentType(c, contentTypes, JsonContentType{})
+		if err != nil {
+			fmt.Printf("[WARNING] %s. fallback to %s\n", err, contentType.Mime())
+		}
+		responseBytes, err := contentType.Encode(response)
+		if err != nil {
+			fmt.Printf("[ERROR] %s\n", err)
+			fmt.Printf("[ERROR] failed serializing httpResponse %+v for mime type %s\n", response, contentType.Mime())
+			c.Data(500, contentType.Mime(), []byte(`{ "error": "failed serializing error httpResponse" }`))
+			return
+		}
+		c.Data(status, contentType.Mime(), responseBytes)
+	}
+}
+
+func errorBinderFactory(contentTypes ContentTypes) func(*gin.Context, error) {
+	return func(c *gin.Context, errResponse error) {
+		contentType, err := responseContentType(c, contentTypes, JsonContentType{})
+		if err != nil {
+			fmt.Printf("[WARNING] %s. fallback to %s\n", err, contentType.Mime())
+		}
+		errHTTPResponse := internalServerError{Error: errResponse.Error()}
+		responseBytes, err := contentType.Encode(errHTTPResponse)
+		if err != nil {
+			fmt.Printf("[ERROR] %s\n", err)
+			fmt.Printf("[ERROR] failed serializing httpResponse %+v for mime type %s\n", errResponse, contentType.Mime())
+			c.Data(500, contentType.Mime(), []byte(`{ "error": "failed serializing error httpResponse" }`))
+			return
+		}
+		c.Data(500, contentType.Mime(), responseBytes)
 	}
 }
 

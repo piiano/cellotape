@@ -6,6 +6,15 @@ import (
 	r "github.com/piiano/restcontroller/router"
 )
 
+func TasksOperationsGroup(tasks services.TasksService) r.Group {
+	return r.NewGroup().
+		WithOperation("getTasksPage", getTasksPageOperation(tasks)).
+		WithOperation("createNewTask", createNewTaskOperation(tasks)).
+		WithOperation("getTaskByID", getTaskByIDOperation(tasks)).
+		WithOperation("deleteTaskByID", deleteTaskByIDOperation(tasks)).
+		WithOperation("updateTaskByID", updateTaskByIDOperation(tasks))
+}
+
 type httpError struct {
 	Error  string `json:"error"`
 	Reason string `json:"reason,omitempty"`
@@ -14,13 +23,4 @@ type httpError struct {
 type idPathParam struct {
 	// https://github.com/gin-gonic/gin/issues/2423
 	ID string `uri:"id"`
-}
-
-func TasksOperationsGroup(tasks services.TasksService) r.Group {
-	return r.NewGroup().
-		WithOperation("getTasksPage", getTasksPageOperation(tasks)).
-		WithOperation("createNewTask", createNewTaskOperation(tasks)).
-		WithOperation("getTaskByID", getTaskByIDOperation(tasks)).
-		WithOperation("deleteTaskByID", deleteTaskByIDOperation(tasks)).
-		WithOperation("updateTaskByID", updateTaskByIDOperation(tasks))
 }
