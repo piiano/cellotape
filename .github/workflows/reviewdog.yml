@@ -1,0 +1,16 @@
+name: Reviewdog
+on: [pull_request]
+jobs:
+  reviewdog-golangci-lint:
+    name: Lint with Reviewdog
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check Out Repo.
+        uses: actions/checkout@v3
+
+      - name: golangci-lint
+        uses: reviewdog/action-golangci-lint@v2
+        with:
+          golangci_lint_flags: "-E forbidigo"
+          reporter: "github-pr-review"
