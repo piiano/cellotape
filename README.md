@@ -44,7 +44,12 @@ Our approach using strongly typed handlers can help you create an implementation
     
   - **Responses**
   
-- [x] Support for middleware chains and group mechanism that allow applying middlewares to specific operations or specific groups
+- [x] ~~Support for middleware chains and group mechanism that allow applying middlewares to specific operations or specific groups~~
+  
+  The current implementation fail to support some basic use cases and the design need to be revised.
+  Also, we need to think about the tradeoffs between flexibility to compliance with the spec.  
+  
+  For example, a middleware for authentication that can return 401 response that is incompatible with the spec.
   
 - [x] Compatability with the `http.Handler` interface for both the router itself and the middlewares to allow easy integration of the router in any popular framework
 
@@ -81,7 +86,9 @@ to init the server and map to the relevant handlers.
     
   - https://github.com/xeipuuv/gojsonschema
   
-- [ ] Add support for better customization using an `router.Options` parameter 
+- [ ] Change the current middleware implementation
+  
+- [ ] Add support for better customization using an `router.Options` parameter
   
 - [ ] Add support for additional OpenAPI features such as Header Params, Cookie Params, etc.
 

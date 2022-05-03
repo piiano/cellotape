@@ -1,4 +1,4 @@
-package models
+package rest
 
 import (
 	_ "embed"
@@ -13,11 +13,6 @@ func TasksOperationsGroup(tasks services.TasksService) r.Group {
 		WithOperation("getTaskByID", getTaskByIDOperation(tasks)).
 		WithOperation("deleteTaskByID", deleteTaskByIDOperation(tasks)).
 		WithOperation("updateTaskByID", updateTaskByIDOperation(tasks))
-}
-
-type httpError struct {
-	Error  string `json:"error"`
-	Reason string `json:"reason,omitempty"`
 }
 
 type idPathParam struct {

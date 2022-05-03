@@ -23,3 +23,8 @@ type page[T any] struct {
 }
 
 type IdentifiableTasksPage page[IdentifiableTask]
+
+type HttpError struct {
+	Error  string `json:"error"`
+	Reason string `json:"reason,omitempty"`
+}
