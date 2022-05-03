@@ -8,48 +8,65 @@ import (
 )
 
 type httpResponse struct {
+	declaredAt   reflect.Type
 	status       int
 	responseType reflect.Type
 	fieldIndex   []int
 	isNilType    bool
 }
 
-func extractResponses(t reflect.Type) (map[int]httpResponse, error) {
+type handlerResponseTypes struct {
+	originalType      reflect.Type
+	declaredResponses map[int]httpResponse
+	allowAny          bool
+}
+
+const statusTag = "status"
+
+// extractResponses only extracts gracefully a map of responses declared in a type.
+// ignore responses formatted badly or return an empty map of the entire type isn't representing a valid response type
+func extractResponses(t reflect.Type) map[int]httpResponse {
 	responseTypesMap := make(map[int]httpResponse, 0)
-	if t.Kind() != reflect.Struct {
-		return responseTypesMap, fmt.Errorf("responses type %s is not a struct type", t)
+	if t == nil || t.Kind() != reflect.Struct {
+		return responseTypesMap
 	}
 	for _, field := range reflect.VisibleFields(t) {
 		// only look at direct exported fields and not fields of embedded structs
 		if len(field.Index) != 1 || !field.IsExported() {
 			continue
 		}
-
-		// each direct field of the responses' struct need to have a status tag
-		statusTag, ok := field.Tag.Lookup("status")
-		if !ok {
-			return responseTypesMap, fmt.Errorf("field %s of responses type %s is missing a status tag", field.Name, t.String())
+		if field.Anonymous {
+			for status, response := range extractResponses(field.Type) {
+				responseTypesMap[status] = response
+			}
+			continue
 		}
-		status, err := parseStatus(statusTag)
+		// each direct field of the responses' struct need to have a Status tag
+		statusTagValue, ok := field.Tag.Lookup(statusTag)
+		if !ok {
+			continue
+		}
+		status, err := parseStatus(statusTagValue)
 		if err != nil {
-			return responseTypesMap, err
+			continue
 		}
 		// each field represent a possible httpResponse
 		responseTypesMap[status] = httpResponse{
+			declaredAt:   t,
 			status:       status,
 			fieldIndex:   field.Index,
 			responseType: field.Type,
 			isNilType:    field.Type == nilType,
 		}
 	}
-	return responseTypesMap, nil
+	return responseTypesMap
 }
 
-// parse a string representing an HTTP status code or error if it is not a valid code between 100 and 600
+// parse a string representing an HTTP Status code or error if it is not a valid code between 100 and 600
 func parseStatus(statusString string) (int, error) {
 	status, err := strconv.ParseInt(statusString, 10, bits.UintSize)
 	if err != nil || status < 100 || status >= 600 {
-		return 0, fmt.Errorf("invalid status code %q", statusString)
+		return 0, fmt.Errorf("invalid Status code %q", statusString)
 	}
 	return int(status), nil
 }

@@ -6,18 +6,18 @@ import (
 	"time"
 )
 
-var GreetOperationHandler = router.OperationFunc(greetHandler)
+var GreetOperationHandler = router.NewOperationHandler(greetHandler)
 
-func greetHandler(request router.Request[body, pathParams, queryParams]) (int, responses) {
+func greetHandler(request router.Request[body, pathParams, queryParams]) (router.Response[responses], error) {
 	if request.PathParams.Version != "v1" && request.PathParams.Version != "1" && request.PathParams.Version != "1.0" {
 		errMessage := fmt.Sprintf("unsupported version %q", request.PathParams.Version)
-		return 400, responses{BadRequest: badRequest{Message: errMessage}}
+		return router.Send(400, responses{BadRequest: badRequest{Message: errMessage}})
 	}
 	greeting, err := greet(request.Body.Name, request.Body.DayOfBirth, request.QueryParams.GreetTemplate)
 	if err != nil {
-		return 400, responses{BadRequest: badRequest{Message: err.Error()}}
+		return router.Send(400, responses{BadRequest: badRequest{Message: err.Error()}})
 	}
-	return 200, responses{OK: ok{Greeting: greeting}}
+	return router.Send(200, responses{OK: ok{Greeting: greeting}})
 }
 
 type body struct {

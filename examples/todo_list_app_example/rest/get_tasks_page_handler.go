@@ -1,4 +1,4 @@
-package models
+package rest
 
 import (
 	m "github.com/piiano/restcontroller/examples/todo_list_app_example/models"
@@ -6,10 +6,10 @@ import (
 	r "github.com/piiano/restcontroller/router"
 )
 
-func getTasksPageOperation(tasks services.TasksService) r.OperationHandler {
-	return r.OperationFunc(func(request r.Request[r.Nil, r.Nil, paginationQueryParams]) (int, getTasksPageResponses) {
+func getTasksPageOperation(tasks services.TasksService) r.Handler {
+	return r.NewOperationHandler(func(request r.Request[r.Nil, r.Nil, paginationQueryParams]) (r.Response[getTasksPageResponses], error) {
 		tasksPage := tasks.GetTasksPage(request.QueryParams.Page, request.QueryParams.PageSize)
-		return 200, getTasksPageResponses{OK: tasksPage}
+		return r.Send(200, getTasksPageResponses{OK: tasksPage})
 	})
 }
 

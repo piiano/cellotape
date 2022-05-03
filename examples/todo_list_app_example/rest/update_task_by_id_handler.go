@@ -1,4 +1,4 @@
-package models
+package rest
 
 import (
 	"fmt"
@@ -8,31 +8,31 @@ import (
 	r "github.com/piiano/restcontroller/router"
 )
 
-func updateTaskByIDOperation(tasks services.TasksService) r.OperationHandler {
-	return r.OperationFunc(func(request r.Request[m.Task, idPathParam, r.Nil]) (int, updateTaskByIDResponses) {
+func updateTaskByIDOperation(tasks services.TasksService) r.Handler {
+	return r.NewOperationHandler(func(request r.Request[m.Task, idPathParam, r.Nil]) (r.Response[updateTaskByIDResponses], error) {
 		id, err := uuid.Parse(request.PathParams.ID)
 		if err != nil {
-			return 400, updateTaskByIDResponses{
-				BadRequest: httpError{
+			return r.Send(400, updateTaskByIDResponses{
+				BadRequest: m.HttpError{
 					Error:  "bad request",
 					Reason: err.Error(),
 				},
-			}
+			})
 		}
 		if updated := tasks.UpdateTaskByID(id, request.Body); updated {
-			return 204, updateTaskByIDResponses{}
+			return r.Send(204, updateTaskByIDResponses{})
 		}
-		return 404, updateTaskByIDResponses{
-			NotFound: httpError{
+		return r.Send(404, updateTaskByIDResponses{
+			NotFound: m.HttpError{
 				Error:  "not found",
 				Reason: fmt.Sprintf("task with id %q is not found", request.PathParams.ID),
 			},
-		}
+		})
 	})
 }
 
 type updateTaskByIDResponses struct {
-	NoContent  r.Nil     `status:"204"`
-	BadRequest httpError `status:"400"`
-	NotFound   httpError `status:"404"`
+	NoContent  r.Nil       `status:"204"`
+	BadRequest m.HttpError `status:"400"`
+	NotFound   m.HttpError `status:"404"`
 }

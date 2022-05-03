@@ -8,6 +8,20 @@ import (
 	"reflect"
 )
 
+func (o operation) validateOperationTypes(oa openapi, chainResponseTypes []handlerResponseTypes) error {
+	errs := utils.NewErrorsCollector()
+	requestTypes := o.operationHandler.requestTypes()
+	specOp, found := oa.spec.findSpecOperationByID(o.id)
+	if !found {
+		return fmt.Errorf("operation id %q not found in spec", o.id)
+	}
+	errs.AddIfNotNil(validatePathParamsType(requestTypes.pathParams, specOp.Parameters, oa))
+	errs.AddIfNotNil(validateQueryParamsType(requestTypes.queryParams, specOp.Parameters, oa))
+	errs.AddIfNotNil(validateRequestBodyType(requestTypes.requestBody, specOp.RequestBody, oa))
+	errs.AddIfNotNil(validateResponseTypes(chainResponseTypes, specOp.Responses, o.id, oa))
+	return errs.ErrorOrNil()
+}
+
 func validateRequestBodyType(bodyType reflect.Type, specBody *openapi3.RequestBodyRef, oa openapi) error {
 	validator := schema_validator.NewTypeSchemaValidator(bodyType, openapi3.Schema{}, schema_validator.Options{})
 	if specBody == nil && bodyType == nilType {
@@ -29,20 +43,6 @@ func validateRequestBodyType(bodyType reflect.Type, specBody *openapi3.RequestBo
 		}
 	}
 	return nil
-}
-
-func (o operation) validateHandlerTypes(oa openapi) error {
-	errs := utils.NewErrorsCollector()
-	types := o.operationHandler.types()
-	specOp, found := oa.spec.findSpecOperationByID(o.id)
-	if !found {
-		return fmt.Errorf("operation id %q not found in spec", o.id)
-	}
-	errs.AddIfNotNil(validatePathParamsType(types.pathParams, specOp.Parameters, oa))
-	errs.AddIfNotNil(validateQueryParamsType(types.queryParams, specOp.Parameters, oa))
-	errs.AddIfNotNil(validateRequestBodyType(types.requestBody, specOp.RequestBody, oa))
-	errs.AddIfNotNil(validateResponseTypes(types.responsesType, specOp.Responses, oa))
-	return errs.ErrorOrNil()
 }
 
 func validatePathParamsType(pathParamsType reflect.Type, specParameters openapi3.Parameters, oa openapi) error {
@@ -94,45 +94,44 @@ func validateParamsType(in string, tag string, paramsType reflect.Type, specPara
 	return errs.ErrorOrNil()
 }
 
-func validateResponseTypes(responsesType reflect.Type, operationResponses openapi3.Responses, oa openapi) error {
+func validateResponseTypes(
+	chainResponseTypes []handlerResponseTypes,
+	operationResponses openapi3.Responses,
+	operationId string,
+	oa openapi,
+) error {
 	errs := utils.NewErrorsCollector()
-	responsesMap, err := extractResponses(responsesType)
-	if err != nil {
-		return err
-	}
 	supportedContentTypes := oa.contentTypes
-	schemaValidator := schema_validator.NewTypeSchemaValidator(
-		reflect.TypeOf(nil),
-		openapi3.Schema{},
-		oa.options.InitializationSchemaValidation,
-	)
-	declaredResponses := make(map[int]bool)
-	for statusStr, specResponse := range operationResponses {
-		status, err := parseStatus(statusStr)
-		if errs.AddIfNotNil(err) {
-			continue
-		}
-		responseType, found := responsesMap[status]
-		if !found {
-			errs.AddIfNotNil(fmt.Errorf("spec httpResponse for status %d is not declared in the responses type %s", status, responsesType))
-			continue
-		}
-		declaredResponses[status] = true
-		responseValidator := schemaValidator.WithType(responseType.responseType)
-		for mime, mediaType := range specResponse.Value.Content {
-			_, found := supportedContentTypes[mime]
-			if !found {
-				errs.AddIfNotNil(fmt.Errorf("httpResponse content type with mime value %q is missing", mime))
-				continue
+	schemaValidator := schema_validator.NewTypeSchemaValidator(reflect.TypeOf(nil), openapi3.Schema{}, oa.options.InitializationSchemaValidation)
+	validatedResponses := make(map[int]bool)
+	for _, responseTypes := range chainResponseTypes {
+		for status, response := range responseTypes.declaredResponses {
+			specResponse := operationResponses.Get(status)
+			if specResponse == nil {
+				return fmt.Errorf("response %d is not declared on the spec for operation %s but is infered by type %s", status, operationId, response.declaredAt)
 			}
-			errs.AddIfNotNil(responseValidator.WithSchema(*mediaType.Schema.Value).Validate())
+			validatedResponses[status] = true
+			responseValidator := schemaValidator.WithType(response.responseType)
+			for mime, mediaType := range specResponse.Value.Content {
+				_, found := supportedContentTypes[mime]
+				if !found {
+					errs.AddIfNotNil(fmt.Errorf("response %d of operation %s has content type %q that is missing in the router", status, operationId, mime))
+					continue
+				}
+				errs.AddIfNotNil(responseValidator.WithSchema(*mediaType.Schema.Value).Validate())
+			}
 		}
 	}
-	for status := range responsesMap {
-		if declaredResponses[status] {
+	for statusStr := range operationResponses {
+		status, err := parseStatus(statusStr)
+		if err != nil {
+			errs.AddIfNotNil(fmt.Errorf("spec declaes invalid status %s on operation %s", statusStr, operationId))
 			continue
 		}
-		errs.AddIfNotNil(fmt.Errorf("httpResponse status %d of responses type %s is not declared in the spec", status, responsesType))
+		if validatedResponses[status] {
+			continue
+		}
+		errs.AddIfNotNil(fmt.Errorf("response %d of is declared on operation %s but is not declared in the spec", status, operationId))
 	}
 	return errs.ErrorOrNil()
 }

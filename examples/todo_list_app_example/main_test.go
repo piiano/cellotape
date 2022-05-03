@@ -1,9 +1,9 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
-	models "github.com/piiano/restcontroller/examples/todo_list_app_example/rest"
+	"github.com/piiano/restcontroller/examples/todo_list_app_example/middlewares"
+	"github.com/piiano/restcontroller/examples/todo_list_app_example/rest"
 	"github.com/piiano/restcontroller/examples/todo_list_app_example/services"
 	"github.com/piiano/restcontroller/router"
 	"github.com/stretchr/testify/require"
@@ -19,9 +19,13 @@ import (
 )
 
 func TestGetAllTasks(t *testing.T) {
-	err, ts := initAPI(t)
+	ts, err := initAPI(t)
 	defer ts.Close()
-	resp, err := http.Get(fmt.Sprintf("%s/tasks", ts.URL))
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/tasks", ts.URL), nil)
+	require.Nil(t, err)
+	req.Header.Set("Authorization", "Bearer secret")
+	client := http.Client{}
+	resp, err := client.Do(req)
 	require.Nil(t, err)
 	assert.Equal(t, 200, resp.StatusCode)
 	response, err := io.ReadAll(resp.Body)
@@ -34,32 +38,54 @@ func TestGetAllTasks(t *testing.T) {
 	}`, string(response))
 }
 
-func TestCreateNewTasks(t *testing.T) {
-	err, ts := initAPI(t)
-	defer ts.Close()
-	request := bytes.NewBufferString(`{
-		"summary": "code first approach",
-		"description": "add support for code first approach",
-		"status": "open"
-	}`)
-	resp, err := http.Post(fmt.Sprintf("%s/tasks", ts.URL), "application/json", request)
-	require.Nil(t, err)
-	assert.Equal(t, 200, resp.StatusCode)
-	response, err := io.ReadAll(resp.Body)
-	require.Nil(t, err)
-	assert.Regexp(t, `\{"id":"[0-9a-z]{8}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{12}"}`, string(response))
-}
+//func TestCreateNewTaskAndGetIt(t *testing.T) {
+//	ts, err := initAPI(t)
+//	defer ts.Close()
+//	taskJson := `{
+//		"summary": "code first approach",
+//		"description": "add support for code first approach",
+//		"status": "open"
+//	}`
+//	request := bytes.NewBufferString(taskJson)
+//
+//	req, err := http.NewRequest("POST", fmt.Sprintf("%s/tasks", ts.URL), request)
+//	require.Nil(t, err)
+//	req.Header.Set("Authorization", "Bearer secret")
+//	client := http.Client{}
+//	resp, err := client.Do(req)
+//	require.Nil(t, err)
+//
+//	assert.Equal(t, 200, resp.StatusCode)
+//	response := make(map[string]string)
+//	err = json.NewDecoder(resp.Body).Decode(&response)
+//	require.Nil(t, err)
+//	assert.Len(t, response, 1, "expecting one id field in the output")
+//	id, found := response["id"]
+//	assert.True(t, found)
+//	assert.Regexp(t, `[0-9a-z]{8}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{12}`, id)
+//
+//	req, err = http.NewRequest("GET", fmt.Sprintf("%s/tasks/%s", ts.URL, id), nil)
+//	require.Nil(t, err)
+//	req.Header.Set("Authorization", "Bearer secret")
+//	resp, err = client.Do(req)
+//	require.Nil(t, err)
+//
+//	data, err := io.ReadAll(resp.Body)
+//	require.Nil(t, err)
+//	assert.JSONEq(t, taskJson, string(data))
+//}
 
-func initAPI(t *testing.T) (error, *httptest.Server) {
+func initAPI(t *testing.T) (*httptest.Server, error) {
 	spec, err := router.NewSpecFromData(specData)
 	require.Nil(t, err)
 
-	tasks := services.NewTasksService()
+	tasksService := services.NewTasksService()
 	handler, err := router.NewOpenAPIRouter(spec).
-		WithGroup(models.TasksOperationsGroup(tasks)).
+		Use(middlewares.LoggerMiddleware, middlewares.AuthMiddleware).
+		WithGroup(rest.TasksOperationsGroup(tasksService)).
 		AsHandler()
 	require.Nil(t, err)
 
 	ts := httptest.NewServer(handler)
-	return err, ts
+	return ts, err
 }
