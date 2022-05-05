@@ -31,9 +31,7 @@ func (s OpenAPISpec) findSpecOperationByID(id string) (specOperation, bool) {
 	for path, pathItem := range s.Paths {
 		for method, specOp := range pathItem.Operations() {
 			if specOp.OperationID == id {
-				return specOperation{
-					path: path, method: method, Operation: specOp,
-				}, true
+				return specOperation{path: path, method: method, Operation: specOp}, true
 			}
 		}
 	}

@@ -7,26 +7,12 @@ import (
 	"strconv"
 )
 
-type httpResponse struct {
-	declaredAt   reflect.Type
-	status       int
-	responseType reflect.Type
-	fieldIndex   []int
-	isNilType    bool
-}
-
-type handlerResponseTypes struct {
-	originalType      reflect.Type
-	declaredResponses map[int]httpResponse
-	allowAny          bool
-}
-
 const statusTag = "status"
 
 // extractResponses only extracts gracefully a map of responses declared in a type.
 // ignore responses formatted badly or return an empty map of the entire type isn't representing a valid response type
-func extractResponses(t reflect.Type) map[int]httpResponse {
-	responseTypesMap := make(map[int]httpResponse, 0)
+func extractResponses(t reflect.Type) handlerResponses {
+	responseTypesMap := make(handlerResponses, 0)
 	if t == nil || t.Kind() != reflect.Struct {
 		return responseTypesMap
 	}
@@ -52,7 +38,6 @@ func extractResponses(t reflect.Type) map[int]httpResponse {
 		}
 		// each field represent a possible httpResponse
 		responseTypesMap[status] = httpResponse{
-			declaredAt:   t,
 			status:       status,
 			fieldIndex:   field.Index,
 			responseType: field.Type,
