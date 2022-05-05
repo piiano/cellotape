@@ -34,7 +34,7 @@ func TestOperationFuncTypeExtraction(t *testing.T) {
 //	ts := httptest.NewServer(handler)
 //	defer ts.Close()
 //	log.Println(ts.URL)
-//	// test valid request
+//	// test valid httpRequest
 //	resp, err := http.Post(fmt.Sprintf("%s/abc", ts.URL), "application/json", nil)
 //	require.Nil(t, err)
 //	res, err := toString(resp.Body)
@@ -42,13 +42,13 @@ func TestOperationFuncTypeExtraction(t *testing.T) {
 //	assert.Equal(t, "42", res)
 //	assert.Equal(t, 200, resp.StatusCode)
 //
-//	// test bad request
+//	// test bad httpRequest
 //	resp, err = http.Post(ts.URL, "application/json", bytes.NewBufferString("{}"))
 //	require.Nil(t, err)
 //	assert.Equal(t, 400, resp.StatusCode)
 //	res, err = toString(resp.Body)
 //	require.Nil(t, err)
-//	assert.Equal(t, res, `{"error":"expected request with no body payload"}`)
+//	assert.Equal(t, res, `{"error":"expected httpRequest with no body payload"}`)
 //
 //}
 

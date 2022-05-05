@@ -16,7 +16,7 @@ type handlerBinders[B, P, Q, R any] struct {
 	responseBinder func(HandlerContext, Response[R]) (Response[any], error)
 }
 
-// produce set of binder functions that can be called at runtime to handle each request
+// produce set of binder functions that can be called at runtime to handle each httpRequest
 func bindersFactory[B, P, Q, R any](oa openapi, fn operationFunc[B, P, Q, R]) handlerBinders[B, P, Q, R] {
 	return handlerBinders[B, P, Q, R]{
 		requestBinder:  requestBinderFactory[B, P, Q](oa, fn.requestTypes()),
@@ -24,13 +24,13 @@ func bindersFactory[B, P, Q, R any](oa openapi, fn operationFunc[B, P, Q, R]) ha
 	}
 }
 
-// produce the binder function that can be called at runtime to create the request object for the handler
-func requestBinderFactory[B, P, Q any](oa openapi, types handlerRequestTypes) func(HandlerContext) (Request[B, P, Q], error) {
+// produce the binder function that can be called at runtime to create the httpRequest object for the handler
+func requestBinderFactory[B, P, Q any](oa openapi, types requestTypes) func(HandlerContext) (Request[B, P, Q], error) {
 	requestBodyBinder := requestBodyBinderFactory[B](types.requestBody, oa.contentTypes)
 	pathParamsBinder := pathBinderFactory[P](types.pathParams)
 	queryParamsBinder := queryBinderFactory[Q](types.queryParams)
 
-	// this is what actually build the request object at runtime for the handler
+	// this is what actually build the httpRequest object at runtime for the handler
 	return func(c HandlerContext) (Request[B, P, Q], error) {
 		var request = Request[B, P, Q]{Context: c.Request.Context(), Headers: c.Request.Header}
 		if err := requestBodyBinder(c.Request, &request.Body); err != nil {
@@ -46,12 +46,12 @@ func requestBinderFactory[B, P, Q any](oa openapi, types handlerRequestTypes) fu
 	}
 }
 
-// produce the request body binder that can be used in runtime
+// produce the httpRequest body binder that can be used in runtime
 func requestBodyBinderFactory[B any](requestBodyType reflect.Type, contentTypes ContentTypes) func(*http.Request, *B) error {
 	if requestBodyType == nilType {
 		return func(r *http.Request, body *B) error {
 			if r.ContentLength != 0 {
-				return errors.New("expected request with no body payload")
+				return errors.New("expected httpRequest with no body payload")
 			}
 			return nil
 		}
@@ -72,12 +72,12 @@ func requestBodyBinderFactory[B any](requestBodyType reflect.Type, contentTypes 
 	}
 }
 
-// produce the path params binder that can be used in runtime
+// produce the path pathParams binder that can be used in runtime
 func pathBinderFactory[P any](pathParamsType reflect.Type) func(httprouter.Params, *P) error {
 	if pathParamsType == nilType {
 		return func(params httprouter.Params, body *P) error {
 			if len(params) > 0 {
-				return fmt.Errorf("expected no path params but received %d", len(params))
+				return fmt.Errorf("expected no path pathParams but received %d", len(params))
 			}
 			return nil
 		}
@@ -91,10 +91,10 @@ func pathBinderFactory[P any](pathParamsType reflect.Type) func(httprouter.Param
 	}
 }
 
-// produce the query params binder that can be used in runtime
+// produce the query pathParams binder that can be used in runtime
 func queryBinderFactory[Q any](queryParamsType reflect.Type) func(*http.Request, *Q) error {
 	if queryParamsType == nilType {
-		// do nothing if there are query params in the request when no params expected
+		// do nothing if there are query pathParams in the httpRequest when no pathParams expected
 		return func(*http.Request, *Q) error { return nil }
 	}
 	return func(r *http.Request, queryParams *Q) error {
@@ -104,7 +104,7 @@ func queryBinderFactory[Q any](queryParamsType reflect.Type) func(*http.Request,
 		return nil
 	}
 }
-func responseBinderFactory[R any](responseTypes handlerResponseTypes, contentTypes ContentTypes) func(HandlerContext, Response[R]) (Response[any], error) {
+func responseBinderFactory[R any](responses handlerResponses, contentTypes ContentTypes) func(HandlerContext, Response[R]) (Response[any], error) {
 	return func(c HandlerContext, r Response[R]) (Response[any], error) {
 		response := Response[any]{
 			Status:  r.Status,
@@ -119,7 +119,7 @@ func responseBinderFactory[R any](responseTypes handlerResponseTypes, contentTyp
 		if err != nil {
 			log.Printf("[WARNING] %s. fallback to %s\n", err, contentType.Mime())
 		}
-		responseType, exist := responseTypes.declaredResponses[r.Status]
+		responseType, exist := responses[r.Status]
 		if !exist {
 			return response, fmt.Errorf("status %d is not part of the possible operation responses", r.Status)
 		}

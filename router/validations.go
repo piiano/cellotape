@@ -8,9 +8,9 @@ import (
 	"reflect"
 )
 
-func (o operation) validateOperationTypes(oa openapi, chainResponseTypes []handlerResponseTypes) error {
+func (o operation) validateOperationTypes(oa openapi, chainResponseTypes []handlerResponses) error {
 	errs := utils.NewErrorsCollector()
-	requestTypes := o.operationHandler.requestTypes()
+	requestTypes := o.handlerFunc.requestTypes()
 	specOp, found := oa.spec.findSpecOperationByID(o.id)
 	if !found {
 		return fmt.Errorf("operation id %q not found in spec", o.id)
@@ -18,7 +18,7 @@ func (o operation) validateOperationTypes(oa openapi, chainResponseTypes []handl
 	errs.AddIfNotNil(validatePathParamsType(requestTypes.pathParams, specOp.Parameters, oa))
 	errs.AddIfNotNil(validateQueryParamsType(requestTypes.queryParams, specOp.Parameters, oa))
 	errs.AddIfNotNil(validateRequestBodyType(requestTypes.requestBody, specOp.RequestBody, oa))
-	errs.AddIfNotNil(validateResponseTypes(chainResponseTypes, specOp.Responses, o.id, oa))
+	errs.AddIfNotNil(validateResponseTypes(chainResponseTypes, specOp.Responses, o, oa))
 	return errs.ErrorOrNil()
 }
 
@@ -28,10 +28,10 @@ func validateRequestBodyType(bodyType reflect.Type, specBody *openapi3.RequestBo
 		return nil
 	}
 	if specBody == nil {
-		return fmt.Errorf("operation handler body type is %s while in spec there is no request body", bodyType)
+		return fmt.Errorf("operation handler body type is %s while in spec there is no httpRequest body", bodyType)
 	}
 	if bodyType == nilType {
-		return fmt.Errorf("operation handler body type is %s while the spec has a request body", bodyType)
+		return fmt.Errorf("operation handler body type is %s while the spec has a httpRequest body", bodyType)
 	}
 	for mime, mediaType := range specBody.Value.Content {
 		_, found := oa.contentTypes[mime]
@@ -62,7 +62,7 @@ func validateParamsType(in string, tag string, paramsType reflect.Type, specPara
 		return parameter.Value.Name
 	})
 	if paramsType == nilType && len(specParameters) > 0 {
-		return fmt.Errorf("%s params type %s is incompatible with the spec defines %s parameters %v", in, paramsType, in, specParameterNames)
+		return fmt.Errorf("%s pathParams type %s is incompatible with the spec defines %s parameters %v", in, paramsType, in, specParameterNames)
 	}
 	if paramsType == nilType {
 		return nil
@@ -80,7 +80,7 @@ func validateParamsType(in string, tag string, paramsType reflect.Type, specPara
 		declaredParams[name] = true
 		specParameter := specParameters.GetByInAndName(in, name)
 		if specParameter == nil {
-			errs.AddIfNotNil(fmt.Errorf("%s param %q defined in %s params type %s is missing in the spec", in, name, in, paramsType))
+			errs.AddIfNotNil(fmt.Errorf("%s param %q defined in %s pathParams type %s is missing in the spec", in, name, in, paramsType))
 			continue
 		}
 		// TODO: schema validator check object schemas with json keys
@@ -88,34 +88,34 @@ func validateParamsType(in string, tag string, paramsType reflect.Type, specPara
 	}
 	for _, name := range specParameterNames {
 		if !declaredParams[name] {
-			errs.AddIfNotNil(fmt.Errorf("%s param %q defined spec but is missing in %s params type %s", in, name, in, paramsType))
+			errs.AddIfNotNil(fmt.Errorf("%s param %q defined spec but is missing in %s pathParams type %s", in, name, in, paramsType))
 		}
 	}
 	return errs.ErrorOrNil()
 }
 
 func validateResponseTypes(
-	chainResponseTypes []handlerResponseTypes,
+	chainResponses []handlerResponses,
 	operationResponses openapi3.Responses,
-	operationId string,
+	operation operation,
 	oa openapi,
 ) error {
 	errs := utils.NewErrorsCollector()
 	supportedContentTypes := oa.contentTypes
 	schemaValidator := schema_validator.NewTypeSchemaValidator(reflect.TypeOf(nil), openapi3.Schema{}, oa.options.InitializationSchemaValidation)
 	validatedResponses := make(map[int]bool)
-	for _, responseTypes := range chainResponseTypes {
-		for status, response := range responseTypes.declaredResponses {
+	for _, responses := range chainResponses {
+		for status, response := range responses {
 			specResponse := operationResponses.Get(status)
 			if specResponse == nil {
-				return fmt.Errorf("response %d is not declared on the spec for operation %s but is infered by type %s", status, operationId, response.declaredAt)
+				return fmt.Errorf("response %d is not declared on the spec for operation %s but is declared in %s", status, operation.id, operation.sourcePosition)
 			}
 			validatedResponses[status] = true
 			responseValidator := schemaValidator.WithType(response.responseType)
 			for mime, mediaType := range specResponse.Value.Content {
 				_, found := supportedContentTypes[mime]
 				if !found {
-					errs.AddIfNotNil(fmt.Errorf("response %d of operation %s has content type %q that is missing in the router", status, operationId, mime))
+					errs.AddIfNotNil(fmt.Errorf("response %d of operation %s has content type %q that is missing in the router", status, operation.id, mime))
 					continue
 				}
 				errs.AddIfNotNil(responseValidator.WithSchema(*mediaType.Schema.Value).Validate())
@@ -125,13 +125,13 @@ func validateResponseTypes(
 	for statusStr := range operationResponses {
 		status, err := parseStatus(statusStr)
 		if err != nil {
-			errs.AddIfNotNil(fmt.Errorf("spec declaes invalid status %s on operation %s", statusStr, operationId))
+			errs.AddIfNotNil(fmt.Errorf("spec declaes invalid status %s on operation %s", statusStr, operation.id))
 			continue
 		}
 		if validatedResponses[status] {
 			continue
 		}
-		errs.AddIfNotNil(fmt.Errorf("response %d of is declared on operation %s but is not declared in the spec", status, operationId))
+		errs.AddIfNotNil(fmt.Errorf("response %d of is declared on operation %s but is not declared in the spec", status, operation.id))
 	}
 	return errs.ErrorOrNil()
 }
