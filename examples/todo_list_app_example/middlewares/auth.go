@@ -3,23 +3,24 @@ package middlewares
 import (
 	"fmt"
 	"github.com/piiano/restcontroller/examples/todo_list_app_example/models"
-	"github.com/piiano/restcontroller/router"
+	r "github.com/piiano/restcontroller/router"
 )
 
 const token = "secret"
 
 var authHeader = fmt.Sprintf("Bearer %s", token)
 
-var AuthMiddleware = router.NewHandler(func(c router.HandlerContext) (router.Response[authMiddlewareResponses], error) {
-	if c.Request.Header.Get("Authorization") != authHeader {
-		return router.Send(401, authMiddlewareResponses{Unauthorized: models.HttpError{
+var AuthMiddleware = r.NewHandler(func(c r.Context, req r.Request[r.Nil, r.Nil, r.Nil]) (r.Response[authResponses], error) {
+	if req.Headers.Get("Authorization") != authHeader {
+		return r.Send(401, authResponses{Unauthorized: models.HttpError{
 			Error:  "Unauthorized",
 			Reason: "Authentication failed for provided token",
 		}})
 	}
-	return router.NextResponse[authMiddlewareResponses](c)
+	_, err := c.NextFunc(c)
+	return r.Response[authResponses]{}, err
 })
 
-type authMiddlewareResponses struct {
+type authResponses struct {
 	Unauthorized models.HttpError `status:"401"`
 }

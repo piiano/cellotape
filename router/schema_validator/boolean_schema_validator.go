@@ -2,7 +2,7 @@ package schema_validator
 
 import (
 	"fmt"
-	"github.com/piiano/restcontroller/utils"
+	"github.com/piiano/restcontroller/router/utils"
 	"reflect"
 )
 
@@ -12,7 +12,7 @@ func (c typeSchemaValidatorContext) validateBooleanSchema() utils.MultiError {
 		return nil
 	}
 	if c.goType.Kind() != reflect.Bool {
-		errs.AddIfNotNil(fmt.Errorf("boolean schema must be of type bool. type %s is incompatible", c.goType))
+		errs.AddErrorsIfNotNil(fmt.Errorf("boolean schema must be of type bool. type %s is incompatible", c.goType))
 	}
 	return errs.ErrorOrNil()
 }

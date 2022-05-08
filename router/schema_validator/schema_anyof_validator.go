@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/piiano/restcontroller/utils"
+	"github.com/piiano/restcontroller/router/utils"
 	"strings"
 )
 
@@ -23,7 +23,7 @@ func (c typeSchemaValidatorContext) validateSchemaAnyOf() utils.MultiError {
 			lines = append(lines, fmt.Sprintf("anyOf[%d] didn't match type %s", i, c.goType))
 			lines = append(lines, check.multiError.Error())
 		}
-		errs.AddIfNotNil(errors.New(strings.Join(lines, "\n")))
+		errs.AddErrorsIfNotNil(errors.New(strings.Join(lines, "\n")))
 	}
 	return errs.ErrorOrNil()
 }

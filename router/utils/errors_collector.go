@@ -8,39 +8,71 @@ import (
 type MultiError interface {
 	error
 	Errors() []error
+	Warnings() []error
 }
 
 type ErrorsCollector interface {
-	AddIfNotNil(err ...error) bool
+	AddIfNotNil(ErrorAction, ...error) bool
+	AddErrorsIfNotNil(...error) bool
+	AddWarningsIfNotNil(...error) bool
 	Errors() []error
+	Warnings() []error
 	ErrorOrNil() MultiError
 }
 
 func NewErrorsCollector() ErrorsCollector {
 	return &errorsCollector{
-		errors: make([]error, 0),
+		errors:   make([]error, 0),
+		warnings: make([]error, 0),
 	}
 }
 
+type ErrorAction int
+
+const (
+	Error ErrorAction = iota
+	Warn
+	Ignore
+)
+
 type errorsCollector struct {
-	errors []error
+	errors   []error
+	warnings []error
+}
+
+func (e *errorsCollector) AddErrorsIfNotNil(errors ...error) bool {
+	return e.AddIfNotNil(Error, errors...)
+}
+func (e *errorsCollector) AddWarningsIfNotNil(errors ...error) bool {
+	return e.AddIfNotNil(Warn, errors...)
 }
 
 // AddIfNotNil check if errors are non nil values.
 // For non-nil errors add to the collector.
 // Return boolean value indicating an error was added to the collector or not.
-func (e *errorsCollector) AddIfNotNil(errors ...error) bool {
+func (e *errorsCollector) AddIfNotNil(action ErrorAction, errors ...error) bool {
+	if action == Ignore {
+		return false
+	}
 	added := false
 	for _, err := range errors {
 		if err == nil {
 			continue
 		}
 		if multiError, ok := err.(MultiError); ok {
-			added = added || e.AddIfNotNil(multiError.Errors()...)
+			e.AddIfNotNil(Warn, multiError.Warnings()...)
+			if e.AddIfNotNil(action, multiError.Errors()...) {
+				added = true
+			}
 			continue
 		}
-		e.errors = append(e.errors, err)
-		added = true
+		switch action {
+		case Warn:
+			e.warnings = append(e.warnings, err)
+		case Error:
+			e.errors = append(e.errors, err)
+			added = true
+		}
 	}
 	return added
 }
@@ -48,6 +80,11 @@ func (e *errorsCollector) AddIfNotNil(errors ...error) bool {
 // Errors return all errors collected by the collector
 func (e *errorsCollector) Errors() []error {
 	return e.errors
+}
+
+// Errors return all errors collected by the collector
+func (e *errorsCollector) Warnings() []error {
+	return e.warnings
 }
 
 // ErrorOrNil if the collector has no errors return nil.

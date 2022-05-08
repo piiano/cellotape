@@ -1,7 +1,7 @@
 package schema_validator
 
 import (
-	"github.com/piiano/restcontroller/utils"
+	"github.com/piiano/restcontroller/router/utils"
 )
 
 type schemaValidation struct {

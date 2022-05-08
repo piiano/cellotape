@@ -3,7 +3,7 @@ package schema_validator
 import (
 	"encoding"
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/piiano/restcontroller/utils"
+	"github.com/piiano/restcontroller/router/utils"
 	"reflect"
 )
 
@@ -78,25 +78,25 @@ func (c typeSchemaValidatorContext) Validate() utils.MultiError {
 	errs := utils.NewErrorsCollector()
 
 	// Test global schema validation properties
-	errs.AddIfNotNil(c.validateSchemaAllOf())
-	errs.AddIfNotNil(c.validateSchemaOneOf())
-	errs.AddIfNotNil(c.validateSchemaAnyOf())
-	errs.AddIfNotNil(c.validateSchemaNot())
+	errs.AddErrorsIfNotNil(c.validateSchemaAllOf())
+	errs.AddErrorsIfNotNil(c.validateSchemaOneOf())
+	errs.AddErrorsIfNotNil(c.validateSchemaAnyOf())
+	errs.AddErrorsIfNotNil(c.validateSchemaNot())
 
 	// Test specific schema types validations
 	switch c.schema.Type {
 	case objectSchemaType:
-		errs.AddIfNotNil(c.validateObjectSchema())
+		errs.AddErrorsIfNotNil(c.validateObjectSchema())
 	case arraySchemaType:
-		errs.AddIfNotNil(c.validateArraySchema())
+		errs.AddErrorsIfNotNil(c.validateArraySchema())
 	case stringSchemaType:
-		errs.AddIfNotNil(c.validateStringSchema())
+		errs.AddErrorsIfNotNil(c.validateStringSchema())
 	case booleanSchemaType:
-		errs.AddIfNotNil(c.validateBooleanSchema())
+		errs.AddErrorsIfNotNil(c.validateBooleanSchema())
 	case numberSchemaType:
-		errs.AddIfNotNil(c.validateNumberSchema())
+		errs.AddErrorsIfNotNil(c.validateNumberSchema())
 	case integerSchemaType:
-		errs.AddIfNotNil(c.validateIntegerSchema())
+		errs.AddErrorsIfNotNil(c.validateIntegerSchema())
 	}
 	return errs.ErrorOrNil()
 }

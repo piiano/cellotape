@@ -3,7 +3,7 @@ package schema_validator
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/piiano/restcontroller/utils"
+	"github.com/piiano/restcontroller/router/utils"
 	"reflect"
 	"strings"
 )
@@ -22,10 +22,10 @@ func (c typeSchemaValidatorContext) validateObjectSchema() utils.MultiError {
 			for name, property := range c.schema.Properties {
 				field, ok := fields[name]
 				if !ok {
-					errs.AddIfNotNil(fmt.Errorf("property %q is not maped to a field in type %s", name, c.goType))
+					errs.AddErrorsIfNotNil(fmt.Errorf("property %q is not maped to a field in type %s", name, c.goType))
 				}
 				if ok {
-					errs.AddIfNotNil(c.WithType(field.Type).WithSchema(*property.Value).Validate())
+					errs.AddErrorsIfNotNil(c.WithType(field.Type).WithSchema(*property.Value).Validate())
 				}
 			}
 		}
@@ -38,7 +38,7 @@ func (c typeSchemaValidatorContext) validateObjectSchema() utils.MultiError {
 			reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		default:
 			if !keyType.Implements(textMarshallerType) {
-				errs.AddIfNotNil(fmt.Errorf("object schema with map type must have a string compatible type. %s key is not string compatible", keyType))
+				errs.AddErrorsIfNotNil(fmt.Errorf("object schema with map type must have a string compatible type. %s key is not string compatible", keyType))
 			}
 		}
 		if c.schema.Properties != nil {
@@ -46,17 +46,17 @@ func (c typeSchemaValidatorContext) validateObjectSchema() utils.MultiError {
 				// check if property name is compatible with the map key type
 				keyName, _ := json.Marshal(name)
 				if err := json.Unmarshal(keyName, reflect.New(keyType).Interface()); err != nil {
-					errs.AddIfNotNil(fmt.Errorf("schema property name %q is incompatible with map key type %s", name, keyType))
+					errs.AddErrorsIfNotNil(fmt.Errorf("schema property name %q is incompatible with map key type %s", name, keyType))
 				}
 				// check if property schema is compatible with the map value type
 				if err := c.WithType(mapValueType).WithSchema(*property.Value).Validate(); err != nil {
-					errs.AddIfNotNil(fmt.Errorf("schema property %q is incompatible with map value type %s", name, mapValueType))
-					errs.AddIfNotNil(err)
+					errs.AddErrorsIfNotNil(fmt.Errorf("schema property %q is incompatible with map value type %s", name, mapValueType))
+					errs.AddErrorsIfNotNil(err)
 				}
 			}
 		}
 	default:
-		errs.AddIfNotNil(fmt.Errorf("object schema must be a struct type or a map. %s type is not compatible", c.goType))
+		errs.AddErrorsIfNotNil(fmt.Errorf("object schema must be a struct type or a map. %s type is not compatible", c.goType))
 	}
 	return errs.ErrorOrNil()
 }

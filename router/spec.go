@@ -38,6 +38,29 @@ func (s OpenAPISpec) findSpecOperationByID(id string) (specOperation, bool) {
 	return specOperation{}, false
 }
 
+// findSpecContentTypes find all content types declared in the spec for both request body and responses
+func (s OpenAPISpec) findSpecContentTypes() []string {
+	contentTypes := make([]string, 0)
+	for _, pathItem := range s.Paths {
+		for _, specOp := range pathItem.Operations() {
+			if specOp.RequestBody != nil && specOp.RequestBody.Value != nil {
+				for contentType, _ := range specOp.RequestBody.Value.Content {
+					contentTypes = append(contentTypes, contentType)
+				}
+			}
+			for _, response := range specOp.Responses {
+				if response.Value == nil {
+					continue
+				}
+				for contentType, _ := range response.Value.Content {
+					contentTypes = append(contentTypes, contentType)
+				}
+			}
+		}
+	}
+	return contentTypes
+}
+
 type specOperation struct {
 	path   string
 	method string
