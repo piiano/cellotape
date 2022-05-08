@@ -1,6 +1,8 @@
 package router
 
-import "reflect"
+import (
+	"reflect"
+)
 
 // openapi describes the internal state of the OpenAPIRouter builder
 type openapi struct {
@@ -37,7 +39,7 @@ type operation struct {
 // handler describes the internal state of operation, group and openapi handlers added by Group.WithOperation,
 // OpenAPIRouter.WithOperation, Group.Use and OpenAPIRouter.Use
 type handler struct {
-	// the handler function implementing the Handler interface (can be operationFunc or handlerFunc)
+	// the handler function implementing the MiddlewareHandler interface (can be operationFunc or handlerFunc)
 	handlerFunc Handler
 	// hold a representation of the request described in the handler parameters
 	request requestTypes
@@ -49,11 +51,11 @@ type handler struct {
 
 // requestTypes described the parameter types provided in the Request input of a handler function
 type requestTypes struct {
-	// requestBody is the type of the body parameter. type is nilType if there is no httpRequest body
+	// requestBody is the type of the Body parameter. type is nilType if there is no httpRequest Body
 	requestBody reflect.Type
-	// pathParams is the type of the body parameter. type is nilType if there is no path pathParams
+	// pathParams is the type of the Body parameter. type is nilType if there is no path pathParams
 	pathParams reflect.Type
-	// queryParams is the type of the body parameter.  type is nilType if there is no query pathParams
+	// queryParams is the type of the Body parameter.  type is nilType if there is no query pathParams
 	queryParams reflect.Type
 }
 

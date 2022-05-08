@@ -2,7 +2,7 @@ package schema_validator
 
 import (
 	"fmt"
-	"github.com/piiano/restcontroller/utils"
+	"github.com/piiano/restcontroller/router/utils"
 )
 
 func (c typeSchemaValidatorContext) validateSchemaNot() utils.MultiError {
@@ -11,7 +11,7 @@ func (c typeSchemaValidatorContext) validateSchemaNot() utils.MultiError {
 	}
 	errs := utils.NewErrorsCollector()
 	if err := c.WithSchema(*c.schema.Not.Value).Validate(); err == nil {
-		errs.AddIfNotNil(fmt.Errorf("schema %q with a not valudation failed for type %s", c.schema.Title, c.goType))
+		errs.AddErrorsIfNotNil(fmt.Errorf("schema %q with a not valudation failed for type %s", c.schema.Title, c.goType))
 	}
 	return errs.ErrorOrNil()
 }

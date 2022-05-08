@@ -18,7 +18,7 @@ import (
 //			declaredAt: reflect.TypeOf(struct {
 //				OK string `Status:"200"`
 //			}{}),
-//			status:       200,
+//			Status:       200,
 //			responseType: reflect.TypeOf(""),
 //			fieldIndex:   []int{0},
 //			isNilType:    false,
@@ -28,12 +28,12 @@ import (
 //			Teapot bool   `Status:"418"`
 //		}{}), out: map[int]httpResponse{
 //			200: {
-//				status:       200,
+//				Status:       200,
 //				responseType: reflect.TypeOf(""),
 //				fieldIndex:   []int{0},
 //			},
 //			418: {
-//				status:       418,
+//				Status:       418,
 //				responseType: reflect.TypeOf(true),
 //				fieldIndex:   []int{1},
 //			},

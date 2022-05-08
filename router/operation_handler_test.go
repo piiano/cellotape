@@ -2,18 +2,17 @@ package router
 
 import (
 	"bytes"
-	"github.com/stretchr/testify/assert"
 	"io"
-	"testing"
 )
 
-func TestOperationFuncTypeExtraction(t *testing.T) {
-	fn := operationFunc[Nil, Nil, Nil, Nil](func(r Request[Nil, Nil, Nil]) (Response[Nil], error) { return Response[Nil]{}, nil })
-	types := fn.requestTypes()
-	assert.Equal(t, types.requestBody, nilType)
-	assert.Equal(t, types.pathParams, nilType)
-	assert.Equal(t, types.queryParams, nilType)
-}
+//
+//func TestOperationFuncTypeExtraction(t *testing.T) {
+//	fn := operationFunc[Nil, Nil, Nil, Nil](func(r Request[Nil, Nil, Nil]) (Response[Nil], error) { return Response[Nil]{}, nil })
+//	types := fn.requestTypes()
+//	assert.Equal(t, types.requestBody, nilType)
+//	assert.Equal(t, types.pathParams, nilType)
+//	assert.Equal(t, types.queryParams, nilType)
+//}
 
 //func TestOperationFuncAsGinHandler(t *testing.T) {
 //	type responses struct {
@@ -48,7 +47,7 @@ func TestOperationFuncTypeExtraction(t *testing.T) {
 //	assert.Equal(t, 400, resp.StatusCode)
 //	res, err = toString(resp.Body)
 //	require.Nil(t, err)
-//	assert.Equal(t, res, `{"error":"expected httpRequest with no body payload"}`)
+//	assert.Equal(t, res, `{"error":"expected httpRequest with no Body payload"}`)
 //
 //}
 

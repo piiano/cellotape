@@ -3,7 +3,7 @@ package schema_validator
 import (
 	"fmt"
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/piiano/restcontroller/utils"
+	"github.com/piiano/restcontroller/router/utils"
 	"reflect"
 	"testing"
 )

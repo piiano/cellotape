@@ -9,7 +9,7 @@ import (
 )
 
 func updateTaskByIDOperation(tasks services.TasksService) r.Handler {
-	return r.NewOperationHandler(func(request r.Request[m.Task, idPathParam, r.Nil]) (r.Response[updateTaskByIDResponses], error) {
+	return r.NewHandler(func(_ r.Context, request r.Request[m.Task, idPathParam, r.Nil]) (r.Response[updateTaskByIDResponses], error) {
 		id, err := uuid.Parse(request.PathParams.ID)
 		if err != nil {
 			return r.Send(400, updateTaskByIDResponses{

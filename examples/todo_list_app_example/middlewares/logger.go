@@ -1,19 +1,21 @@
 package middlewares
 
 import (
-	"github.com/piiano/restcontroller/router"
+	r "github.com/piiano/restcontroller/router"
 	"log"
 	"time"
 )
 
-var LoggerMiddleware = router.NewHandler(func(c router.HandlerContext) (router.Response[any], error) {
+var LoggerMiddleware = r.NewHandler(loggerHandler)
+
+func loggerHandler(c r.Context, request r.Request[r.Nil, r.Nil, r.Nil]) (r.Response[any], error) {
 	start := time.Now()
-	resp, err := router.NextResponse[any](c)
+	response, err := c.Next()
 	duration := time.Since(start)
 	if err != nil {
-		log.Printf("[ERROR] %s %s - error ocured: %s. - %s\n", c.Request.Method, c.Request.URL.Path, err.Error(), duration)
-		return resp, err
+		log.Printf("[ERROR] error ocured: %s. - %s - [%s] %s\n", err.Error(), duration, request.Method, request.URL.Path)
+		return r.Response[any]{}, nil
 	}
-	log.Printf("[INFO] %s %s - status %d (%d bytes) - %s\n", c.Request.Method, c.Request.URL.Path, resp.Status, len(resp.Bytes), duration)
-	return resp, nil
-})
+	log.Printf("[INFO] (status %d | %d bytes | %s) - [%s] %s\n", response.Status, len(response.Body), duration, request.Method, request.URL.Path)
+	return r.Response[any]{}, nil
+}

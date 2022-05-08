@@ -1,7 +1,6 @@
 package router
 
 import (
-	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/julienschmidt/httprouter"
@@ -11,48 +10,56 @@ import (
 	"reflect"
 )
 
-type handlerBinders[B, P, Q, R any] struct {
-	requestBinder  func(HandlerContext) (Request[B, P, Q], error)
-	responseBinder func(HandlerContext, Response[R]) (Response[any], error)
-}
+type requestBinder[B, P, Q any] func(*http.Request, *httprouter.Params) (Request[B, P, Q], error)
+type responseBinder[R any] func(http.ResponseWriter, *http.Request, Response[R]) (RawResponse, error)
 
-// produce set of binder functions that can be called at runtime to handle each httpRequest
-func bindersFactory[B, P, Q, R any](oa openapi, fn operationFunc[B, P, Q, R]) handlerBinders[B, P, Q, R] {
-	return handlerBinders[B, P, Q, R]{
-		requestBinder:  requestBinderFactory[B, P, Q](oa, fn.requestTypes()),
-		responseBinder: responseBinderFactory[R](fn.responseTypes(), oa.contentTypes),
-	}
-}
+//type handlerBinders[B, P, Q, R any] struct {
+//	requestBinder  requestBinder[B, P, Q]
+//	responseBinder responseBinder[R]
+//}
+//
+//// produce set of binder functions that can be called at runtime to handle each httpRequest
+//func bindersFactory[B, P, Q, R any](oa openapi, fn operationFunc[B, P, Q, R]) handlerBinders[B, P, Q, R] {
+//	return handlerBinders[B, P, Q, R]{
+//		requestBinder:  requestBinderFactory[B, P, Q](oa, fn.requestTypes()),
+//		responseBinder: responseBinderFactory[R](fn.responseTypes(), oa.contentTypes),
+//	}
+//}
 
 // produce the binder function that can be called at runtime to create the httpRequest object for the handler
-func requestBinderFactory[B, P, Q any](oa openapi, types requestTypes) func(HandlerContext) (Request[B, P, Q], error) {
+func requestBinderFactory[B, P, Q any](oa openapi, types requestTypes) requestBinder[B, P, Q] {
 	requestBodyBinder := requestBodyBinderFactory[B](types.requestBody, oa.contentTypes)
 	pathParamsBinder := pathBinderFactory[P](types.pathParams)
 	queryParamsBinder := queryBinderFactory[Q](types.queryParams)
 
 	// this is what actually build the httpRequest object at runtime for the handler
-	return func(c HandlerContext) (Request[B, P, Q], error) {
-		var request = Request[B, P, Q]{Context: c.Request.Context(), Headers: c.Request.Header}
-		if err := requestBodyBinder(c.Request, &request.Body); err != nil {
+	return func(httpRequest *http.Request, params *httprouter.Params) (Request[B, P, Q], error) {
+		var request = Request[B, P, Q]{
+			Context: httpRequest.Context(),
+			Method:  httpRequest.Method,
+			URL:     httpRequest.URL,
+			Headers: httpRequest.Header,
+		}
+		if err := requestBodyBinder(httpRequest, &request.Body); err != nil {
 			return request, err
 		}
-		if err := pathParamsBinder(c.Params, &request.PathParams); err != nil {
+		if err := pathParamsBinder(params, &request.PathParams); err != nil {
 			return request, err
 		}
-		if err := queryParamsBinder(c.Request, &request.QueryParams); err != nil {
+		if err := queryParamsBinder(httpRequest, &request.QueryParams); err != nil {
 			return request, err
 		}
 		return request, nil
 	}
 }
 
-// produce the httpRequest body binder that can be used in runtime
+// produce the httpRequest Body binder that can be used in runtime
 func requestBodyBinderFactory[B any](requestBodyType reflect.Type, contentTypes ContentTypes) func(*http.Request, *B) error {
 	if requestBodyType == nilType {
 		return func(r *http.Request, body *B) error {
-			if r.ContentLength != 0 {
-				return errors.New("expected httpRequest with no body payload")
-			}
+			//if r.ContentLength != 0 {
+			//	return errors.New("expected httpRequest with no Body payload")
+			//}
 			return nil
 		}
 	}
@@ -73,18 +80,19 @@ func requestBodyBinderFactory[B any](requestBodyType reflect.Type, contentTypes 
 }
 
 // produce the path pathParams binder that can be used in runtime
-func pathBinderFactory[P any](pathParamsType reflect.Type) func(httprouter.Params, *P) error {
+func pathBinderFactory[P any](pathParamsType reflect.Type) func(*httprouter.Params, *P) error {
 	if pathParamsType == nilType {
-		return func(params httprouter.Params, body *P) error {
-			if len(params) > 0 {
-				return fmt.Errorf("expected no path pathParams but received %d", len(params))
-			}
+		return func(params *httprouter.Params, body *P) error {
+			//length := len(*params)
+			//if length > 0 {
+			//	return fmt.Errorf("expected no path pathParams but received %d", length)
+			//}
 			return nil
 		}
 	}
-	return func(params httprouter.Params, pathParams *P) error {
+	return func(params *httprouter.Params, pathParams *P) error {
 		m := make(map[string][]string)
-		for _, v := range params {
+		for _, v := range *params {
 			m[v.Key] = []string{v.Value}
 		}
 		return binding.Uri.BindUri(m, pathParams)
@@ -104,44 +112,47 @@ func queryBinderFactory[Q any](queryParamsType reflect.Type) func(*http.Request,
 		return nil
 	}
 }
-func responseBinderFactory[R any](responses handlerResponses, contentTypes ContentTypes) func(HandlerContext, Response[R]) (Response[any], error) {
-	return func(c HandlerContext, r Response[R]) (Response[any], error) {
-		response := Response[any]{
-			Status:  r.Status,
-			Headers: r.Headers,
-			Bytes:   r.Bytes,
-			bound:   r.bound,
-		}
-		if r.bound {
-			return response, nil
-		}
-		contentType, err := responseContentType(c.Request, contentTypes, JsonContentType{})
+func responseBinderFactory[R any](responses handlerResponses, contentTypes ContentTypes) responseBinder[R] {
+	return func(writer http.ResponseWriter, request *http.Request, r Response[R]) (RawResponse, error) {
+		contentType, err := responseContentType(request, contentTypes, JsonContentType{})
 		if err != nil {
 			log.Printf("[WARNING] %s. fallback to %s\n", err, contentType.Mime())
 		}
 		responseType, exist := responses[r.Status]
 		if !exist {
-			return response, fmt.Errorf("status %d is not part of the possible operation responses", r.Status)
+			return RawResponse{}, fmt.Errorf("Status %d is not part of the possible operation responses", r.Status)
 		}
-		if responseType.isNilType {
-			response.bound = true
-			return response, nil
+		var responseBytes []byte
+		if !responseType.isNilType {
+			responseField := reflect.ValueOf(r.Response).FieldByIndex(responseType.fieldIndex).Interface()
+			responseBytes, err = contentType.Encode(responseField)
+			if err != nil {
+				return RawResponse{}, err
+			}
+			r.Headers.Set("Content-Type", contentType.Mime())
 		}
-		responseField := reflect.ValueOf(r.Response).FieldByIndex(responseType.fieldIndex).Interface()
-		responseBytes, err := contentType.Encode(responseField)
-		if err != nil {
-			return response, err
+		bindResponseHeaders(writer, r)
+		writer.WriteHeader(r.Status)
+		_, err = writer.Write(responseBytes)
+		return RawResponse{
+			Status:  r.Status,
+			Body:    responseBytes,
+			Headers: r.Headers,
+		}, err
+	}
+}
+
+func bindResponseHeaders[R any](writer http.ResponseWriter, r Response[R]) {
+	for header, values := range r.Headers {
+		for _, value := range values {
+			writer.Header().Add(header, value)
 		}
-		response.Headers.Set("Content-Type", contentType.Mime())
-		response.Bytes = responseBytes
-		response.bound = true
-		return response, nil
 	}
 }
 
 func requestContentType(r *http.Request, supportedTypes ContentTypes, defaultContentType ContentType) (ContentType, error) {
 	mimeType := r.Header.Get("Content-Type")
-	if mimeType == "*/*" {
+	if mimeType == "*/*" || mimeType == "" {
 		return defaultContentType, nil
 	}
 	if contentType, found := supportedTypes[mimeType]; found {
@@ -153,7 +164,7 @@ func requestContentType(r *http.Request, supportedTypes ContentTypes, defaultCon
 func responseContentType(r *http.Request, supportedTypes ContentTypes, defaultContentType ContentType) (ContentType, error) {
 	mimeTypes := []string{r.Header.Get("Accept"), r.Header.Get("Content-Type")}
 	for _, mimeType := range mimeTypes {
-		if mimeType == "*/*" {
+		if mimeType == "*/*" || mimeType == "" {
 			return defaultContentType, nil
 		}
 		if contentTypes, found := supportedTypes[mimeType]; found {

@@ -2,22 +2,22 @@ package api
 
 import (
 	"fmt"
-	"github.com/piiano/restcontroller/router"
+	r "github.com/piiano/restcontroller/router"
 	"time"
 )
 
-var GreetOperationHandler = router.NewOperationHandler(greetHandler)
+var GreetOperationHandler = r.NewHandler(greetHandler)
 
-func greetHandler(request router.Request[body, pathParams, queryParams]) (router.Response[responses], error) {
+func greetHandler(_ r.Context, request r.Request[body, pathParams, queryParams]) (r.Response[responses], error) {
 	if request.PathParams.Version != "v1" && request.PathParams.Version != "1" && request.PathParams.Version != "1.0" {
 		errMessage := fmt.Sprintf("unsupported version %q", request.PathParams.Version)
-		return router.Send(400, responses{BadRequest: badRequest{Message: errMessage}})
+		return r.Send(400, responses{BadRequest: badRequest{Message: errMessage}})
 	}
 	greeting, err := greet(request.Body.Name, request.Body.DayOfBirth, request.QueryParams.GreetTemplate)
 	if err != nil {
-		return router.Send(400, responses{BadRequest: badRequest{Message: err.Error()}})
+		return r.Send(400, responses{BadRequest: badRequest{Message: err.Error()}})
 	}
-	return router.Send(200, responses{OK: ok{Greeting: greeting}})
+	return r.Send(200, responses{OK: ok{Greeting: greeting}})
 }
 
 type body struct {

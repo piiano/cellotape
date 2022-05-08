@@ -30,6 +30,7 @@ func mainHandler() error {
 		Use(middlewares.LoggerMiddleware, middlewares.AuthMiddleware).
 		WithGroup(models.TasksOperationsGroup(tasksService)).
 		AsHandler()
+
 	if err != nil {
 		return err
 	}
