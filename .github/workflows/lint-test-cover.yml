@@ -1,0 +1,64 @@
+name: Lint, Test and check Coverage
+on: [pull_request]
+
+jobs:
+  lint:
+    name: Lint with Reviewdog
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Out Repo.
+        uses: actions/checkout@v3
+
+      - name: golangci-lint
+        uses: reviewdog/action-golangci-lint@v2
+        with:
+          golangci_lint_flags: "-E forbidigo"
+          reporter: "github-pr-review"
+
+  test:
+    runs-on: ubuntu-latest
+    name: Run tests on ${{ matrix.platform }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: "0"
+
+      - name: Install Golang
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18
+          check-latest: true
+
+      - name: Print Go Version
+        run: go version
+
+      - name: Cache go modules
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Test and produce coverage profile
+        id: coverage
+        run: |
+          COVER_PACKAGES=$(go list ./router/... | paste -s -d , -)
+          echo "packages included in coverage $COVER_PACKAGES"
+          go test ./... -cover -coverpkg $COVER_PACKAGES -coverprofile=coverage.out
+          TOTAL=$(go tool cover -func coverage.out | grep total | awk '{print $3}')
+          echo "::set-output name=total::$TOTAL"
+
+      - uses: actions/github-script@v6
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '![${{ steps.coverage.outputs.total }}](https://badgen.net/badge/coverage/${{ steps.coverage.outputs.total }}25/green?icon=github)'
+            })

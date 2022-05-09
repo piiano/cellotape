@@ -13,7 +13,6 @@ func asHandler(oa *openapi) (http.Handler, error) {
 	if err := validateOpenAPIRouter(oa, flatOperations); err != nil {
 		return nil, err
 	}
-	// TODO print warning
 	router := httprouter.New()
 	logger := oa.logger()
 	pathParamsMatcher := regexp.MustCompile(`\{([^/}]*)}`)

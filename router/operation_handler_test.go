@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-func TestOperationFuncTypeExtraction(t *testing.T) {
+func TestHandlerFuncTypeExtraction(t *testing.T) {
 	fn := HandlerFunc[Nil, Nil, Nil, Nil](func(Context, Request[Nil, Nil, Nil]) (Response[Nil], error) { return Response[Nil]{}, nil })
 	types := fn.requestTypes()
 	assert.Equal(t, types.requestBody, nilType)
@@ -19,7 +19,7 @@ func TestOperationFuncTypeExtraction(t *testing.T) {
 	assert.Equal(t, types.queryParams, nilType)
 }
 
-func TestOperationFuncAsGinHandler(t *testing.T) {
+func TestRouterAsHandler(t *testing.T) {
 	type responses struct {
 		Answer int `status:"200"`
 	}

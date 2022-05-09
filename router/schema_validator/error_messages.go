@@ -30,3 +30,7 @@ func formatMustHaveNoError(err error, schemaType string, goType reflect.Type) er
 	}
 	return nil
 }
+
+func schemaPropertyIsNotMappedToFieldInType(name string, c typeSchemaValidatorContext) string {
+	return fmt.Sprintf("property %q is not mapped to a field in type %s", name, c.goType)
+}

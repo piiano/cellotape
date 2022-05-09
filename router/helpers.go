@@ -3,8 +3,7 @@ package router
 import "reflect"
 
 func getType[T any]() reflect.Type {
-	var t T
-	return reflect.TypeOf(t)
+	return reflect.TypeOf(*new(T))
 }
 
 type Nil *uintptr

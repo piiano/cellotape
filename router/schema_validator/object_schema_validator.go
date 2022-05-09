@@ -1,11 +1,14 @@
 package schema_validator
 
 import (
+	"encoding"
 	"encoding/json"
 	"github.com/piiano/restcontroller/router/utils"
 	"reflect"
 	"strings"
 )
+
+var textMarshallerType = reflect.TypeOf(new(encoding.TextMarshaler)).Elem()
 
 func (c typeSchemaValidatorContext) validateObjectSchema() error {
 	// TODO: validate required properties, nullable, additionalProperties, etc.
@@ -21,7 +24,7 @@ func (c typeSchemaValidatorContext) validateObjectSchema() error {
 			for name, property := range c.schema.Properties {
 				field, ok := fields[name]
 				if !ok {
-					l.Logf(c.level, "property %q is not mapped to a field in type %s", name, c.goType)
+					l.Logf(c.level, schemaPropertyIsNotMappedToFieldInType(name, c))
 				}
 				if ok {
 					l.LogIfNotNil(c.level, c.WithType(field.Type).WithSchema(*property.Value).Validate())
@@ -62,7 +65,7 @@ func (c typeSchemaValidatorContext) validateObjectSchema() error {
 
 // structJsonFields Extract the struct fields that are serializable as JSON corresponding to their JSON key
 func structJsonFields(structType reflect.Type) map[string]reflect.StructField {
-	// this method care only about the json keys of the current struct in following json/encoding rules.
+	// this method cares only about the json keys of the current struct in following json/encoding rules.
 	// for simplification, we marshal an instance of the struct to json and unmarshal it to back to a map to get all json keys.
 	//
 	// To avoid fields filtering by omitempty tag we use bool type and set them with reflection to a non nil value.

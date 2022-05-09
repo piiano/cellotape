@@ -1,13 +1,10 @@
 package schema_validator
 
 import (
-	"encoding"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/piiano/restcontroller/router/utils"
 	"reflect"
 )
-
-var textMarshallerType = reflect.TypeOf((*encoding.TextMarshaler)(nil)).Elem()
 
 // schema types allowed by OpenAPI specification.
 const (
