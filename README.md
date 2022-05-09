@@ -28,9 +28,9 @@ Our approach using strongly typed handlers can help you create an implementation
 
 - [x] Init an HTTP router driven from an OpenAPI spec (`router.OpenAPI`).
 
-- [x] Provide SDK for defining strongly typed handler mapped to spec operations.
+- [x] Provide SDK for defining strongly typed handlers mapped to spec operations.
 
-- [x] Verify the handler signature types are compatible with those defined in the spec.
+- [x] Verify handler signature compatability with spec operations.
   
   This enforces during initialization that the handlers correctly implement the spec. 
  
@@ -44,18 +44,17 @@ Our approach using strongly typed handlers can help you create an implementation
     
   - **Responses**
   
-- [x] ~~Support for middleware chains and group mechanism that allow applying middlewares to specific operations or specific groups~~
+- [x] Support for middleware chains and group mechanism that allow applying middlewares to specific operations or specific groups.
   
-  The current implementation fail to support some basic use cases and the design need to be revised.
-  Also, we need to think about the tradeoffs between flexibility to compliance with the spec.  
-  
-  For example, a middleware for authentication that can return 401 response that is incompatible with the spec.
-  
-- [x] Compatability with the `http.Handler` interface for both the router itself and the middlewares to allow easy integration of the router in any popular framework
+- [x] Compatability with the `http.Handler` interface for both the router itself and the middlewares to allow easy integration of the router in any popular framework.
 
 - [x] Support for custom content types to align with content types defined in the spec. 
  
   This can be done by implementing the `router.ContentType` interface
+
+- [x] Support for customization of validation behaviour and other configuration using `router.Options`.
+  
+  For the full documentation of the available options you can check the documentation on the [`router.Options`](./router/options.go) struct.
 
 ## Examples
 
@@ -65,14 +64,12 @@ You can learn more about how to use this package by reviewing the following exam
 
 You can check the [Hello World Example](./examples/hello_world_example) to see how it works.
 We use the following [openapi.yaml](./examples/hello_world_example/openapi.yaml)
-([see with UI](https://editor.swagger.io?url=https://raw.githubusercontent.com/piiano/restcontroller/main/example/hello-world-openapi.yaml?token%3DGHSAT0AAAAAABSHBLZSQVEWSF62YUJLYSK6YSDMK5A))
 to init the server and map to the relevant handlers. 
 
 ### TODO List API Example
 
 You can check the [TODO List API Example](./examples/todo_list_app_example) to see how it works with a more realistic usage.
 We use the following [openapi.yaml](./examples/todo_list_app_example/openapi.yaml)
-([see with UI](https://editor.swagger.io?url=https://raw.githubusercontent.com/piiano/restcontroller/main/example/hello-world-openapi.yaml?token%3DGHSAT0AAAAAABSHBLZSQVEWSF62YUJLYSK6YSDMK5A))
 to init the server and map to the relevant handlers.
 
 
@@ -86,12 +83,4 @@ to init the server and map to the relevant handlers.
     
   - https://github.com/xeipuuv/gojsonschema
   
-- [ ] Change the current middleware implementation
-  
-- [ ] Add support for better customization using an `router.Options` parameter
-  
 - [ ] Add support for additional OpenAPI features such as Header Params, Cookie Params, etc.
-
-- [ ] We might want to replace the internal implementation with [julienschmidt/httprouter](https://github.com/julienschmidt/httprouter).
-
-- [ ] Improve test coverage for the router package
