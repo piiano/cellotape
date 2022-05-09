@@ -13,19 +13,6 @@ import (
 type requestBinder[B, P, Q any] func(*http.Request, *httprouter.Params) (Request[B, P, Q], error)
 type responseBinder[R any] func(http.ResponseWriter, *http.Request, Response[R]) (RawResponse, error)
 
-//type handlerBinders[B, P, Q, R any] struct {
-//	requestBinder  requestBinder[B, P, Q]
-//	responseBinder responseBinder[R]
-//}
-//
-//// produce set of binder functions that can be called at runtime to handle each httpRequest
-//func bindersFactory[B, P, Q, R any](oa openapi, fn operationFunc[B, P, Q, R]) handlerBinders[B, P, Q, R] {
-//	return handlerBinders[B, P, Q, R]{
-//		requestBinder:  requestBinderFactory[B, P, Q](oa, fn.requestTypes()),
-//		responseBinder: responseBinderFactory[R](fn.responseTypes(), oa.contentTypes),
-//	}
-//}
-
 // produce the binder function that can be called at runtime to create the httpRequest object for the handler
 func requestBinderFactory[B, P, Q any](oa openapi, types requestTypes) requestBinder[B, P, Q] {
 	requestBodyBinder := requestBodyBinderFactory[B](types.requestBody, oa.contentTypes)
@@ -56,12 +43,7 @@ func requestBinderFactory[B, P, Q any](oa openapi, types requestTypes) requestBi
 // produce the httpRequest Body binder that can be used in runtime
 func requestBodyBinderFactory[B any](requestBodyType reflect.Type, contentTypes ContentTypes) func(*http.Request, *B) error {
 	if requestBodyType == nilType {
-		return func(r *http.Request, body *B) error {
-			//if r.ContentLength != 0 {
-			//	return errors.New("expected httpRequest with no Body payload")
-			//}
-			return nil
-		}
+		return func(r *http.Request, body *B) error { return nil }
 	}
 	return func(r *http.Request, body *B) error {
 		contentType, err := requestContentType(r, contentTypes, JsonContentType{})
@@ -82,13 +64,7 @@ func requestBodyBinderFactory[B any](requestBodyType reflect.Type, contentTypes 
 // produce the path pathParams binder that can be used in runtime
 func pathBinderFactory[P any](pathParamsType reflect.Type) func(*httprouter.Params, *P) error {
 	if pathParamsType == nilType {
-		return func(params *httprouter.Params, body *P) error {
-			//length := len(*params)
-			//if length > 0 {
-			//	return fmt.Errorf("expected no path pathParams but received %d", length)
-			//}
-			return nil
-		}
+		return func(params *httprouter.Params, body *P) error { return nil }
 	}
 	return func(params *httprouter.Params, pathParams *P) error {
 		m := make(map[string][]string)
@@ -102,7 +78,6 @@ func pathBinderFactory[P any](pathParamsType reflect.Type) func(*httprouter.Para
 // produce the query pathParams binder that can be used in runtime
 func queryBinderFactory[Q any](queryParamsType reflect.Type) func(*http.Request, *Q) error {
 	if queryParamsType == nilType {
-		// do nothing if there are query pathParams in the httpRequest when no pathParams expected
 		return func(*http.Request, *Q) error { return nil }
 	}
 	return func(r *http.Request, queryParams *Q) error {

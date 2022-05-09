@@ -79,7 +79,7 @@ func TestCreateNewTaskAndGetIt(t *testing.T) {
 }
 
 func initAPI(t *testing.T) (*httptest.Server, error) {
-	spec, err := router.NewSpecFromData(specData2)
+	spec, err := router.NewSpecFromData(specData)
 	require.Nil(t, err)
 
 	tasksService := services.NewTasksService()

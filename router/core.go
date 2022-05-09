@@ -13,15 +13,16 @@ func asHandler(oa *openapi) (http.Handler, error) {
 	if err := validateOpenAPIRouter(oa, flatOperations); err != nil {
 		return nil, err
 	}
+	// TODO print warning
 	router := httprouter.New()
-	pathParamsMatcher := regexp.MustCompile(`\{([^/]*)}`)
+	pathParamsMatcher := regexp.MustCompile(`\{([^/}]*)}`)
 	for _, flatOp := range flatOperations {
 		specOp, _ := oa.spec.findSpecOperationByID(flatOp.id)
 		path := pathParamsMatcher.ReplaceAllString(specOp.path, ":$1")
 		chainHead := chainHandlers(*oa, append(flatOp.handlers, flatOp.handler)...)
 		httpRouterHandler := asHttpRouterHandler(*oa, chainHead)
 		router.Handle(specOp.method, path, httpRouterHandler)
-		log.Printf("register handler for operation %q on [%s] %s \n", flatOp.id, specOp.method, specOp.path)
+		log.Printf("[INFO] register handler for operation %q on [%s] %s \n", flatOp.id, specOp.method, specOp.path)
 	}
 	return router, nil
 }
