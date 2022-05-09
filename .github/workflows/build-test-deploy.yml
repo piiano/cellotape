@@ -32,5 +32,5 @@ jobs:
 
       - name: Test.
         run: |
-          go test ./... -cover -coverpkg ./router,./schema_validator,./utils  -coverprofile=profile.cov && \
+          go test ./... -cover -coverpkg ./router,./router/schema_validator,./router/utils  -coverprofile=profile.cov && \
           go tool cover -func profile.cov

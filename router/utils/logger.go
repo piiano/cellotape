@@ -50,11 +50,6 @@ type LogCounters struct {
 	Warnings int
 }
 
-func NewLogger(out io.Writer) Logger {
-	return &logger{
-		output: out,
-	}
-}
 func NewLoggerWithLevel(out io.Writer, level LogLevel) Logger {
 	return &logger{
 		output: out,
@@ -185,11 +180,7 @@ func (l inMemoryLogger) Printed() string {
 }
 
 func NewInMemoryLogger() InMemoryLogger {
-	sb := strings.Builder{}
-	return inMemoryLogger{
-		stringBuilder: &sb,
-		Logger:        NewLogger(&sb),
-	}
+	return NewInMemoryLoggerWithLevel(Error)
 }
 
 func NewInMemoryLoggerWithLevel(level LogLevel) InMemoryLogger {

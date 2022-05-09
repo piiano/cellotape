@@ -7,9 +7,6 @@ import (
 	"reflect"
 )
 
-type Options struct {
-}
-
 var textMarshallerType = reflect.TypeOf((*encoding.TextMarshaler)(nil)).Elem()
 
 // schema types allowed by OpenAPI specification.

@@ -39,7 +39,7 @@ func validateMustHandleAllOperations(oa *openapi, declaredOperation utils.Set[st
 	for _, pathItem := range oa.spec.Paths {
 		for _, specOp := range pathItem.Operations() {
 			if !declaredOperation.Has(specOp.OperationID) {
-				l.Logf(oa.options.MustHandleAllOperations, missingHandlerForOperationId(specOp.OperationID))
+				l.Logf(utils.LogLevel(oa.options.MustHandleAllOperations), missingHandlerForOperationId(specOp.OperationID))
 			}
 		}
 	}
@@ -49,7 +49,7 @@ func validateMustHandleAllOperations(oa *openapi, declaredOperation utils.Set[st
 // validateContentTypes checks that all content types defined in the spec for request or responses have an implementation on the router.
 func validateContentTypes(oa openapi) error {
 	log := oa.logger()
-	level := oa.options.HandleAllContentTypes
+	level := utils.LogLevel(oa.options.HandleAllContentTypes)
 	specContentTypes := oa.spec.findSpecContentTypes()
 	for _, specContentType := range specContentTypes {
 		_, exist := oa.contentTypes[specContentType]
@@ -79,8 +79,9 @@ func validateOperation(oa openapi, operation operation) error {
 }
 
 // validateHandleAllResponses checks that every response defined in the spec is handled at least once in the handlers chain
-func validateHandleAllResponses(oa openapi, level utils.LogLevel, operation operation, specOp specOperation) error {
+func validateHandleAllResponses(oa openapi, behaviour Behaviour, operation operation, specOp specOperation) error {
 	l := oa.logger()
+	level := utils.LogLevel(behaviour)
 	handlers := append(operation.handlers, operation.handler)
 	responseCodes := utils.NewSet[int](utils.ConcatSlices[int](utils.Map(handlers, func(h handler) []int {
 		return utils.Keys(h.responses)
@@ -102,8 +103,9 @@ func validateHandleAllResponses(oa openapi, level utils.LogLevel, operation oper
 
 // validateRequestBodyType check that a request body type declared on a handler is declared on the spec with a compatible schema.
 // a handler does not have to declare and handle the request body defined in the spec, but it can not declare request body which is not defined or incompatible.
-func validateRequestBodyType(oa openapi, level utils.LogLevel, handler handler, specBody *openapi3.RequestBodyRef, operationID string) error {
+func validateRequestBodyType(oa openapi, behaviour Behaviour, handler handler, specBody *openapi3.RequestBodyRef, operationID string) error {
 	l := oa.logger()
+	level := utils.LogLevel(behaviour)
 	bodyType := handler.request.requestBody
 	if bodyType == nilType {
 		return nil
@@ -122,20 +124,21 @@ func validateRequestBodyType(oa openapi, level utils.LogLevel, handler handler, 
 
 // validatePathParamsType check that all pathParamInValue params declared on a handler are available on the spec with a compatible schema.
 // a handler does not have to declare and handle all pathParamInValue parameters defined in the spec, but it can not declare parameters which are not defined.
-func validatePathParamsType(oa openapi, level utils.LogLevel, handler handler, specParameters openapi3.Parameters, operationId string) error {
-	return validateParamsType(oa, level, pathParamInValue, pathParamFieldTag, handler.request.pathParams, specParameters, operationId)
+func validatePathParamsType(oa openapi, behaviour Behaviour, handler handler, specParameters openapi3.Parameters, operationId string) error {
+	return validateParamsType(oa, behaviour, pathParamInValue, pathParamFieldTag, handler.request.pathParams, specParameters, operationId)
 }
 
 // validatePathParamsType check that all queryParamInValue params declared on a handler are available on the spec with a compatible schema.
 // a handler does not have to declare and handle all queryParamInValue parameters defined in the spec, but it can not declare parameters which are not defined.
-func validateQueryParamsType(oa openapi, level utils.LogLevel, handler handler, specParameters openapi3.Parameters, operationId string) error {
-	return validateParamsType(oa, level, queryParamInValue, queryParamFieldTag, handler.request.queryParams, specParameters, operationId)
+func validateQueryParamsType(oa openapi, behaviour Behaviour, handler handler, specParameters openapi3.Parameters, operationId string) error {
+	return validateParamsType(oa, behaviour, queryParamInValue, queryParamFieldTag, handler.request.queryParams, specParameters, operationId)
 }
 
 // validateParamsType check that all params declared on a handler are available on the spec with a compatible schema.
 // a handler does not have to declare and handle all parameters defined in the spec, but it can not declare parameters which are not defined.
-func validateParamsType(oa openapi, level utils.LogLevel, in string, tag string, paramsType reflect.Type, specParameters openapi3.Parameters, operationId string) error {
+func validateParamsType(oa openapi, behaviour Behaviour, in string, tag string, paramsType reflect.Type, specParameters openapi3.Parameters, operationId string) error {
 	l := oa.logger()
+	level := utils.LogLevel(behaviour)
 	if paramsType == nilType {
 		return nil
 	}
@@ -161,8 +164,9 @@ func validateParamsType(oa openapi, level utils.LogLevel, in string, tag string,
 
 // validateResponseTypes check that all responses declared on a handler are available on the spec with a compatible schema.
 // a handler does not have to declare and handle all possible responses defined in the spec, but it can not declare responses which are not defined.
-func validateResponseTypes(oa openapi, level utils.LogLevel, handler handler, specOperation *openapi3.Operation, operationId string) error {
+func validateResponseTypes(oa openapi, behaviour Behaviour, handler handler, specOperation *openapi3.Operation, operationId string) error {
 	l := oa.logger()
+	level := utils.LogLevel(behaviour)
 	validator := schema_validator.NewTypeSchemaValidator(l, level, nilType, openapi3.Schema{})
 	for status, response := range handler.responses {
 		specResponse := specOperation.Responses.Get(status)

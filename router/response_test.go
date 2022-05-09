@@ -4,46 +4,44 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"reflect"
 	"testing"
 )
 
-//func TestExtractResponses(t *testing.T) {
-//	tableTest(t, extractResponses, []testCase[reflect.Type, map[int]httpResponse]{
-//		{in: nilType, out: map[int]httpResponse{}},
-//		{in: reflect.TypeOf(struct{}{}), out: map[int]httpResponse{}},
-//		{in: reflect.TypeOf(struct{ ok string }{}), out: map[int]httpResponse{}},
-//		{in: reflect.TypeOf(struct {
-//			OK string `Status:"200"`
-//		}{}), out: map[int]httpResponse{200: {
-//			declaredAt: reflect.TypeOf(struct {
-//				OK string `Status:"200"`
-//			}{}),
-//			Status:       200,
-//			responseType: reflect.TypeOf(""),
-//			fieldIndex:   []int{0},
-//			isNilType:    false,
-//		}}},
-//		{in: reflect.TypeOf(struct {
-//			OK     string `Status:"200"`
-//			Teapot bool   `Status:"418"`
-//		}{}), out: map[int]httpResponse{
-//			200: {
-//				Status:       200,
-//				responseType: reflect.TypeOf(""),
-//				fieldIndex:   []int{0},
-//			},
-//			418: {
-//				Status:       418,
-//				responseType: reflect.TypeOf(true),
-//				fieldIndex:   []int{1},
-//			},
-//		}},
-//		{in: reflect.TypeOf(struct{ OK string }{}), out: map[int]httpResponse{}},
-//		{in: reflect.TypeOf(struct {
-//			NoDashSupport int `Status:"-"`
-//		}{}), out: map[int]httpResponse{}},
-//	})
-//}
+func TestExtractResponses(t *testing.T) {
+	tableTest(t, extractResponses, []testCase[reflect.Type, handlerResponses]{
+		{in: nilType, out: handlerResponses{}},
+		{in: reflect.TypeOf(struct{}{}), out: handlerResponses{}},
+		{in: reflect.TypeOf(struct{ ok string }{}), out: handlerResponses{}},
+		{in: reflect.TypeOf(struct {
+			OK string `status:"200"`
+		}{}), out: handlerResponses{200: {
+			status:       200,
+			responseType: reflect.TypeOf(""),
+			fieldIndex:   []int{0},
+			isNilType:    false,
+		}}},
+		{in: reflect.TypeOf(struct {
+			OK     string `status:"200"`
+			Teapot bool   `status:"418"`
+		}{}), out: handlerResponses{
+			200: {
+				status:       200,
+				responseType: reflect.TypeOf(""),
+				fieldIndex:   []int{0},
+			},
+			418: {
+				status:       418,
+				responseType: reflect.TypeOf(true),
+				fieldIndex:   []int{1},
+			},
+		}},
+		{in: reflect.TypeOf(struct{ OK string }{}), out: map[int]httpResponse{}},
+		{in: reflect.TypeOf(struct {
+			NoDashSupport int `status:"-"`
+		}{}), out: map[int]httpResponse{}},
+	})
+}
 
 func TestParseStatus(t *testing.T) {
 	tableTestWithErr(t, parseStatus, []testCase[string, int]{
