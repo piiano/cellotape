@@ -13,7 +13,7 @@ func loggerHandler(c r.Context, request r.Request[r.Nil, r.Nil, r.Nil]) (r.Respo
 	response, err := c.Next()
 	duration := time.Since(start)
 	if err != nil {
-		log.Printf("[ERROR] error ocured: %s. - %s - [%s] %s\n", err.Error(), duration, request.Method, request.URL.Path)
+		log.Printf("[ERROR] error occurred: %s. - %s - [%s] %s\n", err.Error(), duration, request.Method, request.URL.Path)
 		return r.Response[any]{}, nil
 	}
 	log.Printf("[INFO] (status %d | %d bytes | %s) - [%s] %s\n", response.Status, len(response.Body), duration, request.Method, request.URL.Path)

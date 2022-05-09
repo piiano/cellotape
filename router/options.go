@@ -20,10 +20,10 @@ type Options struct {
 	OperationValidations map[string]OperationValidationOptions
 
 	// HandleAllOperations is set to true there is a check that every operation defined in the spec has an implementation in the router
-	HandleAllOperations utils.ErrorAction
+	HandleAllOperations utils.LogLevel
 
 	// HandleAllContentTypes is set to true there is a check that every operation defined in the spec has an implementation in the router
-	HandleAllContentTypes utils.ErrorAction
+	HandleAllContentTypes utils.LogLevel
 }
 
 const (
@@ -34,19 +34,19 @@ const (
 
 type OperationValidationOptions struct {
 	// ValidatePathParams determines validation of operation request body.
-	ValidateRequestBody utils.ErrorAction
+	ValidateRequestBody utils.LogLevel
 
 	// ValidatePathParams determines validation of operation path params.
-	ValidatePathParams utils.ErrorAction
+	ValidatePathParams utils.LogLevel
 
 	// ValidatePathParams determines validation of operation query params.
-	ValidateQueryParams utils.ErrorAction
+	ValidateQueryParams utils.LogLevel
 
 	// ValidatePathParams determines validation of operation responses.
-	ValidateResponses utils.ErrorAction
+	ValidateResponses utils.LogLevel
 
 	// When HandleAllOperationResponses is set to true there is a check that every response defined in the spec is handled at least once in the handlers chain
-	HandleAllOperationResponses utils.ErrorAction
+	HandleAllOperationResponses utils.LogLevel
 }
 
 func (o Options) OperationValidationOptions(id string) OperationValidationOptions {

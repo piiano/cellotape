@@ -4,7 +4,7 @@ import (
 	_ "embed"
 	"fmt"
 	"github.com/piiano/restcontroller/examples/todo_list_app_example/middlewares"
-	models "github.com/piiano/restcontroller/examples/todo_list_app_example/rest"
+	"github.com/piiano/restcontroller/examples/todo_list_app_example/rest"
 	"github.com/piiano/restcontroller/examples/todo_list_app_example/services"
 	"github.com/piiano/restcontroller/router"
 	"log"
@@ -28,7 +28,7 @@ func mainHandler() error {
 	tasksService := services.NewTasksService()
 	handler, err := router.NewOpenAPIRouter(spec).
 		Use(middlewares.LoggerMiddleware, middlewares.AuthMiddleware).
-		WithGroup(models.TasksOperationsGroup(tasksService)).
+		WithGroup(rest.TasksOperationsGroup(tasksService)).
 		AsHandler()
 
 	if err != nil {
