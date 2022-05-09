@@ -113,10 +113,9 @@ func expectTypeToBeIncompatible(t *testing.T, validator TypeSchemaValidator, tes
 }
 
 func TestSchemaValidatorWithOptions(t *testing.T) {
+	logger := utils.NewInMemoryLogger()
 	stringSchema := openapi3.NewStringSchema()
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *stringSchema, Options{}).
-		// test call to with options
-		WithOptions(Options{})
+	validator := NewEmptyTypeSchemaValidator(logger).WithSchema(*stringSchema)
 	errTemplate := "expect string schema with time format to be %s with %s type"
 	expectTypeToBeCompatible(t, validator, stringType, errTemplate, "compatible", stringType)
 	// omit the string type from all defined test types
@@ -128,4 +127,18 @@ func TestSchemaValidatorWithOptions(t *testing.T) {
 			expectTypeToBeIncompatible(t, validator, nonStringType, errTemplate, "incompatible", nonStringType)
 		})
 	}
+}
+
+func emptyValidator() TypeSchemaValidator {
+	logger := utils.NewInMemoryLogger()
+	return NewEmptyTypeSchemaValidator(logger)
+}
+func typeValidator(goType reflect.Type) TypeSchemaValidator {
+	return emptyValidator().WithType(goType)
+}
+func schemaValidator(schema openapi3.Schema) TypeSchemaValidator {
+	return emptyValidator().WithSchema(schema)
+}
+func typeSchemaValidator(goType reflect.Type, schema openapi3.Schema) TypeSchemaValidator {
+	return typeValidator(goType).WithSchema(schema)
 }

@@ -38,7 +38,7 @@ package utils
 //// For non-nil errors add to the collector.
 //// Return boolean value indicating an error was added to the collector or not.
 //func (e *errorsCollector) AddIfNotNil(action LogLevel, errors ...error) bool {
-//	if action == Ignore {
+//	if action == Off {
 //		return false
 //	}
 //	added := false

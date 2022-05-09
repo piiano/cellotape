@@ -1,38 +1,36 @@
 package schema_validator
 
 import (
-	"fmt"
 	"github.com/google/uuid"
-	"github.com/piiano/restcontroller/router/utils"
 	"reflect"
 	"time"
 )
 
-func (c typeSchemaValidatorContext) validateStringSchema() utils.MultiError {
-	errs := utils.NewErrorsCollector()
+func (c typeSchemaValidatorContext) validateStringSchema() error {
+	l := c.newLogger()
 	if c.schema.Type != stringSchemaType {
 		return nil
 	}
 	switch c.schema.Format {
 	case "":
 		if c.goType.Kind() != reflect.String {
-			errs.AddErrorsIfNotNil(fmt.Errorf("received type %s for string schema", c.goType))
+			l.Logf(c.level, schemaTypeIsIncompatibleWithType(c.schema, c.goType))
 		}
 	case uuidFormat:
 		if c.goType.Kind() != reflect.String && c.goType != reflect.TypeOf(uuid.New()) {
-			errs.AddErrorsIfNotNil(fmt.Errorf("string schema with uuid format is not compatible with type %s", c.goType))
+			l.Logf(c.level, schemaTypeWithFormatIsIncompatibleWithType(c.schema, c.goType))
 		}
 	case timeFormat:
 		if c.goType.Kind() != reflect.String && c.goType != reflect.TypeOf(time.Now()) {
-			errs.AddErrorsIfNotNil(fmt.Errorf("string schema with time format is not compatible with type %s", c.goType))
+			l.Logf(c.level, schemaTypeWithFormatIsIncompatibleWithType(c.schema, c.goType))
 		}
 	// TODO: add support for more formats compatible types (dateTimeFormat, dateFormat, durationFormat, etc.)
 	case dateTimeFormat, dateFormat, durationFormat, emailFormat, idnEmailFormat, hostnameFormat,
 		idnHostnameFormat, ipv4Format, ipv6Format, uriFormat, uriReferenceFormat, iriFormat, iriReferenceFormat,
 		uriTemplateFormat, jsonPointerFormat, relativeJsonPointerFormat, regexFormat, passwordFormat:
 		if c.goType.Kind() != reflect.String {
-			errs.AddErrorsIfNotNil(fmt.Errorf("string schema with %s format is not compatible with type %s", c.schema.Format, c.goType))
+			l.Logf(c.level, schemaTypeWithFormatIsIncompatibleWithType(c.schema, c.goType))
 		}
 	}
-	return errs.ErrorOrNil()
+	return formatMustHaveNoError(l.MustHaveNoErrors(), c.schema.Type, c.goType)
 }

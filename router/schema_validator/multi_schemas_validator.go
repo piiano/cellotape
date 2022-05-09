@@ -1,21 +1,21 @@
 package schema_validator
 
-import (
-	"github.com/piiano/restcontroller/router/utils"
-)
+import "github.com/piiano/restcontroller/router/utils"
 
 type schemaValidation struct {
 	context       TypeSchemaValidator
 	originalIndex int
-	multiError    utils.MultiError
+	logger        utils.InMemoryLogger
 }
 
 func validateMultipleSchemas(cs ...TypeSchemaValidator) ([]schemaValidation, []schemaValidation) {
-	pass := make([]schemaValidation, 0, len(cs))
-	failed := make([]schemaValidation, 0, len(cs))
+	pass := make([]schemaValidation, 0)
+	failed := make([]schemaValidation, 0)
 	for i, c := range cs {
+		logger := utils.NewInMemoryLoggerWithLevel(c.logLevel())
+		c.WithLogger(logger)
 		err := c.Validate()
-		validation := schemaValidation{context: c, multiError: err, originalIndex: i}
+		validation := schemaValidation{context: c, logger: logger, originalIndex: i}
 		if err == nil {
 			pass = append(pass, validation)
 		}

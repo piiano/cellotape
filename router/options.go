@@ -3,6 +3,8 @@ package router
 import (
 	"github.com/piiano/restcontroller/router/schema_validator"
 	"github.com/piiano/restcontroller/router/utils"
+	"io"
+	"os"
 )
 
 type Options struct {
@@ -13,33 +15,40 @@ type Options struct {
 	// When RecoverOnPanic is set to true the handlers chain provide a default recover behaviour that return status 500.
 	RecoverOnPanic bool
 
-	// DefaultOperationValidation defines the default validations run for every operation
+	// LogLevel defines what log levels should be printed to LogOutput.
+	LogLevel utils.LogLevel
+
+	// Defines where to write the outputs too, default to stderr.
+	LogOutput io.Writer
+
+	// DefaultOperationValidation defines the default validations run for every operation.
 	DefaultOperationValidation OperationValidationOptions
 
-	// OperationValidations allow overriding the validations defined ny DefaultOperationValidation for specific operations using their operation id
+	// OperationValidations allow overriding the validations defined ny DefaultOperationValidation for specific operations using their operation id.
 	OperationValidations map[string]OperationValidationOptions
 
-	// HandleAllOperations is set to true there is a check that every operation defined in the spec has an implementation in the router
-	HandleAllOperations utils.LogLevel
+	// MustHandleAllOperations is set to true there is a check that every operation defined in the spec has an implementation in the router.
+	MustHandleAllOperations utils.LogLevel
 
-	// HandleAllContentTypes is set to true there is a check that every operation defined in the spec has an implementation in the router
+	// HandleAllContentTypes is set to true there is a check that every operation defined in the spec has an implementation in the router.
 	HandleAllContentTypes utils.LogLevel
 }
 
 const (
-	ReturnError   = utils.Error
-	PrintWarnning = utils.Warn
-	Ignore        = utils.Ignore
+	Off            = utils.Off
+	ReturnError    = utils.Error
+	PrintAsWarning = utils.Warn
+	PrintAsInfo    = utils.Info
 )
 
 type OperationValidationOptions struct {
 	// ValidatePathParams determines validation of operation request body.
 	ValidateRequestBody utils.LogLevel
 
-	// ValidatePathParams determines validation of operation path params.
+	// ValidatePathParams determines validation of operation pathParamInValue params.
 	ValidatePathParams utils.LogLevel
 
-	// ValidatePathParams determines validation of operation query params.
+	// ValidatePathParams determines validation of operation queryParamInValue params.
 	ValidateQueryParams utils.LogLevel
 
 	// ValidatePathParams determines validation of operation responses.
@@ -60,5 +69,6 @@ func (o Options) OperationValidationOptions(id string) OperationValidationOption
 func DefaultOptions() Options {
 	return Options{
 		RecoverOnPanic: true,
+		LogOutput:      os.Stderr,
 	}
 }

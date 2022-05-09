@@ -1,38 +1,30 @@
 package schema_validator
 
 import (
-	"errors"
-	"fmt"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/piiano/restcontroller/router/utils"
-	"strings"
 )
 
-func (c typeSchemaValidatorContext) validateSchemaOneOf() utils.MultiError {
+func (c typeSchemaValidatorContext) validateSchemaOneOf() error {
 	if c.schema.OneOf == nil {
 		return nil
 	}
-	errs := utils.NewErrorsCollector()
+	l := c.newLogger()
 	pass, failed := validateMultipleSchemas(utils.Map(c.schema.OneOf, func(t *openapi3.SchemaRef) TypeSchemaValidator {
 		return c.WithSchema(*t.Value)
 	})...)
 	if len(pass) == 0 {
-		lines := make([]string, len(failed))
-		lines = append(lines, fmt.Sprintf("schema with oneOf property has no matches for the type %q", c.goType))
+		l.Logf(c.level, "schema with oneOf property has no matches for the type %q", c.goType)
 		for _, check := range failed {
-			lines = append(lines, fmt.Sprintf("oneOf[%d] didn't match type %q", check.originalIndex, c.goType))
-			lines = append(lines, check.multiError.Error())
+			l.Logf(c.level, "oneOf[%d] didn't match type %q", check.originalIndex, c.goType)
+			l.Log(c.level, check.logger.Printed())
 		}
-		errs.AddErrorsIfNotNil(errors.New(strings.Join(lines, "\n")))
 	}
 	if len(pass) > 1 {
-		lines := make([]string, len(pass))
-		lines = append(lines, fmt.Sprintf("schema with oneOf property has more than one match for the type %q", c.goType))
+		l.Logf(c.level, "schema with oneOf property has more than one match for the type %q", c.goType)
 		for _, check := range pass {
-			lines = append(lines, fmt.Sprintf("oneOf[%d] matched type %q", check.originalIndex, c.goType))
+			l.Logf(c.level, "oneOf[%d] matched type %q", check.originalIndex, c.goType)
 		}
-		lines = append(lines, "")
-		errs.AddErrorsIfNotNil(errors.New(strings.Join(lines, "\n")))
 	}
-	return errs.ErrorOrNil()
+	return l.MustHaveNoErrorsf("schema with oneOf property is incompatible with type %s", c.goType)
 }

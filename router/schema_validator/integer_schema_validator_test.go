@@ -10,7 +10,7 @@ import (
 
 func TestIntegerSchemaValidatorPassForIntType(t *testing.T) {
 	integerSchema := openapi3.NewIntegerSchema()
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *integerSchema, Options{})
+	validator := schemaValidator(*integerSchema)
 	errTemplate := "expect integer schema to be compatible with %s type"
 	for _, intType := range intTypes {
 		t.Run(fmt.Sprintf("test expected pass with %s type", intType), func(t *testing.T) {
@@ -22,7 +22,7 @@ func TestIntegerSchemaValidatorPassForIntType(t *testing.T) {
 // according to the spec the integer validation properties should apply only when the type is set to integer
 func TestIntegerSchemaValidatorWithUntypedSchema(t *testing.T) {
 	untypedSchemaWithInt64Format := openapi3.NewSchema().WithFormat(int64Format)
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *untypedSchemaWithInt64Format, Options{})
+	validator := schemaValidator(*untypedSchemaWithInt64Format)
 	for _, validType := range types {
 		t.Run(validType.String(), func(t *testing.T) {
 			if err := validator.WithType(validType).validateIntegerSchema(); err != nil {
@@ -34,7 +34,7 @@ func TestIntegerSchemaValidatorWithUntypedSchema(t *testing.T) {
 
 func TestIntegerSchemaValidatorFailOnWrongType(t *testing.T) {
 	integerSchema := openapi3.NewIntegerSchema()
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *integerSchema, Options{})
+	validator := schemaValidator(*integerSchema)
 	errTemplate := "expect integer schema to be incompatible with %s type"
 	// filter all int types from all defined test types
 	var nonIntTypes = utils.Filter[reflect.Type](types, func(t reflect.Type) bool {
@@ -52,14 +52,14 @@ func TestIntegerSchemaValidatorFailOnWrongType(t *testing.T) {
 
 func TestInt64FormatSchemaValidatorPassForInt64Type(t *testing.T) {
 	int64Schema := openapi3.NewInt64Schema()
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *int64Schema, Options{})
+	validator := schemaValidator(*int64Schema)
 	errTemplate := "expect integer schema with int64 format to be compatible with %s type"
 	expectTypeToBeCompatible(t, validator, int64Type, errTemplate, int64Type)
 }
 
 func TestInt64FormatSchemaValidatorFailOnWrongType(t *testing.T) {
 	int64Schema := openapi3.NewInt64Schema()
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *int64Schema, Options{})
+	validator := schemaValidator(*int64Schema)
 	errTemplate := "expect integer schema with int64 format schema to be incompatible with %s type"
 	// omit the int64 type from all defined test types
 	var nonInt64Types = utils.Filter[reflect.Type](types, func(t reflect.Type) bool {
@@ -74,14 +74,14 @@ func TestInt64FormatSchemaValidatorFailOnWrongType(t *testing.T) {
 
 func TestInt32FormatSchemaValidatorPassForInt32Type(t *testing.T) {
 	int32Schema := openapi3.NewInt32Schema()
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *int32Schema, Options{})
+	validator := schemaValidator(*int32Schema)
 	errTemplate := "expect integer schema with int32 format to be compatible with %s type"
 	expectTypeToBeCompatible(t, validator, int32Type, errTemplate, int32Type)
 }
 
 func TestInt32FormatSchemaValidatorFailOnWrongType(t *testing.T) {
 	int32Schema := openapi3.NewInt32Schema()
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *int32Schema, Options{})
+	validator := schemaValidator(*int32Schema)
 	errTemplate := "expect integer schema with int32 format schema to be incompatible with %s type"
 	// omit the int32 type from all defined test types
 	var nonInt32Types = utils.Filter[reflect.Type](types, func(t reflect.Type) bool {

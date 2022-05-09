@@ -11,7 +11,7 @@ import (
 
 func TestStringSchemaValidatorPassForStringType(t *testing.T) {
 	stringSchema := openapi3.NewStringSchema()
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *stringSchema, Options{})
+	validator := schemaValidator(*stringSchema)
 	errTemplate := "expect string schema to be compatible with %s type"
 	expectTypeToBeCompatible(t, validator, stringType, errTemplate, stringType)
 }
@@ -19,7 +19,7 @@ func TestStringSchemaValidatorPassForStringType(t *testing.T) {
 // according to the spec the string validation properties should apply only when the type is set to string
 func TestStringSchemaValidatorWithUntypedSchema(t *testing.T) {
 	untypedSchemaWithUUIDFormat := openapi3.NewSchema().WithFormat(uuidFormat)
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *untypedSchemaWithUUIDFormat, Options{})
+	validator := schemaValidator(*untypedSchemaWithUUIDFormat)
 	for _, validType := range types {
 		t.Run(validType.String(), func(t *testing.T) {
 			if err := validator.WithType(validType).validateStringSchema(); err != nil {
@@ -31,7 +31,7 @@ func TestStringSchemaValidatorWithUntypedSchema(t *testing.T) {
 
 func TestStringSchemaValidatorFailOnWrongType(t *testing.T) {
 	stringSchema := openapi3.NewStringSchema()
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *stringSchema, Options{})
+	validator := schemaValidator(*stringSchema)
 	errTemplate := "expect string schema to be incompatible with %s type"
 	// filter string type from all defined test types
 	var nonStringTypes = utils.Filter(types, func(t reflect.Type) bool {
@@ -46,7 +46,7 @@ func TestStringSchemaValidatorFailOnWrongType(t *testing.T) {
 
 func TestUUIDFormatSchemaValidator(t *testing.T) {
 	uuidSchema := openapi3.NewStringSchema().WithFormat(uuidFormat)
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *uuidSchema, Options{})
+	validator := schemaValidator(*uuidSchema)
 	errTemplate := "expect string schema with uuid format to be %s with %s type"
 	uuidType := reflect.TypeOf(uuid.New())
 	expectTypeToBeCompatible(t, validator, uuidType, errTemplate, "compatible", uuidType)
@@ -64,7 +64,7 @@ func TestUUIDFormatSchemaValidator(t *testing.T) {
 
 func TestTimeFormatSchemaValidator(t *testing.T) {
 	timeSchema := openapi3.NewStringSchema().WithFormat(timeFormat)
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *timeSchema, Options{})
+	validator := schemaValidator(*timeSchema)
 	errTemplate := "expect string schema with time format to be %s with %s type"
 	timeType := reflect.TypeOf(time.Now())
 	expectTypeToBeCompatible(t, validator, timeType, errTemplate, "compatible", timeType)
@@ -82,7 +82,7 @@ func TestTimeFormatSchemaValidator(t *testing.T) {
 
 func TestStringSchemaValidatorWithOtherFormats(t *testing.T) {
 	stringSchema := openapi3.NewStringSchema().WithFormat(hostnameFormat)
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *stringSchema, Options{})
+	validator := schemaValidator(*stringSchema)
 	errTemplate := "expect string schema with time format to be %s with %s type"
 	expectTypeToBeCompatible(t, validator, stringType, errTemplate, "compatible", stringType)
 	// omit the string type from all defined test types

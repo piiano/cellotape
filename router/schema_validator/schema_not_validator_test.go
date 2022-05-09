@@ -10,7 +10,7 @@ import (
 func TestSchemaNotValidatorPass(t *testing.T) {
 	notBooleanSchema := openapi3.NewSchema()
 	notBooleanSchema.Not = openapi3.NewBoolSchema().NewRef()
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *notBooleanSchema, Options{})
+	validator := schemaValidator(*notBooleanSchema)
 	// filter bool type from all defined test types
 	var nonBoolTypes = utils.Filter[reflect.Type](types, func(t reflect.Type) bool {
 		return t != boolType
@@ -26,7 +26,7 @@ func TestSchemaNotValidatorPass(t *testing.T) {
 func TestSchemaNotValidatorFailOnWrongType(t *testing.T) {
 	notBooleanSchema := openapi3.NewSchema()
 	notBooleanSchema.Not = openapi3.NewBoolSchema().NewRef()
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *notBooleanSchema, Options{})
+	validator := schemaValidator(*notBooleanSchema)
 	errTemplate := "expect schema with not bool schema to be incompatible with %s type"
 	expectTypeToBeIncompatible(t, validator, boolType, errTemplate, boolType)
 }

@@ -1,13 +1,11 @@
 package schema_validator
 
 import (
-	"fmt"
-	"github.com/piiano/restcontroller/router/utils"
 	"reflect"
 )
 
-func (c typeSchemaValidatorContext) validateIntegerSchema() utils.MultiError {
-	errs := utils.NewErrorsCollector()
+func (c typeSchemaValidatorContext) validateIntegerSchema() error {
+	l := c.newLogger()
 	if c.schema.Type != integerSchemaType {
 		return nil
 	}
@@ -15,18 +13,18 @@ func (c typeSchemaValidatorContext) validateIntegerSchema() utils.MultiError {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 	default:
-		errs.AddErrorsIfNotNil(fmt.Errorf("type %s is not compatible with integer schema", c.goType))
+		l.Logf(c.level, schemaTypeIsIncompatibleWithType(c.schema, c.goType))
 	}
 	switch c.schema.Format {
 	case int32Format:
 		if c.goType.Kind() != reflect.Int32 {
-			errs.AddErrorsIfNotNil(fmt.Errorf("type %s is not compatible with integer schema with int32 format", c.goType))
+			l.Logf(c.level, schemaTypeWithFormatIsIncompatibleWithType(c.schema, c.goType))
 		}
 	case int64Format:
 		if c.goType.Kind() != reflect.Int64 {
-			errs.AddErrorsIfNotNil(fmt.Errorf("type %s is not compatible with integer schema with int64 format", c.goType))
+			l.Logf(c.level, schemaTypeWithFormatIsIncompatibleWithType(c.schema, c.goType))
 		}
 	}
 	// TODO: check type compatability with Max, ExclusiveMax, Min, and ExclusiveMin
-	return errs.ErrorOrNil()
+	return formatMustHaveNoError(l.MustHaveNoErrors(), c.schema.Type, c.goType)
 }

@@ -1,13 +1,11 @@
 package schema_validator
 
 import (
-	"fmt"
-	"github.com/piiano/restcontroller/router/utils"
 	"reflect"
 )
 
-func (c typeSchemaValidatorContext) validateNumberSchema() utils.MultiError {
-	errs := utils.NewErrorsCollector()
+func (c typeSchemaValidatorContext) validateNumberSchema() error {
+	l := c.newLogger()
 	if c.schema.Type != numberSchemaType {
 		return nil
 	}
@@ -16,18 +14,18 @@ func (c typeSchemaValidatorContext) validateNumberSchema() utils.MultiError {
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr,
 		reflect.Float32, reflect.Float64:
 	default:
-		errs.AddErrorsIfNotNil(fmt.Errorf("number schema is incompatible with type %s", c.goType))
+		l.Logf(c.level, schemaTypeIsIncompatibleWithType(c.schema, c.goType))
 	}
 	switch c.schema.Format {
 	case floatFormat:
 		if c.goType.Kind() != reflect.Float32 {
-			errs.AddErrorsIfNotNil(fmt.Errorf("number schema with float format is not compatible with type %s", c.goType))
+			l.Logf(c.level, schemaTypeWithFormatIsIncompatibleWithType(c.schema, c.goType))
 		}
 	case doubleFormat:
 		if c.goType.Kind() != reflect.Float64 {
-			errs.AddErrorsIfNotNil(fmt.Errorf("number schema with double format is not compatible with type %s", c.goType))
+			l.Logf(c.level, schemaTypeWithFormatIsIncompatibleWithType(c.schema, c.goType))
 		}
 	}
 	// TODO: check type compatability with Max, ExclusiveMax, Min, and ExclusiveMin
-	return errs.ErrorOrNil()
+	return formatMustHaveNoError(l.MustHaveNoErrors(), c.schema.Type, c.goType)
 }

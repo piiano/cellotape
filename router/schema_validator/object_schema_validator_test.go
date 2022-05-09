@@ -9,7 +9,7 @@ import (
 // according to the spec the object validation properties should apply only when the type is set to object
 func TestObjectSchemaValidatorWithUntypedSchema(t *testing.T) {
 	untypedSchemaWithProperty := openapi3.NewSchema().WithProperty("name", openapi3.NewStringSchema())
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *untypedSchemaWithProperty, Options{})
+	validator := schemaValidator(*untypedSchemaWithProperty)
 	for _, validType := range types {
 		t.Run(validType.String(), func(t *testing.T) {
 			if err := validator.WithType(validType).validateObjectSchema(); err != nil {
@@ -34,7 +34,7 @@ func TestObjectSchemaValidatorWithSimpleStruct(t *testing.T) {
 			WithProperty("renamed_field_2_a", openapi3.NewStringSchema()).
 			WithProperty("Field2B", openapi3.NewArraySchema().WithItems(openapi3.NewBoolSchema()))).
 		WithProperty("Field3", openapi3.NewIntegerSchema())
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *simpleStructSchema, Options{})
+	validator := schemaValidator(*simpleStructSchema)
 	simpleStructType := reflect.TypeOf(SimpleStruct{})
 	errTemplate := "expect object schema to be %s with %s type"
 	expectTypeToBeCompatible(t, validator, simpleStructType, errTemplate, "compatible", simpleStructType)
@@ -64,8 +64,8 @@ func TestObjectSchemaValidatorWithEmbeddedStruct(t *testing.T) {
 	structCSchema := *openapi3.NewObjectSchema().
 		WithProperty("Field1", openapi3.NewStringSchema()).
 		WithProperty("Field2", openapi3.NewIntegerSchema())
-	validatorB := NewTypeSchemaValidator(structBType, structBSchema, Options{})
-	validatorC := NewTypeSchemaValidator(structCType, structCSchema, Options{})
+	validatorB := typeSchemaValidator(structBType, structBSchema)
+	validatorC := typeSchemaValidator(structCType, structCSchema)
 	errTemplate := "expect object schema %s to be %s with %s type"
 	expectTypeToBeCompatible(t, validatorB, structBType, errTemplate, "structBSchema", "compatible", structBType)
 	expectTypeToBeCompatible(t, validatorC, structCType, errTemplate, "structCSchema", "compatible", structCType)

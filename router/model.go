@@ -53,9 +53,9 @@ type handler struct {
 type requestTypes struct {
 	// requestBody is the type of the Body parameter. type is nilType if there is no httpRequest Body
 	requestBody reflect.Type
-	// pathParams is the type of the Body parameter. type is nilType if there is no path pathParams
+	// pathParams is the type of the Body parameter. type is nilType if there is no pathParamInValue pathParams
 	pathParams reflect.Type
-	// queryParams is the type of the Body parameter.  type is nilType if there is no query pathParams
+	// queryParams is the type of the Body parameter.  type is nilType if there is no queryParamInValue pathParams
 	queryParams reflect.Type
 }
 

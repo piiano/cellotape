@@ -3,7 +3,7 @@ package utils
 func Keys[K comparable, V any, M ~map[K]V](m M) []K {
 	keys := make([]K, len(m))
 	i := 0
-	for key, _ := range m {
+	for key := range m {
 		keys[i] = key
 		i++
 	}

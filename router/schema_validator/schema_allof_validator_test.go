@@ -36,21 +36,21 @@ var (
 )
 
 func TestSchemaAllOfValidatorPass(t *testing.T) {
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *identifiablePersonSchema, Options{})
+	validator := schemaValidator(*identifiablePersonSchema)
 	errTemplate := "expect schema with allOf property to be compatible with %s type"
 	expectTypeToBeCompatible(t, validator, identifiablePersonType, errTemplate, identifiablePersonType)
 	expectTypeToBeCompatible(t, validator, stringToStringMapType, errTemplate, stringToStringMapType)
 }
 
 func TestSchemaAllOfValidatorFailOnPartialMatchedType(t *testing.T) {
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *identifiablePersonSchema, Options{})
+	validator := schemaValidator(*identifiablePersonSchema)
 	errTemplate := "expect schema with allOf property to be incompatible with %s type"
 	expectTypeToBeIncompatible(t, validator, identifiableType, errTemplate, identifiableType)
 	expectTypeToBeIncompatible(t, validator, personType, errTemplate, personType)
 }
 
 func TestSchemaAllOfValidatorFailOnNoMatchedType(t *testing.T) {
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *identifiablePersonSchema, Options{})
+	validator := schemaValidator(*identifiablePersonSchema)
 	errTemplate := "expect schema with allOf property to be incompatible with %s type"
 	invalidTypes := utils.Filter(types, func(t reflect.Type) bool {
 		return t != stringToStringMapType

@@ -61,7 +61,7 @@ func requestBodyBinderFactory[B any](requestBodyType reflect.Type, contentTypes 
 	}
 }
 
-// produce the path pathParams binder that can be used in runtime
+// produce the pathParamInValue pathParams binder that can be used in runtime
 func pathBinderFactory[P any](pathParamsType reflect.Type) func(*httprouter.Params, *P) error {
 	if pathParamsType == nilType {
 		return func(params *httprouter.Params, body *P) error { return nil }
@@ -75,7 +75,7 @@ func pathBinderFactory[P any](pathParamsType reflect.Type) func(*httprouter.Para
 	}
 }
 
-// produce the query pathParams binder that can be used in runtime
+// produce the queryParamInValue pathParams binder that can be used in runtime
 func queryBinderFactory[Q any](queryParamsType reflect.Type) func(*http.Request, *Q) error {
 	if queryParamsType == nilType {
 		return func(*http.Request, *Q) error { return nil }
@@ -95,7 +95,7 @@ func responseBinderFactory[R any](responses handlerResponses, contentTypes Conte
 		}
 		responseType, exist := responses[r.Status]
 		if !exist {
-			return RawResponse{}, fmt.Errorf("Status %d is not part of the possible operation responses", r.Status)
+			return RawResponse{}, fmt.Errorf("status %d is not part of the possible operation responses", r.Status)
 		}
 		var responseBytes []byte
 		if !responseType.isNilType {

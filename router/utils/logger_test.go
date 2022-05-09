@@ -2,14 +2,12 @@ package utils
 
 import (
 	"github.com/stretchr/testify/assert"
-	"strings"
 	"testing"
 )
 
 // Logger act as a regular logger that counts logged errors and warnings.
 func TestLogger(t *testing.T) {
-	stringBuilder := strings.Builder{}
-	l := NewLogger(&stringBuilder)
+	l := NewInMemoryLogger()
 	l.Info("info 1")
 
 	assert.Nil(t, l.MustHaveNoWarnings())
@@ -69,7 +67,7 @@ func TestLogger(t *testing.T) {
 [Warning] warn 5
 [Error] new logger error 1
 `
-	assert.Equal(t, expected, stringBuilder.String())
+	assert.Equal(t, expected, l.Printed())
 	assert.Equal(t, LogCounters{Errors: 6, Warnings: 5}, l.Counters())
 	assert.Equal(t, LogCounters{Errors: 1, Warnings: 1}, l2.Counters())
 	assert.Equal(t, LogCounters{Errors: 0, Warnings: 0}, l.NewCounter().Counters())

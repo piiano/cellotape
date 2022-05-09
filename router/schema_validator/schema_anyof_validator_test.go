@@ -14,7 +14,7 @@ func TestSchemaAnyOfValidatorPass(t *testing.T) {
 		openapi3.NewStringSchema().NewRef(),
 		openapi3.NewInt64Schema().NewRef(),
 	}
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *notBooleanSchema, Options{})
+	validator := schemaValidator(*notBooleanSchema)
 	var validTypes = []reflect.Type{boolType, stringType, int64Type}
 	errTemplate := "expect schema with anyOf property to be compatible with %s type"
 	for _, validType := range validTypes {
@@ -34,7 +34,7 @@ func TestSchemaAnyOfValidatorPassOnMoreThanOneMatchedType(t *testing.T) {
 		openapi3.NewInt64Schema().NewRef(),
 		numberSchema.NewRef(),
 	}
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *notBooleanSchema, Options{})
+	validator := schemaValidator(*notBooleanSchema)
 	errTemplate := "expect schema with anyOf property to be compatible with %s type"
 	expectTypeToBeCompatible(t, validator, int64Type, errTemplate, int64Type)
 }
@@ -46,7 +46,7 @@ func TestSchemaAnyOfValidatorFailOnNoMatchedType(t *testing.T) {
 		openapi3.NewStringSchema().NewRef(),
 		openapi3.NewInt64Schema().NewRef(),
 	}
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *notBooleanSchema, Options{})
+	validator := schemaValidator(*notBooleanSchema)
 	invalidTypes := utils.Filter(types, func(t reflect.Type) bool {
 		return t != boolType && t != stringType && t != int64Type
 	})

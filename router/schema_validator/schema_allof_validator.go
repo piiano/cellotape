@@ -1,14 +1,12 @@
 package schema_validator
 
-import "github.com/piiano/restcontroller/router/utils"
-
-func (c typeSchemaValidatorContext) validateSchemaAllOf() utils.MultiError {
+func (c typeSchemaValidatorContext) validateSchemaAllOf() error {
 	if c.schema.AllOf == nil {
 		return nil
 	}
-	errs := utils.NewErrorsCollector()
+	l := c.newLogger()
 	for _, option := range c.schema.AllOf {
-		errs.AddErrorsIfNotNil(c.WithSchema(*option.Value).Validate())
+		l.LogIfNotNil(c.level, c.WithSchema(*option.Value).Validate())
 	}
-	return errs.ErrorOrNil()
+	return l.MustHaveNoErrorsf(schemaAllOfPropertyIncompatibleWithType(l.Errors(), len(c.schema.AllOf), c.goType))
 }

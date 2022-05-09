@@ -1,7 +1,6 @@
 name: Test
 on: [push]
-env:
-  PVAULT_LOG_DATADOG_SOURCE: ci
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest

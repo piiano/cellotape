@@ -11,7 +11,7 @@ import (
 func TestNumberSchemaValidatorPassForIntType(t *testing.T) {
 	numberSchema := openapi3.NewSchema()
 	numberSchema.Type = numberSchemaType
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *numberSchema, Options{})
+	validator := schemaValidator(*numberSchema)
 	errTemplate := "expect number schema to be compatible with %s type"
 	for _, numericType := range numericTypes {
 		t.Run(fmt.Sprintf("test expected pass with %s type", numericType), func(t *testing.T) {
@@ -23,7 +23,7 @@ func TestNumberSchemaValidatorPassForIntType(t *testing.T) {
 // according to the spec the number validation properties should apply only when the type is set to number
 func TestNumberSchemaValidatorWithUntypedSchema(t *testing.T) {
 	untypedSchemaWithDoubleFormat := openapi3.NewSchema().WithFormat(doubleFormat)
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *untypedSchemaWithDoubleFormat, Options{})
+	validator := schemaValidator(*untypedSchemaWithDoubleFormat)
 	for _, validType := range types {
 		t.Run(validType.String(), func(t *testing.T) {
 			if err := validator.WithType(validType).validateNumberSchema(); err != nil {
@@ -36,7 +36,7 @@ func TestNumberSchemaValidatorWithUntypedSchema(t *testing.T) {
 func TestNumberSchemaValidatorFailOnWrongType(t *testing.T) {
 	numberSchema := openapi3.NewSchema()
 	numberSchema.Type = numberSchemaType
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *numberSchema, Options{})
+	validator := schemaValidator(*numberSchema)
 	errTemplate := "expect number schema to be incompatible with %s type"
 	// filter all numeric types from all defined test types
 	var nonNumericTypes = utils.Filter[reflect.Type](types, func(t reflect.Type) bool {
@@ -56,7 +56,7 @@ func TestFloatFormatSchemaValidatorPassForFloat32Type(t *testing.T) {
 	floatSchema := openapi3.NewSchema()
 	floatSchema.Type = numberSchemaType
 	floatSchema.Format = floatFormat
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *floatSchema, Options{})
+	validator := schemaValidator(*floatSchema)
 	errTemplate := "expect number schema with float format to be compatible with %s type"
 	expectTypeToBeCompatible(t, validator, float32Type, errTemplate, float32Type)
 }
@@ -65,7 +65,7 @@ func TestFloat32FormatSchemaValidatorFailOnWrongType(t *testing.T) {
 	floatSchema := openapi3.NewSchema()
 	floatSchema.Type = numberSchemaType
 	floatSchema.Format = floatFormat
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *floatSchema, Options{})
+	validator := schemaValidator(*floatSchema)
 	errTemplate := "expect number schema with float format to be incompatible with %s type"
 	// omit the float32 type from all defined test types
 	var nonFloat32Types = utils.Filter[reflect.Type](types, func(t reflect.Type) bool {
@@ -82,7 +82,7 @@ func TestDoubleFormatSchemaValidatorPassForFloat32Type(t *testing.T) {
 	doubleSchema := openapi3.NewSchema()
 	doubleSchema.Type = numberSchemaType
 	doubleSchema.Format = doubleFormat
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *doubleSchema, Options{})
+	validator := schemaValidator(*doubleSchema)
 	errTemplate := "expect number schema with double format to be compatible with %s type"
 	expectTypeToBeCompatible(t, validator, float64Type, errTemplate, float64Type)
 }
@@ -91,7 +91,7 @@ func TestDoubleFormatSchemaValidatorFailOnWrongType(t *testing.T) {
 	doubleSchema := openapi3.NewSchema()
 	doubleSchema.Type = numberSchemaType
 	doubleSchema.Format = doubleFormat
-	validator := NewTypeSchemaValidator(reflect.TypeOf(nil), *doubleSchema, Options{})
+	validator := schemaValidator(*doubleSchema)
 	errTemplate := "expect number schema with double format to be incompatible with %s type"
 	// omit the float64 type from all defined test types
 	var nonFloat64Types = utils.Filter[reflect.Type](types, func(t reflect.Type) bool {

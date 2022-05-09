@@ -44,7 +44,7 @@ func (s OpenAPISpec) findSpecContentTypes() []string {
 	for _, pathItem := range s.Paths {
 		for _, specOp := range pathItem.Operations() {
 			if specOp.RequestBody != nil && specOp.RequestBody.Value != nil {
-				for contentType, _ := range specOp.RequestBody.Value.Content {
+				for contentType := range specOp.RequestBody.Value.Content {
 					contentTypes = append(contentTypes, contentType)
 				}
 			}
@@ -52,7 +52,7 @@ func (s OpenAPISpec) findSpecContentTypes() []string {
 				if response.Value == nil {
 					continue
 				}
-				for contentType, _ := range response.Value.Content {
+				for contentType := range response.Value.Content {
 					contentTypes = append(contentTypes, contentType)
 				}
 			}

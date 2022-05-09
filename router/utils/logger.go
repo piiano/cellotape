@@ -4,15 +4,16 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 )
 
 type LogLevel int
 
 const (
-	Info LogLevel = iota
+	Error LogLevel = iota
 	Warn
-	Error
-	Ignore
+	Info
+	Off
 )
 
 // Logger act as a regular logger that counts logged errors and warnings.
@@ -36,8 +37,10 @@ type Logger interface {
 	Errors() int
 	MustHaveNoWarnings() error
 	MustHaveNoErrors() error
+	MustHaveNoLogsEqualOrHigherThan(LogLevel) error
 	MustHaveNoWarningsf(string, ...any) error
 	MustHaveNoErrorsf(string, ...any) error
+	MustHaveNoLogsEqualOrHigherThanf(LogLevel, string, ...any) error
 	AppendCounters(LogCounters)
 	// NewCounter creates a cloned logger with the same output and log level but with new counters
 	NewCounter() Logger
@@ -111,7 +114,8 @@ func (l *logger) Logf(level LogLevel, format string, args ...any) {
 }
 func (l *logger) Log(level LogLevel, arg any) {
 	write := func(string) {}
-	if l.level <= level {
+
+	if l.level != Off && l.level >= level {
 		write = func(levelStr string) { fmt.Fprintln(l.output, levelStr, arg) }
 	}
 	switch level {
@@ -158,6 +162,24 @@ func (l *logger) MustHaveNoErrorsf(format string, args ...any) error {
 	}
 	return nil
 }
+func (l *logger) MustHaveNoLogsEqualOrHigherThan(level LogLevel) error {
+	switch level {
+	case Info, Warn:
+		return l.MustHaveNoWarnings()
+	case Error:
+		return l.MustHaveNoErrors()
+	}
+	return nil
+}
+func (l *logger) MustHaveNoLogsEqualOrHigherThanf(level LogLevel, format string, args ...any) error {
+	switch level {
+	case Warn:
+		return l.MustHaveNoWarningsf(format, args...)
+	case Error:
+		return l.MustHaveNoErrorsf(format, args...)
+	}
+	return nil
+}
 
 func mustHaveCountMessage(count int, singular string, plural string, prefix string) string {
 	switch {
@@ -167,4 +189,33 @@ func mustHaveCountMessage(count int, singular string, plural string, prefix stri
 		return fmt.Sprintf("%s%d %s", prefix, count, plural)
 	}
 	return ""
+}
+
+type InMemoryLogger interface {
+	Logger
+	Printed() string
+}
+type inMemoryLogger struct {
+	stringBuilder *strings.Builder
+	Logger
+}
+
+func (l inMemoryLogger) Printed() string {
+	return l.stringBuilder.String()
+}
+
+func NewInMemoryLogger() InMemoryLogger {
+	sb := strings.Builder{}
+	return inMemoryLogger{
+		stringBuilder: &sb,
+		Logger:        NewLogger(&sb),
+	}
+}
+
+func NewInMemoryLoggerWithLevel(level LogLevel) InMemoryLogger {
+	sb := strings.Builder{}
+	return inMemoryLogger{
+		stringBuilder: &sb,
+		Logger:        NewLoggerWithLevel(&sb, level),
+	}
 }

@@ -15,6 +15,7 @@ func asHandler(oa *openapi) (http.Handler, error) {
 	}
 	// TODO print warning
 	router := httprouter.New()
+	logger := oa.logger()
 	pathParamsMatcher := regexp.MustCompile(`\{([^/}]*)}`)
 	for _, flatOp := range flatOperations {
 		specOp, _ := oa.spec.findSpecOperationByID(flatOp.id)
@@ -22,9 +23,13 @@ func asHandler(oa *openapi) (http.Handler, error) {
 		chainHead := chainHandlers(*oa, append(flatOp.handlers, flatOp.handler)...)
 		httpRouterHandler := asHttpRouterHandler(*oa, chainHead)
 		router.Handle(specOp.method, path, httpRouterHandler)
-		log.Printf("[INFO] register handler for operation %q on [%s] %s \n", flatOp.id, specOp.method, specOp.path)
+		logger.Infof("register handler for operation %q on [%s] %s", flatOp.id, specOp.method, specOp.path)
 	}
 	return router, nil
+}
+
+func (oa openapi) logger() utils.Logger {
+	return utils.NewLoggerWithLevel(oa.options.LogOutput, oa.options.LogLevel)
 }
 
 // flattenOperations takes a group with separate operations, handlers, and nested groups and flatten them into a flat
