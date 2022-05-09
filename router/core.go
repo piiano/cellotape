@@ -62,7 +62,7 @@ func asHttpRouterHandler(oa openapi, head BoundHandlerFunc) httprouter.Handle {
 			Writer:      writer,
 			Request:     request,
 			Params:      &params,
-			RawResponse: RawResponse{Status: 0},
+			RawResponse: &RawResponse{Status: 0},
 		}
 		_, err := head(ctx)
 		if err != nil || ctx.RawResponse.Status == 0 {

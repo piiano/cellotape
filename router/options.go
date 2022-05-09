@@ -69,6 +69,7 @@ func (o Options) OperationValidationOptions(id string) OperationValidationOption
 func DefaultOptions() Options {
 	return Options{
 		RecoverOnPanic: true,
+		LogLevel:       utils.Info,
 		LogOutput:      os.Stderr,
 	}
 }

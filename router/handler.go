@@ -20,8 +20,8 @@ type Context struct {
 	Writer      http.ResponseWriter
 	Request     *http.Request
 	Params      *httprouter.Params
+	RawResponse *RawResponse
 	NextFunc    BoundHandlerFunc
-	RawResponse RawResponse
 }
 
 func (c Context) Next() (RawResponse, error) {
@@ -83,14 +83,17 @@ func (h HandlerFunc[B, P, Q, R]) handlerFactory(oa openapi, next BoundHandlerFun
 	return func(context Context) (RawResponse, error) {
 		// when handler will be called, set the next to next
 		context.NextFunc = next
-		request, err := bindRequest(context.Request, context.Params)
+		request, err := bindRequest(context)
 		if err != nil {
 			return RawResponse{}, err
 		}
 		// call current handler and all nested handlers in the chain
 		response, err := h(context, request)
+		if err != nil {
+			return *context.RawResponse, err
+		}
 		// bind the response
-		return bindResponse(context.Writer, context.Request, response)
+		return bindResponse(context, response)
 	}
 }
 

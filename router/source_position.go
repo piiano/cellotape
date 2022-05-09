@@ -11,9 +11,6 @@ func functionSourcePosition(function any) sourcePosition {
 	if t == nil {
 		return sourcePosition{}
 	}
-	if t.Kind() == reflect.Pointer {
-		return functionSourcePosition(reflect.ValueOf(t).Elem().Interface())
-	}
 	if t.Kind() != reflect.Func {
 		return sourcePosition{}
 	}

@@ -27,4 +27,7 @@ func TestFunctionSourcePosition(t *testing.T) {
 
 	nonFuncPos := functionSourcePosition(42)
 	assert.False(t, nonFuncPos.ok)
+
+	nilTypePos := functionSourcePosition(nil)
+	assert.False(t, nilTypePos.ok)
 }

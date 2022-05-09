@@ -10,8 +10,8 @@ import (
 	"reflect"
 )
 
-type requestBinder[B, P, Q any] func(*http.Request, *httprouter.Params) (Request[B, P, Q], error)
-type responseBinder[R any] func(http.ResponseWriter, *http.Request, Response[R]) (RawResponse, error)
+type requestBinder[B, P, Q any] func(ctx Context) (Request[B, P, Q], error)
+type responseBinder[R any] func(Context, Response[R]) (RawResponse, error)
 
 // produce the binder function that can be called at runtime to create the httpRequest object for the handler
 func requestBinderFactory[B, P, Q any](oa openapi, types requestTypes) requestBinder[B, P, Q] {
@@ -20,20 +20,20 @@ func requestBinderFactory[B, P, Q any](oa openapi, types requestTypes) requestBi
 	queryParamsBinder := queryBinderFactory[Q](types.queryParams)
 
 	// this is what actually build the httpRequest object at runtime for the handler
-	return func(httpRequest *http.Request, params *httprouter.Params) (Request[B, P, Q], error) {
+	return func(ctx Context) (Request[B, P, Q], error) {
 		var request = Request[B, P, Q]{
-			Context: httpRequest.Context(),
-			Method:  httpRequest.Method,
-			URL:     httpRequest.URL,
-			Headers: httpRequest.Header,
+			Context: ctx.Request.Context(),
+			Method:  ctx.Request.Method,
+			URL:     ctx.Request.URL,
+			Headers: ctx.Request.Header,
 		}
-		if err := requestBodyBinder(httpRequest, &request.Body); err != nil {
+		if err := requestBodyBinder(ctx.Request, &request.Body); err != nil {
 			return request, err
 		}
-		if err := pathParamsBinder(params, &request.PathParams); err != nil {
+		if err := pathParamsBinder(ctx.Params, &request.PathParams); err != nil {
 			return request, err
 		}
-		if err := queryParamsBinder(httpRequest, &request.QueryParams); err != nil {
+		if err := queryParamsBinder(ctx.Request, &request.QueryParams); err != nil {
 			return request, err
 		}
 		return request, nil
@@ -88,8 +88,11 @@ func queryBinderFactory[Q any](queryParamsType reflect.Type) func(*http.Request,
 	}
 }
 func responseBinderFactory[R any](responses handlerResponses, contentTypes ContentTypes) responseBinder[R] {
-	return func(writer http.ResponseWriter, request *http.Request, r Response[R]) (RawResponse, error) {
-		contentType, err := responseContentType(request, contentTypes, JsonContentType{})
+	return func(ctx Context, r Response[R]) (RawResponse, error) {
+		if ctx.RawResponse.Status != 0 {
+			return *ctx.RawResponse, nil
+		}
+		contentType, err := responseContentType(ctx.Request, contentTypes, JsonContentType{})
 		if err != nil {
 			log.Printf("[WARNING] %s. fallback to %s\n", err, contentType.Mime())
 		}
@@ -106,14 +109,13 @@ func responseBinderFactory[R any](responses handlerResponses, contentTypes Conte
 			}
 			r.Headers.Set("Content-Type", contentType.Mime())
 		}
-		bindResponseHeaders(writer, r)
-		writer.WriteHeader(r.Status)
-		_, err = writer.Write(responseBytes)
-		return RawResponse{
-			Status:  r.Status,
-			Body:    responseBytes,
-			Headers: r.Headers,
-		}, err
+		bindResponseHeaders(ctx.Writer, r)
+		ctx.Writer.WriteHeader(r.Status)
+		_, err = ctx.Writer.Write(responseBytes)
+		ctx.RawResponse.Status = r.Status
+		ctx.RawResponse.Body = responseBytes
+		ctx.RawResponse.Headers = r.Headers
+		return *ctx.RawResponse, err
 	}
 }
 

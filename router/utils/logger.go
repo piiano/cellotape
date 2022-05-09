@@ -37,10 +37,8 @@ type Logger interface {
 	Errors() int
 	MustHaveNoWarnings() error
 	MustHaveNoErrors() error
-	MustHaveNoLogsEqualOrHigherThan(LogLevel) error
 	MustHaveNoWarningsf(string, ...any) error
 	MustHaveNoErrorsf(string, ...any) error
-	MustHaveNoLogsEqualOrHigherThanf(LogLevel, string, ...any) error
 	AppendCounters(LogCounters)
 	// NewCounter creates a cloned logger with the same output and log level but with new counters
 	NewCounter() Logger
@@ -159,24 +157,6 @@ func (l *logger) MustHaveNoWarningsf(format string, args ...any) error {
 func (l *logger) MustHaveNoErrorsf(format string, args ...any) error {
 	if l.MustHaveNoErrors() != nil {
 		return fmt.Errorf(format, args...)
-	}
-	return nil
-}
-func (l *logger) MustHaveNoLogsEqualOrHigherThan(level LogLevel) error {
-	switch level {
-	case Info, Warn:
-		return l.MustHaveNoWarnings()
-	case Error:
-		return l.MustHaveNoErrors()
-	}
-	return nil
-}
-func (l *logger) MustHaveNoLogsEqualOrHigherThanf(level LogLevel, format string, args ...any) error {
-	switch level {
-	case Warn:
-		return l.MustHaveNoWarningsf(format, args...)
-	case Error:
-		return l.MustHaveNoErrorsf(format, args...)
 	}
 	return nil
 }
