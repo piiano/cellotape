@@ -64,11 +64,11 @@ func validateContentTypes(oa openapi) error {
 func validateOperation(oa openapi, operation operation) error {
 	l := oa.logger()
 	specOp, found := oa.spec.findSpecOperationByID(operation.id)
-	options := oa.options.OperationValidationOptions(operation.id)
+	options := oa.options.operationValidationOptions(operation.id)
 	if !found {
 		return fmt.Errorf(handlerForNonExistingSpecOperation(operation.id, operation.sourcePosition))
 	}
-	for _, chainHandler := range operation.handlers {
+	for _, chainHandler := range append(operation.handlers, operation.handler) {
 		l.ErrorIfNotNil(validateRequestBodyType(oa, options.ValidateRequestBody, chainHandler, specOp.RequestBody, operation.id))
 		l.ErrorIfNotNil(validatePathParamsType(oa, options.ValidatePathParams, chainHandler, specOp.Parameters, operation.id))
 		l.ErrorIfNotNil(validateQueryParamsType(oa, options.ValidateQueryParams, chainHandler, specOp.Parameters, operation.id))

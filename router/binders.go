@@ -10,16 +10,22 @@ import (
 	"reflect"
 )
 
+const ContentTypeHeader = "Content-Type"
+const AcceptHeader = "Accept"
+
+// A request binder takes a Context with its untyped Context.Request and Context.Params and produce a typed Request.
 type requestBinder[B, P, Q any] func(ctx Context) (Request[B, P, Q], error)
+
+// A response binder takes a Context with its Context.Writer and previous Context.RawResponse to write a typed Response output.
 type responseBinder[R any] func(Context, Response[R]) (RawResponse, error)
 
-// produce the binder function that can be called at runtime to create the httpRequest object for the handler
+// produce the binder function that can be called at runtime to create the httpRequest object for the handler.
 func requestBinderFactory[B, P, Q any](oa openapi, types requestTypes) requestBinder[B, P, Q] {
 	requestBodyBinder := requestBodyBinderFactory[B](types.requestBody, oa.contentTypes)
 	pathParamsBinder := pathBinderFactory[P](types.pathParams)
 	queryParamsBinder := queryBinderFactory[Q](types.queryParams)
 
-	// this is what actually build the httpRequest object at runtime for the handler
+	// this is what actually build the httpRequest object at runtime for the handler.
 	return func(ctx Context) (Request[B, P, Q], error) {
 		var request = Request[B, P, Q]{
 			Context: ctx.Request.Context(),
@@ -87,6 +93,8 @@ func queryBinderFactory[Q any](queryParamsType reflect.Type) func(*http.Request,
 		return nil
 	}
 }
+
+// responseBinderFactory creates a responseBinder that can be used in runtime
 func responseBinderFactory[R any](responses handlerResponses, contentTypes ContentTypes) responseBinder[R] {
 	return func(ctx Context, r Response[R]) (RawResponse, error) {
 		if ctx.RawResponse.Status != 0 {
@@ -102,12 +110,14 @@ func responseBinderFactory[R any](responses handlerResponses, contentTypes Conte
 		}
 		var responseBytes []byte
 		if !responseType.isNilType {
+			// this reflection call can not be avoided. we need some way to define multiple response types per handler
+			// and struct fields is the only way to achieve that.
 			responseField := reflect.ValueOf(r.Response).FieldByIndex(responseType.fieldIndex).Interface()
 			responseBytes, err = contentType.Encode(responseField)
 			if err != nil {
 				return RawResponse{}, err
 			}
-			r.Headers.Set("Content-Type", contentType.Mime())
+			r.Headers.Set(ContentTypeHeader, contentType.Mime())
 		}
 		bindResponseHeaders(ctx.Writer, r)
 		ctx.Writer.WriteHeader(r.Status)
@@ -119,6 +129,7 @@ func responseBinderFactory[R any](responses handlerResponses, contentTypes Conte
 	}
 }
 
+// bindResponseHeaders copies Response.Headers to http.ResponseWriter.Header
 func bindResponseHeaders[R any](writer http.ResponseWriter, r Response[R]) {
 	for header, values := range r.Headers {
 		for _, value := range values {
@@ -127,19 +138,24 @@ func bindResponseHeaders[R any](writer http.ResponseWriter, r Response[R]) {
 	}
 }
 
+// requestContentType extracts the ContentType implementation to use base on the "Content-Type" request header.
+// If "Content-Type" request header is missing fallback to the provided default ContentType.
 func requestContentType(r *http.Request, supportedTypes ContentTypes, defaultContentType ContentType) (ContentType, error) {
-	mimeType := r.Header.Get("Content-Type")
+	mimeType := r.Header.Get(ContentTypeHeader)
 	if mimeType == "*/*" || mimeType == "" {
 		return defaultContentType, nil
 	}
 	if contentType, found := supportedTypes[mimeType]; found {
 		return contentType, nil
 	}
-	return nil, fmt.Errorf("unsupported mime type %q in Content-Type header", mimeType)
+	return nil, fmt.Errorf("unsupported mime type %q in %s header", mimeType, ContentTypeHeader)
 }
 
+// responseContentType extracts the ContentType implementation to use base on the "Accept" request header.
+// If the "Accept" header is missing fallback to "Content-Type" request header.
+// If "Content-Type" request header is also missing fallback to the provided default ContentType.
 func responseContentType(r *http.Request, supportedTypes ContentTypes, defaultContentType ContentType) (ContentType, error) {
-	mimeTypes := []string{r.Header.Get("Accept"), r.Header.Get("Content-Type")}
+	mimeTypes := []string{r.Header.Get(AcceptHeader), r.Header.Get(ContentTypeHeader)}
 	for _, mimeType := range mimeTypes {
 		if mimeType == "*/*" || mimeType == "" {
 			return defaultContentType, nil
@@ -148,5 +164,5 @@ func responseContentType(r *http.Request, supportedTypes ContentTypes, defaultCo
 			return contentTypes, nil
 		}
 	}
-	return defaultContentType, fmt.Errorf("unsupported mime type %q in Accept header", r.Header.Get("Accept"))
+	return defaultContentType, fmt.Errorf("unsupported mime type %q in %s header", r.Header.Get(AcceptHeader), AcceptHeader)
 }

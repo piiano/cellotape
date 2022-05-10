@@ -8,7 +8,7 @@ import (
 	"regexp"
 )
 
-func asHandler(oa *openapi) (http.Handler, error) {
+func createMainRouterHandler(oa *openapi) (http.Handler, error) {
 	flatOperations := flattenOperations(oa.group)
 	if err := validateOpenAPIRouter(oa, flatOperations); err != nil {
 		return nil, err

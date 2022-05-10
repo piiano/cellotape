@@ -6,9 +6,29 @@ import (
 	"os"
 )
 
+// Behaviour defines a possible behaviour for a validation error.
+// Possible values are PropagateError, PrintWarning and Off.
+//
+// 		- PropagateError - Cause call to OpenAPIRouter.AsHandler to return an error if the validation fails and failure reason is logged with error level.
+// 		- PrintWarning - if the validation fails the failure reason will get logged with warning level. The error won't propagate to OpenAPIRouter.AsHandler return values
+// 		- Off - do nothing if the validation fails. don't print anything to the logs and don't propagate the error to OpenAPIRouter.AsHandler return values
+//
+// By default, Behaviour are initialized to PropagateError as it is essentially Behaviour zero value.
+type Behaviour utils.LogLevel
+
+const (
+	// PropagateError propagate validation errors to OpenAPIRouter.AsHandler return values and print them to the log.
+	// This is also the initial Behaviour value if not set to anything else.
+	PropagateError = Behaviour(utils.Error)
+	// PrintWarning print validation errors as warning to the log without propagating the error to OpenAPIRouter.AsHandler return values
+	PrintWarning = Behaviour(utils.Warn)
+	// Off do nothing if the validation fails.
+	// A validation failure won't get printed to the logs and an error won't get propagate to OpenAPIRouter.AsHandler return values
+	Off = Behaviour(utils.Off)
+)
+
 // Options defines the behaviour of the OpenAPI router
 type Options struct {
-	// TODO: Add support fine tuning schema validation during initialization.
 
 	// When RecoverOnPanic is set to true the handlers chain provide a default recover behaviour that return status 500.
 	// This feature is available and turned on by default to prevent the server from crashing when an internal panic
@@ -35,7 +55,7 @@ type Options struct {
 	LogOutput io.Writer
 
 	// OperationValidations allow defining validation for specific operations using a map of operation id to an
-	// OperationValidationOptions structure.
+	// operationValidationOptions structure.
 	// This option is used only to override the default operation validations options defined ny the
 	// DefaultOperationValidation option.
 	OperationValidations map[string]OperationValidationOptions
@@ -63,18 +83,6 @@ type Options struct {
 	HandleAllContentTypes Behaviour
 }
 
-type Behaviour utils.LogLevel
-
-const (
-	// PropagateError propagate validation errors to the next validation layer as a returned error.
-	// This is also the initial Behaviour value if not set to anything else.
-	PropagateError = Behaviour(utils.Error)
-	// PrintWarning print validation errors as warning to the log
-	PrintWarning = Behaviour(utils.Warn)
-	// Off ignore validation errors
-	Off = Behaviour(utils.Off)
-)
-
 // OperationValidationOptions defines options to control operation validations
 type OperationValidationOptions struct {
 	// ValidatePathParams determines validation of operation request body.
@@ -93,14 +101,10 @@ type OperationValidationOptions struct {
 	HandleAllOperationResponses Behaviour
 }
 
-func (o Options) OperationValidationOptions(id string) OperationValidationOptions {
-	options, ok := o.OperationValidations[id]
-	if ok {
-		return options
-	}
-	return o.DefaultOperationValidation
-}
-
+// DefaultOptions returns the default OpenAPI Router Options.
+// For loading different options it is recommended to start from the default Options as the baseline and modify the
+// specific options needed.
+// To init the router with custom Options you can use NewOpenAPIRouterWithOptions.
 func DefaultOptions() Options {
 	return Options{
 		RecoverOnPanic: true,
@@ -116,4 +120,12 @@ func DefaultOptions() Options {
 		MustHandleAllOperations: PropagateError,
 		HandleAllContentTypes:   PropagateError,
 	}
+}
+
+func (o Options) operationValidationOptions(id string) OperationValidationOptions {
+	options, ok := o.OperationValidations[id]
+	if ok {
+		return options
+	}
+	return o.DefaultOperationValidation
 }

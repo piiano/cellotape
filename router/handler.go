@@ -5,8 +5,14 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"net/http"
 	"net/url"
+	"reflect"
 )
 
+// Handler described the HandlerFunc in a non parametrized way.
+// The router "magic" of being a collection of many HandlerFunc with each having a different generic parameter is
+// possible by describing each HandlerFunc with this unified Handler interface.
+// Eventually a Handler is anything that can report its requestTypes, handlerResponses, sourcePosition and can become a
+// BoundHandlerFunc by calling the handlerFactory method.
 type Handler interface {
 	requestTypes() requestTypes
 	responseTypes() handlerResponses
@@ -14,8 +20,16 @@ type Handler interface {
 	handlerFactory(oa openapi, next BoundHandlerFunc) BoundHandlerFunc
 }
 
+// HandlerFunc is the typed handler that declare explicitly all types of request and responses.
+// Check the repo examples for seeing how the HandlerFunc can be used to define Handler for operations and middlewares.
 type HandlerFunc[B, P, Q, R any] func(Context, Request[B, P, Q]) (Response[R], error)
 
+// BoundHandlerFunc is an untyped wrapper to HandlerFunc that bound internally calls to request binding, response
+// binding and propagate next handler in the Context.
+type BoundHandlerFunc func(Context) (RawResponse, error)
+
+// Context carries the original http.Request and http.ResponseWriter and additional important parameters through the
+// handlers chain.
 type Context struct {
 	Writer      http.ResponseWriter
 	Request     *http.Request
@@ -43,8 +57,6 @@ type Response[R any] struct {
 	Response R
 }
 
-type BoundHandlerFunc func(Context) (RawResponse, error)
-
 type RawResponse struct {
 	// Status written with WriteHeader
 	Status int
@@ -57,6 +69,17 @@ type RawResponse struct {
 func NewHandler[B, P, Q, R any](h HandlerFunc[B, P, Q, R]) Handler {
 	return h
 }
+
+// getType returns reflect.Type of the generic parameter it receives.
+func getType[T any]() reflect.Type { return reflect.TypeOf(*new(T)) }
+
+// Nil represents an empty type.
+// You can use it with the HandlerFunc generic parameters to declare no Request with no request body, no path or query
+// params, or responses with no response body.
+type Nil *uintptr
+
+// nilType represent the type of Nil.
+var nilType = getType[Nil]()
 
 // requestTypes extracts the request types defined by the HandlerFunc
 func (h HandlerFunc[B, P, Q, R]) requestTypes() requestTypes {

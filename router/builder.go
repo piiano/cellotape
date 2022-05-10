@@ -12,10 +12,21 @@ type OpenAPIRouter interface {
 	WithGroup(Group) OpenAPIRouter
 	// WithOperation attaches an MiddlewareHandler for an operation ID string on the OpenAPISpec
 	WithOperation(string, Handler, ...Handler) OpenAPIRouter
-	// WithContentType Add support for encoding additional content type
+
+	// WithContentType add to the router implementation for encoding additional content types.
+	//
+	// By default, the OpenAPIRouter supports the ContentTypes defined by DefaultContentTypes.
+	//
+	// An implementation of ContentType add support for additional content types by implementing serialization and
+	// deserialization.
 	WithContentType(ContentType) OpenAPIRouter
-	// AsHandler validates the validity of the specified implementation with the registered OpenAPISpec
-	// returns a http.Handler that implements nil value if all checks passed correctly
+
+	// AsHandler validates the validity of the specified implementation with the registered OpenAPISpec.
+	//
+	// Returns a http.Handler and nil error if all checks passed correctly
+	//
+	// The returned handler can be used easily with any go http web framework as it is implementing the builtin
+	// http.Handler interface.
 	AsHandler() (http.Handler, error)
 }
 
@@ -30,32 +41,41 @@ type Group interface {
 	group() group
 }
 
-// NewOpenAPIRouter creates new OpenAPIRouter router with the provided OpenAPISpec
+// NewOpenAPIRouter creates new OpenAPIRouter router with the provided OpenAPISpec.
+//
+// The OpenAPISpec can be obtained by calling any of the OpenAPISpec loading functions:
+//
+// 		- NewSpecFromData - Init an OpenAPISpec from bytes represent the spec JSON or YAML.
+// 		- NewSpecFromFile - Init an OpenAPISpec from a path to a spec file.
+// 		- NewSpec - Create an empty spec object that can be initialized programmatically.
+//
+// This function also initialize OpenAPIRouter with the DefaultOptions, you can also initialize the router with custom
+// Options using the NewOpenAPIRouterWithOptions function instead.
 func NewOpenAPIRouter(spec OpenAPISpec) OpenAPIRouter {
 	return NewOpenAPIRouterWithOptions(spec, DefaultOptions())
 }
 
-// NewOpenAPIRouterWithOptions creates new OpenAPIRouter router with the provided OpenAPISpec and custom options
+// NewOpenAPIRouterWithOptions creates new OpenAPIRouter router with the provided OpenAPISpec and custom Options.
+//
+// OpenAPISpec can be obtained by calling any of the OpenAPISpec loading functions:
+//
+// 		- NewSpecFromData - Init an OpenAPISpec from bytes represent the spec JSON or YAML.
+// 		- NewSpecFromFile - Init an OpenAPISpec from a path to a spec file.
+// 		- NewSpec - Create an empty spec object that can be initialized programmatically.
+//
+// This function also receives an Options object that allow customizing the default behaviour of the router.
+// Check the Options documentation for more details.
+//
+// If you want to use the OpenAPIRouter with the DefaultOptions, you can use the shorter NewOpenAPIRouter function instead.
 func NewOpenAPIRouterWithOptions(spec OpenAPISpec, options Options) OpenAPIRouter {
 	return &openapi{
 		spec:         spec,
 		options:      options,
 		contentTypes: DefaultContentTypes(),
-		group: group{
-			handlers:   []handler{},
-			groups:     []group{},
-			operations: []operation{},
-		},
 	}
 }
 
-func NewGroup() Group {
-	return &group{
-		handlers:   []handler{},
-		groups:     []group{},
-		operations: []operation{},
-	}
-}
+func NewGroup() Group { return new(group) }
 
 func (oa *openapi) Use(handlers ...Handler) OpenAPIRouter {
 	oa.group.Use(handlers...)
@@ -74,7 +94,7 @@ func (oa *openapi) WithContentType(contentType ContentType) OpenAPIRouter {
 	return oa
 }
 func (oa *openapi) AsHandler() (http.Handler, error) {
-	return asHandler(oa)
+	return createMainRouterHandler(oa)
 }
 
 func (g *group) Use(handlers ...Handler) Group {

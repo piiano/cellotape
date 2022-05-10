@@ -27,7 +27,7 @@ func mainHandler() error {
 	}
 	tasksService := services.NewTasksService()
 	handler, err := router.NewOpenAPIRouter(spec).
-		Use(middlewares.LoggerMiddleware, middlewares.AuthMiddleware).
+		Use(middlewares.LoggerMiddleware, middlewares.AuthMiddleware, middlewares.PoweredByMiddleware).
 		WithGroup(rest.TasksOperationsGroup(tasksService)).
 		AsHandler()
 
