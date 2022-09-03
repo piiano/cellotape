@@ -48,5 +48,14 @@ jobs:
         id: coverage
         run: echo "::set-output name=total::$(make test-coverage)"
 
-      - name: Adding markdown
-        run: echo '![${{ steps.coverage.outputs.total }}](https://badgen.net/badge/coverage/${{ steps.coverage.outputs.total }}25/green?icon=github)' >> $GITHUB_STEP_SUMMARY
+      - name: Update README.md with coverage
+        run: |
+          echo $COVERAGE_PICTURE >> $GITHUB_STEP_SUMMARY
+          sed -i "s/$COVERAGE_PICTURE_REGEX/$COVERAGE_PICTURE/g" README.md
+          git add README.md
+          git commit -m "Update coverage in README.md"
+          git push
+        env:
+          COVERAGE_PICTURE_REGEX: !\[([0-9]|[1-9][0-9]|100)(.[0-9])?%\]\(https://badgen.net/badge/coverage/([0-9]|[1-9][0-9]|100)(.[0-9])?%25/green\?icon=github\)
+          COVERAGE_PICTURE: ![${{ steps.coverage.outputs.total }}](https://badgen.net/badge/coverage/${{ steps.coverage.outputs.total }}25/green?icon=github)
+
