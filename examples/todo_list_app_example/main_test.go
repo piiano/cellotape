@@ -21,17 +21,17 @@ import (
 )
 
 func TestGetAllTasks(t *testing.T) {
-	ts, err := initAPI(t)
+	ts := initAPI(t)
 	defer ts.Close()
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/tasks", ts.URL), nil)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	req.Header.Set("Authorization", "Bearer secret")
 	client := http.Client{}
 	resp, err := client.Do(req)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, 200, resp.StatusCode)
 	response, err := io.ReadAll(resp.Body)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.JSONEq(t, `{
 		"results": [],
 		"page": 0,
@@ -41,7 +41,7 @@ func TestGetAllTasks(t *testing.T) {
 }
 
 func TestCreateNewTaskAndGetIt(t *testing.T) {
-	ts, err := initAPI(t)
+	ts := initAPI(t)
 	defer ts.Close()
 	taskJson := `{
 		"summary": "code first approach",
@@ -51,44 +51,43 @@ func TestCreateNewTaskAndGetIt(t *testing.T) {
 	request := bytes.NewBufferString(taskJson)
 
 	req, err := http.NewRequest("POST", fmt.Sprintf("%s/tasks", ts.URL), request)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	req.Header.Set("Authorization", "Bearer secret")
 	//req.Header.Set("Content-Type", "application/json")
 	client := http.Client{}
 	resp, err := client.Do(req)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, 200, resp.StatusCode)
 	response := make(map[string]string)
 	err = json.NewDecoder(resp.Body).Decode(&response)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Len(t, response, 1, "expecting one id field in the output")
 	id, found := response["id"]
 	assert.True(t, found)
 	assert.Regexp(t, `[0-9a-z]{8}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{12}`, id)
 
 	req, err = http.NewRequest("GET", fmt.Sprintf("%s/tasks/%s", ts.URL, id), nil)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	req.Header.Set("Authorization", "Bearer secret")
 	resp, err = client.Do(req)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	data, err := io.ReadAll(resp.Body)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.JSONEq(t, taskJson, string(data))
 }
 
-func initAPI(t *testing.T) (*httptest.Server, error) {
+func initAPI(t *testing.T) *httptest.Server {
 	spec, err := router.NewSpecFromData(specData)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	tasksService := services.NewTasksService()
 	handler, err := router.NewOpenAPIRouter(spec).
 		Use(middlewares.LoggerMiddleware, middlewares.AuthMiddleware).
 		WithGroup(rest.TasksOperationsGroup(tasksService)).
 		AsHandler()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
-	ts := httptest.NewServer(handler)
-	return ts, err
+	return httptest.NewServer(handler)
 }

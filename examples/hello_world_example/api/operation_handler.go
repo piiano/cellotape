@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	r "github.com/piiano/cellotape/router"
+	"net/http"
 	"time"
 )
 
@@ -11,13 +12,13 @@ var GreetOperationHandler = r.NewHandler(greetHandler)
 func greetHandler(_ r.Context, request r.Request[body, pathParams, queryParams]) (r.Response[responses], error) {
 	if request.PathParams.Version != "v1" && request.PathParams.Version != "1" && request.PathParams.Version != "1.0" {
 		errMessage := fmt.Sprintf("unsupported version %q", request.PathParams.Version)
-		return r.Send(400, responses{BadRequest: badRequest{Message: errMessage}})
+		return r.SendJSON(responses{BadRequest: badRequest{Message: errMessage}}).Status(http.StatusBadRequest), nil
 	}
 	greeting, err := greet(request.Body.Name, request.Body.DayOfBirth, request.QueryParams.GreetTemplate)
 	if err != nil {
-		return r.Send(400, responses{BadRequest: badRequest{Message: err.Error()}})
+		return r.SendJSON(responses{BadRequest: badRequest{Message: err.Error()}}).Status(http.StatusBadRequest), nil
 	}
-	return r.Send(200, responses{OK: ok{Greeting: greeting}})
+	return r.SendOKJSON(responses{OK: ok{Greeting: greeting}}), nil
 }
 
 type body struct {

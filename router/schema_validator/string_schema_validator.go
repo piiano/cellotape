@@ -23,12 +23,12 @@ func (c typeSchemaValidatorContext) validateStringSchema() error {
 		if c.goType.Kind() != reflect.String && !uuidType.ConvertibleTo(c.goType) {
 			l.Logf(c.level, schemaTypeWithFormatIsIncompatibleWithType(c.schema, c.goType))
 		}
-	case timeFormat:
+	case dateTimeFormat, timeFormat:
 		if c.goType.Kind() != reflect.String && !timeType.ConvertibleTo(c.goType) {
 			l.Logf(c.level, schemaTypeWithFormatIsIncompatibleWithType(c.schema, c.goType))
 		}
 	// TODO: add support for more formats compatible types (dateTimeFormat, dateFormat, durationFormat, etc.)
-	case dateTimeFormat, dateFormat, durationFormat, emailFormat, idnEmailFormat, hostnameFormat,
+	case dateFormat, durationFormat, emailFormat, idnEmailFormat, hostnameFormat,
 		idnHostnameFormat, ipv4Format, ipv6Format, uriFormat, uriReferenceFormat, iriFormat, iriReferenceFormat,
 		uriTemplateFormat, jsonPointerFormat, relativeJsonPointerFormat, regexFormat, passwordFormat:
 		if c.goType.Kind() != reflect.String {

@@ -1,5 +1,6 @@
 name: Lint, Test and check Coverage
-on: [pull_request]
+#on: [pull_request]
+on: [push]
 
 jobs:
   lint:
@@ -45,20 +46,12 @@ jobs:
 
       - name: Test and produce coverage profile
         id: coverage
-        run: |
-          COVER_PACKAGES=$(go list ./router/... | paste -s -d , -)
-          echo "packages included in coverage $COVER_PACKAGES"
-          go test ./... -cover -coverpkg $COVER_PACKAGES -coverprofile=coverage.out
-          TOTAL=$(go tool cover -func coverage.out | grep total | awk '{print $3}')
-          echo "::set-output name=total::$TOTAL"
+        run: echo "::set-output name=total::$(make test-coverage)"
 
-      - uses: actions/github-script@v6
-        with:
-          github-token: ${{secrets.GITHUB_TOKEN}}
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '![${{ steps.coverage.outputs.total }}](https://badgen.net/badge/coverage/${{ steps.coverage.outputs.total }}25/green?icon=github)'
-            })
+      - name: Adding markdown
+        run: echo '![${{ steps.coverage.outputs.total }}](https://badgen.net/badge/coverage/${{ steps.coverage.outputs.total }}25/green?icon=github)' >> $GITHUB_STEP_SUMMARY
+#
+#      - name: Adding markdown
+#        run: |
+#          make coverage.html
+#          cat coverage.html >> $GITHUB_STEP_SUMMARY

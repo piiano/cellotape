@@ -82,8 +82,8 @@ func validateOperation(oa openapi, operation operation) error {
 	return l.MustHaveNoErrorsf("operation %q has incompatibility with the spec (%d errors, %d warnings)", operation.id, l.Errors(), l.Warnings())
 }
 
-// validateHandleAllPathParams checks that every response defined in the spec is handled at least once in the handlers chain
-func validateHandleAllPathParams(oa openapi, behaviour Behaviour, operation operation, specOp specOperation) utils.LogCounters {
+// validateHandleAllPathParams checks that every path param defined in the operation is handled at least once in the handlers chain
+func validateHandleAllPathParams(oa openapi, behaviour Behaviour, operation operation, specOp SpecOperation) utils.LogCounters {
 	handlers := append(operation.handlers, operation.handler)
 	declaredParams := utils.NewSet[string](utils.ConcatSlices[string](utils.Map(handlers, func(h handler) []string {
 		return utils.Keys(structKeys(h.request.pathParams, pathParamFieldTag))
@@ -91,8 +91,8 @@ func validateHandleAllPathParams(oa openapi, behaviour Behaviour, operation oper
 	return validateHandleAllParams(oa, behaviour, operation, specOp, pathParamInValue, declaredParams)
 }
 
-// validateHandleAllQueryParams checks that every response defined in the spec is handled at least once in the handlers chain
-func validateHandleAllQueryParams(oa openapi, behaviour Behaviour, operation operation, specOp specOperation) utils.LogCounters {
+// validateHandleAllQueryParams checks that every query param defined in the operation is handled at least once in the handlers chain
+func validateHandleAllQueryParams(oa openapi, behaviour Behaviour, operation operation, specOp SpecOperation) utils.LogCounters {
 	handlers := append(operation.handlers, operation.handler)
 	declaredParams := utils.NewSet[string](utils.ConcatSlices[string](utils.Map(handlers, func(h handler) []string {
 		return utils.Keys(structKeys(h.request.queryParams, queryParamFieldTag))
@@ -100,8 +100,8 @@ func validateHandleAllQueryParams(oa openapi, behaviour Behaviour, operation ope
 	return validateHandleAllParams(oa, behaviour, operation, specOp, queryParamInValue, declaredParams)
 }
 
-// validateHandleAllParams checks that every response defined in the spec is handled at least once in the handlers chain
-func validateHandleAllParams(oa openapi, behaviour Behaviour, operation operation, specOp specOperation, in string, declaredParams utils.Set[string]) utils.LogCounters {
+// validateHandleAllParams checks that every parameter defined in the operation is handled at least once in the handlers chain
+func validateHandleAllParams(oa openapi, behaviour Behaviour, operation operation, specOp SpecOperation, in string, declaredParams utils.Set[string]) utils.LogCounters {
 	l := oa.logger()
 	level := utils.LogLevel(behaviour)
 	for _, specParam := range specOp.Parameters {
@@ -110,14 +110,14 @@ func validateHandleAllParams(oa openapi, behaviour Behaviour, operation operatio
 		}
 		name := specParam.Value.Name
 		if !declaredParams.Has(name) {
-			l.Logf(level, paramMissingImplementationInChain(in, name, operation))
+			l.Logf(level, paramMissingImplementationInChain(in, name, operation.id))
 		}
 	}
 	return l.Counters()
 }
 
 // validateHandleAllResponses checks that every response defined in the spec is handled at least once in the handlers chain
-func validateHandleAllResponses(oa openapi, behaviour Behaviour, operation operation, specOp specOperation) utils.LogCounters {
+func validateHandleAllResponses(oa openapi, behaviour Behaviour, operation operation, specOp SpecOperation) utils.LogCounters {
 	l := oa.logger()
 	level := utils.LogLevel(behaviour)
 	handlers := append(operation.handlers, operation.handler)

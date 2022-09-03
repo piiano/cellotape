@@ -146,14 +146,12 @@ func (l *logger) Log(level LogLevel, arg any) {
 	}
 	switch level {
 	case Info:
-		//write("[Info]")
-		write("\033[36m[Info]\u001B[0m")
+		write("[Info]")
 	case Warn:
-		//write("[Warning]")
-		write("\033[33m[Warning]\u001B[0m")
+		write("[Warning]")
 		l.LogCounters.Warnings++
 	case Error:
-		write("\033[31m[Error]\u001B[0m")
+		write("[Error]")
 		l.LogCounters.Errors++
 	}
 }

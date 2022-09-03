@@ -23,7 +23,7 @@ func handleMain() error {
 		return err
 	}
 	handler, err := r.NewOpenAPIRouter(spec).
-		WithContentType(r.JsonContentType{}).
+		WithContentType(r.JSONContentType{}).
 		WithOperation("greet", api.GreetOperationHandler).
 		AsHandler()
 	if err != nil {

@@ -8,11 +8,23 @@ import (
 	"testing"
 )
 
+type EmbeddedResponse struct {
+	OK string `status:"200"`
+}
+
 func TestExtractResponses(t *testing.T) {
 	tableTest(t, extractResponses, []testCase[reflect.Type, handlerResponses]{
 		{in: nilType, out: handlerResponses{}},
 		{in: reflect.TypeOf(struct{}{}), out: handlerResponses{}},
 		{in: reflect.TypeOf(struct{ ok string }{}), out: handlerResponses{}},
+		{in: reflect.TypeOf(struct {
+			EmbeddedResponse
+		}{}), out: handlerResponses{200: {
+			status:       200,
+			responseType: reflect.TypeOf(""),
+			fieldIndex:   []int{0, 0},
+			isNilType:    false,
+		}}},
 		{in: reflect.TypeOf(struct {
 			OK string `status:"200"`
 		}{}), out: handlerResponses{200: {
@@ -82,7 +94,7 @@ func tableTestWithErr[I any, O any](t *testing.T, function func(I) (O, error), t
 				require.NotNil(t, err)
 			} else {
 				assert.Equal(t, test.out, out)
-				require.Nil(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}

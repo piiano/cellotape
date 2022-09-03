@@ -29,23 +29,16 @@ type BoundHandlerFunc func(Context) (RawResponse, error)
 // Context carries the original http.Request and http.ResponseWriter and additional important parameters through the
 // handlers chain.
 type Context struct {
+	Operation   SpecOperation
 	Writer      http.ResponseWriter
 	Request     *http.Request
 	Params      *httprouter.Params
 	RawResponse *RawResponse
 	NextFunc    BoundHandlerFunc
-	keyValues   map[string]any
 }
 
 func (c Context) Next() (RawResponse, error) {
 	return c.NextFunc(c)
-}
-func (c Context) Get(key string) (any, bool) {
-	value, ok := c.keyValues[key]
-	return value, ok
-}
-func (c *Context) Set(key string, value any) {
-	c.keyValues[key] = value
 }
 
 type Request[B, P, Q any] struct {
@@ -54,15 +47,43 @@ type Request[B, P, Q any] struct {
 	QueryParams Q
 	Headers     http.Header
 }
+
 type Response[R any] struct {
-	Status   int
-	Headers  http.Header
-	Response R
+	status      int
+	contentType string
+	headers     http.Header
+	response    R
+}
+
+// Status set the response status code.
+func (r Response[R]) Status(status int) Response[R] {
+	r.status = status
+	return r
+}
+
+// ContentType set the response content type.
+func (r Response[R]) ContentType(contentType string) Response[R] {
+	r.contentType = contentType
+	return r
+}
+
+// AddHeader add a response header. It appends to any existing values associated with key.
+func (r Response[R]) AddHeader(key, value string) Response[R] {
+	r.headers.Add(key, value)
+	return r
+}
+
+// SetHeader set a response header. It replaces any existing values associated with key
+func (r Response[R]) SetHeader(key, value string) Response[R] {
+	r.headers.Set(key, value)
+	return r
 }
 
 type RawResponse struct {
 	// Status written with WriteHeader
 	Status int
+	// ContentType is the content type used to write the response
+	ContentType string
 	// buffered Body bytes written by calls to Write
 	Body []byte
 	// response Headers
@@ -121,26 +142,4 @@ func (h HandlerFunc[B, P, Q, R]) handlerFactory(oa openapi, next BoundHandlerFun
 		// bind the response
 		return bindResponse(context, response)
 	}
-}
-
-// Send is a helper function for constructing a HandlerFunc response.
-func Send[R any](status int, response R, headers ...http.Header) (Response[R], error) {
-	aggregatedHeaders := make(http.Header, 0)
-	for _, header := range headers {
-		for key, values := range header {
-			for _, value := range values {
-				aggregatedHeaders.Add(key, value)
-			}
-		}
-	}
-	return Response[R]{
-		Status:   status,
-		Response: response,
-		Headers:  aggregatedHeaders,
-	}, nil
-}
-
-// Error is a helper function for constructing a HandlerFunc error response.
-func Error[R any](err error) (Response[R], error) {
-	return Response[R]{}, err
 }

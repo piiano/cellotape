@@ -1,10 +1,8 @@
 package router
 
 import (
-	"bytes"
 	"encoding/json"
-	"github.com/BurntSushi/toml"
-	"gopkg.in/yaml.v3"
+	"fmt"
 )
 
 type ContentType interface {
@@ -15,33 +13,71 @@ type ContentType interface {
 
 type ContentTypes map[string]ContentType
 
-type JsonContentType struct{}
+type OctetStreamContentType struct{}
 
-func (t JsonContentType) Mime() string                        { return "application/json" }
-func (t JsonContentType) Encode(value any) ([]byte, error)    { return json.Marshal(value) }
-func (t JsonContentType) Decode(data []byte, value any) error { return json.Unmarshal(data, value) }
-
-type YamlContentType struct{}
-
-func (t YamlContentType) Mime() string                        { return "application/yaml" }
-func (t YamlContentType) Encode(value any) ([]byte, error)    { return yaml.Marshal(value) }
-func (t YamlContentType) Decode(data []byte, value any) error { return yaml.Unmarshal(data, value) }
-
-type TomlContentType struct{}
-
-func (t TomlContentType) Mime() string { return "application/toml" }
-func (t TomlContentType) Encode(value any) ([]byte, error) {
-	buffer := bytes.NewBuffer([]byte{})
-	err := toml.NewEncoder(buffer).Encode(value)
-	return buffer.Bytes(), err
+func (t OctetStreamContentType) Mime() string { return "application/octet-stream" }
+func (t OctetStreamContentType) Encode(value any) ([]byte, error) {
+	if value == nil {
+		return []byte{}, nil
+	}
+	if bytesSlice, ok := value.([]byte); ok {
+		return bytesSlice, nil
+	}
+	return nil, fmt.Errorf("type %T is incompatible with content type %q. value must be a []byte", value, t.Mime())
 }
-func (t TomlContentType) Decode(data []byte, value any) error { return toml.Unmarshal(data, value) }
+func (t OctetStreamContentType) Decode(data []byte, value any) error {
+	if len(data) == 0 {
+		return nil
+	}
+	switch typedValue := value.(type) {
+	case *any:
+		*typedValue = data
+	case *[]byte:
+		*typedValue = data
+	default:
+		return fmt.Errorf("type %T is incompatible with content type %q. value must be a *[]byte", value, t.Mime())
+	}
+	return nil
+}
+
+type PlainTextContentType struct{}
+
+func (t PlainTextContentType) Mime() string { return "text/plain" }
+func (t PlainTextContentType) Encode(value any) ([]byte, error) {
+	if value == nil {
+		return []byte{}, nil
+	}
+	if str, ok := value.(string); ok {
+		return []byte(str), nil
+	}
+	return nil, fmt.Errorf("type %T is incompatible with content type %q. value must be a string", value, t.Mime())
+}
+func (t PlainTextContentType) Decode(data []byte, value any) error {
+	if len(data) == 0 {
+		return nil
+	}
+	switch typedValue := value.(type) {
+	case *any:
+		*typedValue = string(data)
+	case *string:
+		*typedValue = string(data)
+	default:
+		return fmt.Errorf("type %T is incompatible with content type %q. value must be a *string", value, t.Mime())
+	}
+	return nil
+}
+
+type JSONContentType struct{}
+
+func (t JSONContentType) Mime() string                        { return "application/json" }
+func (t JSONContentType) Encode(value any) ([]byte, error)    { return json.Marshal(value) }
+func (t JSONContentType) Decode(data []byte, value any) error { return json.Unmarshal(data, value) }
 
 func DefaultContentTypes() ContentTypes {
 	defaultContentTypes := []ContentType{
-		JsonContentType{},
-		YamlContentType{},
-		TomlContentType{},
+		OctetStreamContentType{},
+		PlainTextContentType{},
+		JSONContentType{},
 	}
 	contentTypes := make(ContentTypes, len(defaultContentTypes))
 	for _, contentType := range defaultContentTypes {

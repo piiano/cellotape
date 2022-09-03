@@ -45,6 +45,33 @@ func TestObjectSchemaValidatorWithSimpleStruct(t *testing.T) {
 	}
 }
 
+func TestObjectSchemaValidatorWithSimpleStructAdditionalProperties(t *testing.T) {
+	type SimpleStruct struct {
+		Field1 string
+		Field2 int
+		Field3 bool
+	}
+	simpleStructSchema := openapi3.NewObjectSchema().
+		WithProperty("Field1", openapi3.NewStringSchema()).
+		WithProperty("Field2", openapi3.NewIntegerSchema())
+	validator := schemaValidator(*simpleStructSchema)
+	simpleStructType := reflect.TypeOf(SimpleStruct{})
+	errTemplate := "expect object schema to be %s with %s type"
+	expectTypeToBeIncompatible(t, validator, simpleStructType, errTemplate, "incompatible", simpleStructType)
+
+	expectTypeToBeCompatible(t, validator.WithSchema(*simpleStructSchema.WithAnyAdditionalProperties()),
+		simpleStructType, errTemplate, "compatible", simpleStructType)
+
+	expectTypeToBeIncompatible(t, validator.WithSchema(*simpleStructSchema.
+		WithAdditionalProperties(openapi3.NewStringSchema())),
+		simpleStructType, errTemplate, "incompatible", simpleStructType)
+
+	expectTypeToBeCompatible(t, validator.WithSchema(*simpleStructSchema.
+		WithAdditionalProperties(openapi3.NewBoolSchema())),
+		simpleStructType, errTemplate, "compatible", simpleStructType)
+
+}
+
 func TestObjectSchemaValidatorWithEmbeddedStruct(t *testing.T) {
 	type SimpleA struct{ Field1 bool }
 	type SimpleB struct {

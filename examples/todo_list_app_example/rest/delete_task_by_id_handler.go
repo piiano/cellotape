@@ -6,28 +6,29 @@ import (
 	m "github.com/piiano/cellotape/examples/todo_list_app_example/models"
 	"github.com/piiano/cellotape/examples/todo_list_app_example/services"
 	r "github.com/piiano/cellotape/router"
+	"net/http"
 )
 
 func deleteTaskByIDOperation(tasks services.TasksService) r.Handler {
 	return r.NewHandler(func(_ r.Context, request r.Request[r.Nil, idPathParam, r.Nil]) (r.Response[deleteTaskByIDResponses], error) {
 		id, err := uuid.Parse(request.PathParams.ID)
 		if err != nil {
-			return r.Send(400, deleteTaskByIDResponses{
+			return r.SendJSON(deleteTaskByIDResponses{
 				BadRequest: m.HttpError{
 					Error:  "bad request",
 					Reason: err.Error(),
 				},
-			})
+			}).Status(http.StatusBadRequest), nil
 		}
 		if deleted := tasks.DeleteTaskByID(id); deleted {
-			return r.Send(204, deleteTaskByIDResponses{})
+			return r.SendJSON(deleteTaskByIDResponses{}).Status(http.StatusNoContent), nil
 		}
-		return r.Send(410, deleteTaskByIDResponses{
+		return r.SendJSON(deleteTaskByIDResponses{
 			Gone: m.HttpError{
 				Error:  "gone",
 				Reason: fmt.Sprintf("task with id %q is not found", request.PathParams.ID),
 			},
-		})
+		}).Status(http.StatusGone), nil
 	})
 }
 
