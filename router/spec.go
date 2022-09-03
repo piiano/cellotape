@@ -27,15 +27,15 @@ func NewSpec() OpenAPISpec {
 	return spec
 }
 
-func (s OpenAPISpec) findSpecOperationByID(id string) (specOperation, bool) {
+func (s OpenAPISpec) findSpecOperationByID(id string) (SpecOperation, bool) {
 	for path, pathItem := range s.Paths {
 		for method, specOp := range pathItem.Operations() {
 			if specOp.OperationID == id {
-				return specOperation{path: path, method: method, Operation: specOp}, true
+				return SpecOperation{path: path, method: method, Operation: specOp}, true
 			}
 		}
 	}
-	return specOperation{}, false
+	return SpecOperation{}, false
 }
 
 // findSpecContentTypes find all content types declared in the spec for both request body and responses
@@ -61,7 +61,8 @@ func (s OpenAPISpec) findSpecContentTypes() []string {
 	return contentTypes
 }
 
-type specOperation struct {
+// SpecOperation represent the operation information described in the spec with path and method information.
+type SpecOperation struct {
 	path   string
 	method string
 	*openapi3.Operation

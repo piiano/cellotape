@@ -30,7 +30,7 @@ func (c typeSchemaValidatorContext) validateObjectSchema() error {
 						l.Logf(c.level, fmt.Sprintf("field %q (%q) with type %s not found in object schema properties", field.Name, name, field.Type))
 						continue
 					}
-					if c.schema.AdditionalProperties.Value != nil {
+					if c.schema.AdditionalProperties != nil && c.schema.AdditionalProperties.Value != nil {
 						if err := c.WithSchema(*c.schema.AdditionalProperties.Value).WithType(field.Type).Validate(); err != nil {
 							l.Logf(c.level, fmt.Sprintf("field %q (%q) with type %s not found in object schema properties nor additonal properties", field.Name, name, field.Type))
 						}

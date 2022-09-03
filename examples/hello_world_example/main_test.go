@@ -19,22 +19,22 @@ import (
 
 func TestHelloWorldExample(t *testing.T) {
 	spec, err := router.NewSpecFromData(specData)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	handler, err := router.NewOpenAPIRouter(spec).
 		WithOperation("greet", api.GreetOperationHandler).
 		AsHandler()
 	fmt.Println(err)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	ts := httptest.NewServer(handler)
 	defer ts.Close()
 	request := bytes.NewBufferString(`{ "name": "Ori" }`)
 	resp, err := http.Post(fmt.Sprintf("%s/v1/greet", ts.URL), "application/json", request)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, 200, resp.StatusCode)
 	response := make(map[string]any)
 	err = json.NewDecoder(resp.Body).Decode(&response)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, map[string]any{"greeting": "Hello Ori!"}, response)
 }

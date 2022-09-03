@@ -25,11 +25,12 @@ func extractResponses(t reflect.Type) handlerResponses {
 		}
 		if field.Anonymous {
 			for status, response := range extractResponses(field.Type) {
+				response.fieldIndex = append(field.Index, response.fieldIndex...)
 				responseTypesMap[status] = response
 			}
 			continue
 		}
-		// each direct field of the responses' struct need to have a Status tag
+		// each direct field of the responses' struct need to have a status tag
 		statusTagValue, ok := field.Tag.Lookup(statusTag)
 		if !ok {
 			continue
@@ -49,11 +50,11 @@ func extractResponses(t reflect.Type) handlerResponses {
 	return responseTypesMap
 }
 
-// parse a string representing an HTTP Status code or error if it is not a valid code between 100 and 600
+// parse a string representing an HTTP status code or error if it is not a valid code between 100 and 600
 func parseStatus(statusString string) (int, error) {
 	status, err := strconv.ParseInt(statusString, 10, bits.UintSize)
 	if err != nil || status < 100 || status >= 600 {
-		return 0, fmt.Errorf("invalid Status code %q", statusString)
+		return 0, fmt.Errorf("invalid status code %q", statusString)
 	}
 	return int(status), nil
 }

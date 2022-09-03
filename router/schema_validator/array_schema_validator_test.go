@@ -42,10 +42,6 @@ func TestArraySchemaValidatorFailOnWrongType(t *testing.T) {
 	if err := validator.WithType(intArrayType).Validate(); err == nil {
 		t.Errorf("expect string array schema to be incompatible with %s type", intArrayType)
 	}
-	intSliceType := reflect.TypeOf(make([]any, 1))
-	if err := validator.WithType(intSliceType).Validate(); err == nil {
-		t.Errorf("expect string array schema to be incompatible with %s type", intSliceType)
-	}
 	if err := validator.WithType(stringType).Validate(); err == nil {
 		t.Errorf("expect string array schema to be incompatible with %s type", stringType)
 	}

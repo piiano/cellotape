@@ -9,7 +9,7 @@ import (
 func createNewTaskOperation(tasks services.TasksService) r.Handler {
 	return r.NewHandler(func(c r.Context, request r.Request[m.Task, r.Nil, r.Nil]) (r.Response[createNewTaskResponses], error) {
 		id := tasks.CreateTask(request.Body)
-		return r.Send(200, createNewTaskResponses{OK: m.Identifiable{ID: id}})
+		return r.SendOKJSON(createNewTaskResponses{OK: m.Identifiable{ID: id}}), nil
 	})
 }
 

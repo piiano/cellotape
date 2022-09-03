@@ -1,8 +1,10 @@
 package utils
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"testing"
 )
 
@@ -109,4 +111,26 @@ func TestLogger(t *testing.T) {
 			assert.Equal(t, LogCounters{Errors: 7, Warnings: 6}, l.Counters())
 		})
 	}
+}
+
+func TestLogLevelMarshalText(t *testing.T) {
+	logLevels := []LogLevel{Info, Warn, Error, Off}
+	jsonBytes, err := json.Marshal(logLevels)
+	require.NoError(t, err)
+	assert.Equal(t, `["info","warn","error","off"]`, string(jsonBytes))
+
+	_, err = LogLevel(10).MarshalText()
+	require.Error(t, err)
+}
+
+func TestLogLevelUnmarshalText(t *testing.T) {
+	var behaviours []LogLevel
+	err := json.Unmarshal([]byte(`["info","warn","error","off"]`), &behaviours)
+	require.NoError(t, err)
+
+	assert.Equal(t, []LogLevel{Info, Warn, Error, Off}, behaviours)
+
+	var behaviour LogLevel
+	err = json.Unmarshal([]byte(`"invalid-log-level"`), &behaviour)
+	require.Error(t, err)
 }

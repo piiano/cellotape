@@ -47,14 +47,12 @@ func incompatibleParamType(operationID string, in string, paramName string, fiel
 func incompatibleResponseType(operationID string, status int, responseType reflect.Type) string {
 	return fmt.Sprintf("%d response schema of operation %q is incompatible with handler %d response type %s", status, operationID, status, responseType)
 }
-
 func unimplementedResponsesForOperation(unimplementedResponses int, operationId string) string {
 	return fmt.Sprintf("%d responses exist on the spec for operation %s but not declared on any handler", unimplementedResponses, operationId)
 }
-
 func handlerDefinesResponseThatIsMissingInSpec(status int, operationId string) string {
 	return fmt.Sprintf("response %d is declared on operation %s but is not declared in the spec", status, operationId)
 }
-func paramMissingImplementationInChain(in string, name string, operation operation) string {
-	return fmt.Sprintf("%s param %q exists on the spec for operation %q but not declared on any handler", in, name, operation.id)
+func paramMissingImplementationInChain(in string, name string, operationId string) string {
+	return fmt.Sprintf("%s param %q exists on the spec for operation %q but not declared on any handler", in, name, operationId)
 }

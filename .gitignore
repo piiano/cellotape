@@ -1,1 +1,6 @@
+# Jet Brains
 .idea
+
+# Go coverage
+profile.cov
+coverage.html

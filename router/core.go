@@ -14,13 +14,14 @@ func createMainRouterHandler(oa *openapi) (http.Handler, error) {
 		return nil, err
 	}
 	router := httprouter.New()
+	router.HandleMethodNotAllowed = false
 	logger := oa.logger()
 	pathParamsMatcher := regexp.MustCompile(`\{([^/}]*)}`)
 	for _, flatOp := range flatOperations {
 		specOp, _ := oa.spec.findSpecOperationByID(flatOp.id)
 		path := pathParamsMatcher.ReplaceAllString(specOp.path, ":$1")
 		chainHead := chainHandlers(*oa, append(flatOp.handlers, flatOp.handler)...)
-		httpRouterHandler := asHttpRouterHandler(*oa, chainHead)
+		httpRouterHandler := asHttpRouterHandler(*oa, specOp, chainHead)
 		router.Handle(specOp.method, path, httpRouterHandler)
 		logger.Infof("register handler for operation %q - %s %s", flatOp.id, specOp.method, specOp.path)
 	}
@@ -52,12 +53,13 @@ func chainHandlers(oa openapi, handlers ...handler) (head BoundHandlerFunc) {
 	return next
 }
 
-func asHttpRouterHandler(oa openapi, head BoundHandlerFunc) httprouter.Handle {
+func asHttpRouterHandler(oa openapi, specOp SpecOperation, head BoundHandlerFunc) httprouter.Handle {
 	return func(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 		if oa.options.RecoverOnPanic {
 			defer defaultRecoverBehaviour(writer)
 		}
 		ctx := Context{
+			Operation:   specOp,
 			Writer:      writer,
 			Request:     request,
 			Params:      &params,
@@ -76,6 +78,6 @@ func asHttpRouterHandler(oa openapi, head BoundHandlerFunc) httprouter.Handle {
 func defaultRecoverBehaviour(writer http.ResponseWriter) {
 	if r := recover(); r != nil {
 		writer.WriteHeader(500)
-		log.Printf("[ERROR] recovered from panic. %v. respond with Status 500\n", r)
+		log.Printf("[Error] recovered from panic. %v. respond with status 500\n", r)
 	}
 }

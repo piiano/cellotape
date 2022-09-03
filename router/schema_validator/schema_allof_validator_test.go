@@ -21,8 +21,8 @@ type (
 )
 
 var (
-	identifiableSchema       = openapi3.NewObjectSchema().WithProperty("id", openapi3.NewStringSchema())
-	personSchema             = openapi3.NewObjectSchema().WithProperty("name", openapi3.NewStringSchema())
+	identifiableSchema       = openapi3.NewObjectSchema().WithProperty("id", openapi3.NewStringSchema()).WithAnyAdditionalProperties()
+	personSchema             = openapi3.NewObjectSchema().WithProperty("name", openapi3.NewStringSchema()).WithAnyAdditionalProperties()
 	identifiablePersonSchema = &openapi3.Schema{
 		AllOf: openapi3.SchemaRefs{
 			identifiableSchema.NewRef(),
