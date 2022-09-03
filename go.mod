@@ -2,6 +2,10 @@ module github.com/piiano/cellotape
 
 go 1.18
 
+retract (
+    v1.0.0 // Published accidentally.
+)
+
 require (
 	github.com/getkin/kin-openapi v0.94.0
 	github.com/gin-gonic/gin v1.7.7
