@@ -2,6 +2,8 @@
 
 # Cellotape - Beta - OpenAPI Router for Go
 
+![0%](https://badgen.net/badge/coverage/0%25/green?icon=github)
+
 > **🚧 Cellotape is in Beta 🚧**
 > 
 > Please note that this is a beta version and the API may change.
