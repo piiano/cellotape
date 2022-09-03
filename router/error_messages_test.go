@@ -52,7 +52,7 @@ func TestErrorMessages(t *testing.T) {
 		unimplementedResponseForOperation(200, "foo"))
 
 	assert.Equal(t,
-		"response 200 is declared on an handler for operation foo but is not part of the spec",
+		"response 200 is declared on a handler for operation foo but is not part of the spec",
 		handlerDefinesResponseThatIsMissingInTheSpec(200, "foo"))
 
 	assert.Equal(t,

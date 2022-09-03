@@ -23,23 +23,30 @@ func validateOpenAPIRouter(oa *openapi, flatOperations []operation) error {
 	l := oa.logger()
 	l.ErrorIfNotNil(validateContentTypes(*oa))
 	declaredOperation := utils.NewSet[string]()
+	excludeOperations := utils.NewSet(oa.options.ExcludeOperations...)
 	for _, flatOp := range flatOperations {
+		if excludeOperations.Has(flatOp.id) {
+			l.Errorf(anExcludedOperationIsImplemented(flatOp.id))
+		}
 		if !declaredOperation.Add(flatOp.id) {
 			// multiple handlers for the same operation is always an error
 			l.Errorf(multipleHandlersFoundForOperationId(flatOp.id))
 		}
 		l.ErrorIfNotNil(validateOperation(*oa, flatOp))
 	}
-	l.ErrorIfNotNil(validateMustHandleAllOperations(oa, declaredOperation))
+	l.ErrorIfNotNil(validateMustHandleAllOperations(oa, declaredOperation, excludeOperations))
 	return l.MustHaveNoErrorsf(failedValidatingTheRouterWithTheSpec(l.Warnings(), l.Errors()))
 }
 
 // validateMustHandleAllOperations checks that all operations defined in the spec have an implementation on the router.
-func validateMustHandleAllOperations(oa *openapi, declaredOperation utils.Set[string]) error {
+func validateMustHandleAllOperations(oa *openapi, declaredOperations utils.Set[string], excludeOperations utils.Set[string]) error {
 	l := oa.logger()
 	for _, pathItem := range oa.spec.Paths {
 		for _, specOp := range pathItem.Operations() {
-			if !declaredOperation.Has(specOp.OperationID) {
+			if excludeOperations.Has(specOp.OperationID) {
+				continue
+			}
+			if !declaredOperations.Has(specOp.OperationID) {
 				l.Logf(utils.LogLevel(oa.options.MustHandleAllOperations), missingHandlerForOperationId(specOp.OperationID))
 			}
 		}

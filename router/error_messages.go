@@ -36,7 +36,7 @@ func unimplementedResponseForOperation(responseStatus int, operationId string) s
 	return fmt.Sprintf("%d response exist on the spec for operation %s but not declared on any handler", responseStatus, operationId)
 }
 func handlerDefinesResponseThatIsMissingInTheSpec(status int, operationId string) string {
-	return fmt.Sprintf("response %d is declared on an handler for operation %s but is not part of the spec", status, operationId)
+	return fmt.Sprintf("response %d is declared on a handler for operation %s but is not part of the spec", status, operationId)
 }
 func incompatibleRequestBodyType(operationID string, bodyType reflect.Type) string {
 	return fmt.Sprintf("request body schema of operation %q is incompatible with handler request body type %s", operationID, bodyType)
@@ -55,4 +55,7 @@ func handlerDefinesResponseThatIsMissingInSpec(status int, operationId string) s
 }
 func paramMissingImplementationInChain(in string, name string, operationId string) string {
 	return fmt.Sprintf("%s param %q exists on the spec for operation %q but not declared on any handler", in, name, operationId)
+}
+func anExcludedOperationIsImplemented(operationId string) string {
+	return fmt.Sprintf("the excluded operation %s is implemented by a handler", operationId)
 }

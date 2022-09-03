@@ -111,6 +111,11 @@ type Options struct {
 	// Content type implementation is basically an implementation of ContentType interface add with
 	// OpenAPIRouter.WithContentType to define serialization and deserialization behaviour.
 	HandleAllContentTypes Behaviour `json:"handleAllContentTypes,omitempty"`
+
+	// ExcludeOperations defined an array of operations that are defined in the spec but are excluded from the implementation.
+	// One use for this option is when your spec defines the entire API of your app but the implementation is spread to multiple microservices.
+	// With this option you can define list of operations that are to be implemented by other microservices.
+	ExcludeOperations []string
 }
 
 // OperationValidationOptions defines options to control operation validations
