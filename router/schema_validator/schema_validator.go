@@ -103,6 +103,9 @@ func (c typeSchemaValidatorContext) Validate() error {
 	if isEmptyInterface(c.goType) {
 		return nil
 	}
+	if c.goType.Kind() == reflect.Pointer {
+		return c.WithType(c.goType.Elem()).Validate()
+	}
 	// Test global schema validation properties
 	c.logger.ErrorIfNotNil(c.validateSchemaAllOf())
 	c.logger.ErrorIfNotNil(c.validateSchemaOneOf())

@@ -13,7 +13,7 @@ func TestSchemaNotValidatorPass(t *testing.T) {
 	validator := schemaValidator(*notBooleanSchema)
 	// filter bool type from all defined test types
 	var nonBoolTypes = utils.Filter[reflect.Type](types, func(t reflect.Type) bool {
-		return t != boolType
+		return t != boolType && t != reflect.PointerTo(boolType)
 	})
 	errTemplate := "expect schema with not bool schema to be compatible with %s type"
 	for _, nonBoolType := range nonBoolTypes {

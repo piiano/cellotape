@@ -35,7 +35,7 @@ func TestStringSchemaValidatorFailOnWrongType(t *testing.T) {
 	errTemplate := "expect string schema to be incompatible with %s type"
 	// filter string type from all defined test types
 	var nonStringTypes = utils.Filter(types, func(t reflect.Type) bool {
-		return t != stringType
+		return t != stringType && t != reflect.PointerTo(stringType)
 	})
 	for _, nonStringType := range nonStringTypes {
 		t.Run(nonStringType.String(), func(t *testing.T) {
@@ -53,7 +53,7 @@ func TestUUIDFormatSchemaValidator(t *testing.T) {
 	expectTypeToBeCompatible(t, validator, stringType, errTemplate, "compatible", stringType)
 	// omit the uuid compatible types from all defined test types
 	var nonUUIDCompatibleTypes = utils.Filter[reflect.Type](types, func(t reflect.Type) bool {
-		return t != uuidType && t != stringType
+		return t != uuidType && t != stringType && t != reflect.PointerTo(uuidType) && t != reflect.PointerTo(stringType)
 	})
 	for _, nonUUIDCompatibleType := range nonUUIDCompatibleTypes {
 		t.Run(nonUUIDCompatibleType.String(), func(t *testing.T) {
@@ -71,7 +71,25 @@ func TestTimeFormatSchemaValidator(t *testing.T) {
 	expectTypeToBeCompatible(t, validator, stringType, errTemplate, "compatible", stringType)
 	// omit the uuid compatible types from all defined test types
 	var nonTimeCompatibleTypes = utils.Filter(types, func(t reflect.Type) bool {
-		return t != timeType && t != stringType
+		return t != timeType && t != stringType && t != reflect.PointerTo(timeType) && t != reflect.PointerTo(stringType)
+	})
+	for _, nonTimeCompatibleType := range nonTimeCompatibleTypes {
+		t.Run(nonTimeCompatibleType.String(), func(t *testing.T) {
+			expectTypeToBeIncompatible(t, validator, nonTimeCompatibleType, errTemplate, "incompatible", nonTimeCompatibleType)
+		})
+	}
+}
+
+func TestDateTimeFormatSchemaValidator(t *testing.T) {
+	timeSchema := openapi3.NewStringSchema().WithFormat(dateTimeFormat)
+	validator := schemaValidator(*timeSchema)
+	errTemplate := "expect string schema with time format to be %s with %s type"
+	timeType := reflect.TypeOf(time.Now())
+	expectTypeToBeCompatible(t, validator, timeType, errTemplate, "compatible", timeType)
+	expectTypeToBeCompatible(t, validator, stringType, errTemplate, "compatible", stringType)
+	// omit the uuid compatible types from all defined test types
+	var nonTimeCompatibleTypes = utils.Filter(types, func(t reflect.Type) bool {
+		return t != timeType && t != stringType && t != reflect.PointerTo(timeType) && t != reflect.PointerTo(stringType)
 	})
 	for _, nonTimeCompatibleType := range nonTimeCompatibleTypes {
 		t.Run(nonTimeCompatibleType.String(), func(t *testing.T) {
@@ -87,7 +105,7 @@ func TestStringSchemaValidatorWithOtherFormats(t *testing.T) {
 	expectTypeToBeCompatible(t, validator, stringType, errTemplate, "compatible", stringType)
 	// omit the string type from all defined test types
 	var nonStringTypes = utils.Filter(types, func(t reflect.Type) bool {
-		return t != stringType
+		return t != stringType && t != reflect.PointerTo(stringType)
 	})
 	for _, nonStringType := range nonStringTypes {
 		t.Run(nonStringType.String(), func(t *testing.T) {

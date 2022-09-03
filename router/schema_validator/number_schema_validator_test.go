@@ -41,7 +41,7 @@ func TestNumberSchemaValidatorFailOnWrongType(t *testing.T) {
 	// filter all numeric types from all defined test types
 	var nonNumericTypes = utils.Filter[reflect.Type](types, func(t reflect.Type) bool {
 		_, found := utils.Find[reflect.Type](numericTypes, func(numericType reflect.Type) bool {
-			return numericType == t
+			return t == numericType || t == reflect.PointerTo(numericType)
 		})
 		return !found
 	})
@@ -69,7 +69,7 @@ func TestFloat32FormatSchemaValidatorFailOnWrongType(t *testing.T) {
 	errTemplate := "expect number schema with float format to be incompatible with %s type"
 	// omit the float32 type from all defined test types
 	var nonFloat32Types = utils.Filter[reflect.Type](types, func(t reflect.Type) bool {
-		return t != float32Type
+		return t != float32Type && t != reflect.PointerTo(float32Type)
 	})
 	for _, nonFloat32Type := range nonFloat32Types {
 		t.Run(nonFloat32Type.String(), func(t *testing.T) {
@@ -95,7 +95,7 @@ func TestDoubleFormatSchemaValidatorFailOnWrongType(t *testing.T) {
 	errTemplate := "expect number schema with double format to be incompatible with %s type"
 	// omit the float64 type from all defined test types
 	var nonFloat64Types = utils.Filter[reflect.Type](types, func(t reflect.Type) bool {
-		return t != float64Type
+		return t != float64Type && t != reflect.PointerTo(float64Type)
 	})
 	for _, nonFloat64Type := range nonFloat64Types {
 		t.Run(nonFloat64Type.String(), func(t *testing.T) {

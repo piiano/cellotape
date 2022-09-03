@@ -55,8 +55,10 @@ func allTypes(depth int) []reflect.Type {
 		sliceTypes(depth),
 		mapTypes(depth),
 		structTypes(depth),
+		pointerTypes(depth),
 	)
 }
+
 func structTypes(depth int) []reflect.Type {
 	allTypes := allTypes(depth)
 	results := make([]reflect.Type, len(allTypes))
@@ -100,6 +102,15 @@ func mapTypes(depth int) []reflect.Type {
 	return results
 }
 
+func pointerTypes(depth int) []reflect.Type {
+	allTypes := allTypes(depth)
+	results := make([]reflect.Type, len(allTypes))
+	for i, baseType := range allTypes {
+		results[i] = reflect.PointerTo(baseType)
+	}
+	return results
+}
+
 func expectTypeToBeCompatible(t *testing.T, validator TypeSchemaValidator, testType reflect.Type, errTemplate string, args ...any) {
 	if err := validator.WithType(testType).Validate(); err != nil {
 		t.Errorf(errTemplate, args...)
@@ -120,7 +131,7 @@ func TestSchemaValidatorWithOptions(t *testing.T) {
 	expectTypeToBeCompatible(t, validator, stringType, errTemplate, "compatible", stringType)
 	// omit the string type from all defined test types
 	var nonStringTypes = utils.Filter(types, func(t reflect.Type) bool {
-		return t != stringType
+		return t != stringType && t != reflect.PointerTo(stringType)
 	})
 	for _, nonStringType := range nonStringTypes {
 		t.Run(nonStringType.String(), func(t *testing.T) {

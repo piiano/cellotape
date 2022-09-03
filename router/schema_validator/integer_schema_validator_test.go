@@ -39,7 +39,7 @@ func TestIntegerSchemaValidatorFailOnWrongType(t *testing.T) {
 	// filter all int types from all defined test types
 	var nonIntTypes = utils.Filter[reflect.Type](types, func(t reflect.Type) bool {
 		_, found := utils.Find[reflect.Type](intTypes, func(intType reflect.Type) bool {
-			return intType == t
+			return t == intType || t == reflect.PointerTo(intType)
 		})
 		return !found
 	})
@@ -63,7 +63,7 @@ func TestInt64FormatSchemaValidatorFailOnWrongType(t *testing.T) {
 	errTemplate := "expect integer schema with int64 format schema to be incompatible with %s type"
 	// omit the int64 type from all defined test types
 	var nonInt64Types = utils.Filter[reflect.Type](types, func(t reflect.Type) bool {
-		return t != int64Type
+		return t != int64Type && t != reflect.PointerTo(int64Type)
 	})
 	for _, nonInt64Type := range nonInt64Types {
 		t.Run(nonInt64Type.String(), func(t *testing.T) {
@@ -85,7 +85,7 @@ func TestInt32FormatSchemaValidatorFailOnWrongType(t *testing.T) {
 	errTemplate := "expect integer schema with int32 format schema to be incompatible with %s type"
 	// omit the int32 type from all defined test types
 	var nonInt32Types = utils.Filter[reflect.Type](types, func(t reflect.Type) bool {
-		return t != int32Type
+		return t != int32Type && t != reflect.PointerTo(int32Type)
 	})
 	for _, nonInt32Type := range nonInt32Types {
 		t.Run(nonInt32Type.String(), func(t *testing.T) {

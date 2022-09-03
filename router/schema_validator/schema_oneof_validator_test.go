@@ -48,7 +48,8 @@ func TestSchemaOneOfValidatorFailOnNoMatchedType(t *testing.T) {
 	}
 	validator := schemaValidator(*notBooleanSchema)
 	invalidTypes := utils.Filter(types, func(t reflect.Type) bool {
-		return t != boolType && t != stringType && t != int64Type
+		return t != boolType && t != stringType && t != int64Type &&
+			t != reflect.PointerTo(boolType) && t != reflect.PointerTo(stringType) && t != reflect.PointerTo(int64Type)
 	})
 	errTemplate := "expect schema with oneOf property to be incompatible with %s type"
 	for _, invalidType := range invalidTypes {

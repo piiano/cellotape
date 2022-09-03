@@ -34,7 +34,7 @@ func TestBooleanSchemaValidatorFailOnWrongType(t *testing.T) {
 	errTemplate := "expect boolean schema to be incompatible with %s type"
 	// omit the bool type from all defined test types
 	var nonBoolTypes = utils.Filter(types, func(t reflect.Type) bool {
-		return t != boolType
+		return t != boolType && t != reflect.PointerTo(boolType)
 	})
 	for _, nonBoolType := range nonBoolTypes {
 		t.Run(nonBoolType.String(), func(t *testing.T) {
