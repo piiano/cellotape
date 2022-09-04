@@ -1,12 +1,14 @@
 package router
 
 import (
-	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/piiano/cellotape/router/utils"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"reflect"
 	"testing"
+
+	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/piiano/cellotape/router/utils"
 )
 
 func TestValidateContentTypes(t *testing.T) {

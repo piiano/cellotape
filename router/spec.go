@@ -2,6 +2,7 @@ package router
 
 import (
 	"github.com/getkin/kin-openapi/openapi3"
+
 	"github.com/piiano/cellotape/router/utils"
 )
 

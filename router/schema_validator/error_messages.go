@@ -2,8 +2,9 @@ package schema_validator
 
 import (
 	"fmt"
-	"github.com/getkin/kin-openapi/openapi3"
 	"reflect"
+
+	"github.com/getkin/kin-openapi/openapi3"
 )
 
 func schemaAllOfPropertyIncompatibleWithType(invalidOptions int, options int, goType reflect.Type) string {

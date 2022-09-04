@@ -2,11 +2,13 @@ package router
 
 import (
 	"fmt"
-	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/piiano/cellotape/router/schema_validator"
-	"github.com/piiano/cellotape/router/utils"
 	"reflect"
 	"strings"
+
+	"github.com/getkin/kin-openapi/openapi3"
+
+	"github.com/piiano/cellotape/router/schema_validator"
+	"github.com/piiano/cellotape/router/utils"
 )
 
 const (

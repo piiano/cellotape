@@ -1,8 +1,9 @@
 package utils
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var mapStringToInt = map[string]int{"a": 1, "b": 2, "c": 3, "d": 4}

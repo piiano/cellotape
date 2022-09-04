@@ -2,6 +2,7 @@ package rest
 
 import (
 	_ "embed"
+
 	"github.com/piiano/cellotape/examples/todo_list_app_example/services"
 	r "github.com/piiano/cellotape/router"
 )

@@ -2,9 +2,10 @@ package router
 
 import (
 	_ "embed"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestNewOpenAPIRouter(t *testing.T) {

@@ -2,10 +2,11 @@ package main
 
 import (
 	_ "embed"
-	"github.com/piiano/cellotape/examples/hello_world_example/api"
-	r "github.com/piiano/cellotape/router"
 	"log"
 	"net/http"
+
+	"github.com/piiano/cellotape/examples/hello_world_example/api"
+	r "github.com/piiano/cellotape/router"
 )
 
 //go:embed openapi.yaml

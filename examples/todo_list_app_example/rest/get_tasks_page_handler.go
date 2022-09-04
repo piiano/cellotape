@@ -1,10 +1,11 @@
 package rest
 
 import (
+	"net/http"
+
 	m "github.com/piiano/cellotape/examples/todo_list_app_example/models"
 	"github.com/piiano/cellotape/examples/todo_list_app_example/services"
 	r "github.com/piiano/cellotape/router"
-	"net/http"
 )
 
 func getTasksPageOperation(tasks services.TasksService) r.Handler {

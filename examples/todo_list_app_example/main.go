@@ -3,12 +3,13 @@ package main
 import (
 	_ "embed"
 	"fmt"
+	"log"
+	"net/http"
+
 	"github.com/piiano/cellotape/examples/todo_list_app_example/middlewares"
 	"github.com/piiano/cellotape/examples/todo_list_app_example/rest"
 	"github.com/piiano/cellotape/examples/todo_list_app_example/services"
 	"github.com/piiano/cellotape/router"
-	"log"
-	"net/http"
 )
 
 //go:embed openapi.yaml

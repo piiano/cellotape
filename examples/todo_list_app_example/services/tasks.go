@@ -2,6 +2,7 @@ package services
 
 import (
 	"github.com/google/uuid"
+
 	"github.com/piiano/cellotape/examples/todo_list_app_example/models"
 )
 

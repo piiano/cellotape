@@ -2,12 +2,13 @@ package router
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin/binding"
-	"github.com/julienschmidt/httprouter"
 	"io"
 	"log"
 	"net/http"
 	"reflect"
+
+	"github.com/gin-gonic/gin/binding"
+	"github.com/julienschmidt/httprouter"
 )
 
 const contentTypeHeader = "Content-Type"

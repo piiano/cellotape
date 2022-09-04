@@ -2,12 +2,14 @@ package router
 
 import (
 	"encoding/json"
-	"github.com/invopop/jsonschema"
-	"github.com/piiano/cellotape/router/utils"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"log"
 	"testing"
+
+	"github.com/invopop/jsonschema"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/piiano/cellotape/router/utils"
 )
 
 func TestSchema(t *testing.T) {

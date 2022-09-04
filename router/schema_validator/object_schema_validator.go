@@ -4,9 +4,10 @@ import (
 	"encoding"
 	"encoding/json"
 	"fmt"
-	"github.com/piiano/cellotape/router/utils"
 	"reflect"
 	"strings"
+
+	"github.com/piiano/cellotape/router/utils"
 )
 
 var textMarshallerType = reflect.TypeOf(new(encoding.TextMarshaler)).Elem()

@@ -1,10 +1,12 @@
 package schema_validator
 
 import (
-	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/piiano/cellotape/router/utils"
 	"reflect"
 	"testing"
+
+	"github.com/getkin/kin-openapi/openapi3"
+
+	"github.com/piiano/cellotape/router/utils"
 )
 
 func TestSchemaOneOfValidatorPass(t *testing.T) {

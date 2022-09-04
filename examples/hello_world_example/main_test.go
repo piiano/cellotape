@@ -2,19 +2,18 @@ package main
 
 import (
 	"bytes"
+	_ "embed"
 	"encoding/json"
 	"fmt"
-	"github.com/piiano/cellotape/examples/hello_world_example/api"
-	"github.com/piiano/cellotape/router"
-	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-)
 
-import (
-	_ "embed"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/piiano/cellotape/examples/hello_world_example/api"
+	"github.com/piiano/cellotape/router"
 )
 
 func TestHelloWorldExample(t *testing.T) {

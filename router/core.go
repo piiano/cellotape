@@ -1,11 +1,13 @@
 package router
 
 import (
-	"github.com/julienschmidt/httprouter"
-	"github.com/piiano/cellotape/router/utils"
 	"log"
 	"net/http"
 	"regexp"
+
+	"github.com/julienschmidt/httprouter"
+
+	"github.com/piiano/cellotape/router/utils"
 )
 
 func createMainRouterHandler(oa *openapi) (http.Handler, error) {

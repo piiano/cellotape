@@ -1,8 +1,9 @@
 package router
 
 import (
-	"github.com/piiano/cellotape/router/utils"
 	"net/http"
+
+	"github.com/piiano/cellotape/router/utils"
 )
 
 type OpenAPIRouter interface {

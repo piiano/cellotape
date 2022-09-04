@@ -3,11 +3,13 @@ package router
 import (
 	"bytes"
 	_ "embed"
+	"testing"
+
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/piiano/cellotape/router/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
+
+	"github.com/piiano/cellotape/router/utils"
 )
 
 //go:embed test_specs/openapi.yaml

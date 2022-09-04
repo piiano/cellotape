@@ -1,12 +1,14 @@
 package schema_validator
 
 import (
-	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/google/uuid"
-	"github.com/piiano/cellotape/router/utils"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/google/uuid"
+
+	"github.com/piiano/cellotape/router/utils"
 )
 
 func TestStringSchemaValidatorPassForStringType(t *testing.T) {

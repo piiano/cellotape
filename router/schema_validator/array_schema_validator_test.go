@@ -1,9 +1,10 @@
 package schema_validator
 
 import (
-	"github.com/getkin/kin-openapi/openapi3"
 	"reflect"
 	"testing"
+
+	"github.com/getkin/kin-openapi/openapi3"
 )
 
 // according to the spec the array validation properties should apply oly when the type is set to array

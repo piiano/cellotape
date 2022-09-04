@@ -2,22 +2,21 @@ package main
 
 import (
 	"bytes"
+	_ "embed"
 	"encoding/json"
 	"fmt"
-	"github.com/piiano/cellotape/examples/todo_list_app_example/middlewares"
-	"github.com/piiano/cellotape/examples/todo_list_app_example/rest"
-	"github.com/piiano/cellotape/examples/todo_list_app_example/services"
-	"github.com/piiano/cellotape/router"
-	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-)
 
-import (
-	_ "embed"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/piiano/cellotape/examples/todo_list_app_example/middlewares"
+	"github.com/piiano/cellotape/examples/todo_list_app_example/rest"
+	"github.com/piiano/cellotape/examples/todo_list_app_example/services"
+	"github.com/piiano/cellotape/router"
 )
 
 func TestGetAllTasks(t *testing.T) {

@@ -2,9 +2,10 @@ package router
 
 import (
 	"fmt"
-	"github.com/piiano/cellotape/router/utils"
 	"io"
 	"os"
+
+	"github.com/piiano/cellotape/router/utils"
 )
 
 // Behaviour defines a possible behaviour for a validation error.

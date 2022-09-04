@@ -1,9 +1,10 @@
 package router
 
 import (
-	"github.com/julienschmidt/httprouter"
 	"net/http"
 	"reflect"
+
+	"github.com/julienschmidt/httprouter"
 )
 
 // Handler described the HandlerFunc in a non parametrized way.

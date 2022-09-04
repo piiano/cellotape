@@ -2,11 +2,13 @@ package rest
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/google/uuid"
+
 	m "github.com/piiano/cellotape/examples/todo_list_app_example/models"
 	"github.com/piiano/cellotape/examples/todo_list_app_example/services"
 	r "github.com/piiano/cellotape/router"
-	"net/http"
 )
 
 func getTaskByIDOperation(tasks services.TasksService) r.Handler {

@@ -2,9 +2,10 @@ package api
 
 import (
 	"fmt"
-	r "github.com/piiano/cellotape/router"
 	"net/http"
 	"time"
+
+	r "github.com/piiano/cellotape/router"
 )
 
 var GreetOperationHandler = r.NewHandler(greetHandler)

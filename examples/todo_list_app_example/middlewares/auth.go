@@ -2,9 +2,10 @@ package middlewares
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/piiano/cellotape/examples/todo_list_app_example/models"
 	r "github.com/piiano/cellotape/router"
-	"net/http"
 )
 
 const token = "secret"

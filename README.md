@@ -4,6 +4,8 @@
 
 ![98.1%](https://badgen.net/badge/coverage/98.1%25/green?icon=github)
 
+Cellotape requires Go 1.18 or above.
+
 > **🚧 Cellotape is in Beta 🚧**
 > 
 > Please note that this is a beta version and the API may change.
@@ -109,7 +111,7 @@ Our approach using strongly typed handlers can help you create an implementation
 Add cellotape to your project using `go get`:
 
 ```bash
-go get github.com/piiano/cellotape@v1
+go get github.com/piiano/cellotape@latest
 ```
 
 Add an `openapi.yml` describing your API to your project.
@@ -153,7 +155,7 @@ paths:
                     type: string
 ```
 
-In your go code, load the spec, init the router and provide an implementation to the `greet` API:
+Add the following go code to your project to implement the OpenAPI spec:
 
 ```go
 package main
@@ -161,9 +163,10 @@ package main
 import (
 	_ "embed"
 	"fmt"
-	"github.com/piiano/cellotape/router"
 	"log"
 	"net/http"
+	
+	"github.com/piiano/cellotape/router"
 )
 
 //go:embed openapi.yaml
@@ -222,13 +225,15 @@ func greetHandler(_ router.Context, request router.Request[body, router.Nil, que
 }
 ```
 
-OpenAPI router will load the spec and init the router.
+In this code, we use `router.NewSpecFromData` to load the OpenAPI spec.
+
+We initialize the Cellotape router with `router.NewOpenAPIRouter`.
 
 Calling then to `WithOperation("greet", r.NewHandler(greetHandler))` we tell Cellotape to use `greetHandler` as the implementation of the `greet` operation.
 
 The `greetHandler` function defines typed parameters and typed response.
 
-When calling `AsHandler()`, cellotape check the request and response types with reflection and check their compatability with the provided spec.
+When calling `AsHandler()`, cellotape check the request and response types with reflection and checks their compatability with the provided spec.
 
 If we were implementing the spec incorrectly we would receive an error at this point during the server initialization.
 
@@ -238,8 +243,9 @@ Finally, we can add a simple test to verify our server is always compatible with
 package main
 
 import (
-  "github.com/stretchr/testify/assert"
   "testing"
+  
+  "github.com/stretchr/testify/assert"
 )
 
 func TestServerCompatabilityWithOpenAPI(t *testing.T) {
@@ -247,6 +253,12 @@ func TestServerCompatabilityWithOpenAPI(t *testing.T) {
   require.NoError(t, err)
 }
 ```
+
+> **Tip**
+> 
+> Try changing the spec in a way that is incompatible with the API and run the server again.
+> 
+> Cellotape is reporting to you the incompatibility and allow you to make sure your implementation and spec are in sync. 
 
 ## Loading OpenAPI spec (`router.OpenAPISpec`)
 

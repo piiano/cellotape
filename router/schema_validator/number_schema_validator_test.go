@@ -2,10 +2,12 @@ package schema_validator
 
 import (
 	"fmt"
-	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/piiano/cellotape/router/utils"
 	"reflect"
 	"testing"
+
+	"github.com/getkin/kin-openapi/openapi3"
+
+	"github.com/piiano/cellotape/router/utils"
 )
 
 func TestNumberSchemaValidatorPassForIntType(t *testing.T) {

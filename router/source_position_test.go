@@ -2,10 +2,11 @@ package router
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"path"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 const testFileName = "source_position_test.go"

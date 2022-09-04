@@ -1,9 +1,10 @@
 package schema_validator
 
 import (
-	"github.com/google/uuid"
 	"reflect"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 var timeType = reflect.TypeOf(new(time.Time)).Elem()

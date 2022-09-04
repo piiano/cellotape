@@ -1,9 +1,11 @@
 package schema_validator
 
 import (
-	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/piiano/cellotape/router/utils"
 	"reflect"
+
+	"github.com/getkin/kin-openapi/openapi3"
+
+	"github.com/piiano/cellotape/router/utils"
 )
 
 // schema types allowed by OpenAPI specification.
