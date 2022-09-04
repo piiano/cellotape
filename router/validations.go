@@ -21,9 +21,9 @@ const (
 // This takes into account various options defined and print to the logs relevant errors and warning based on the defined log level.
 func validateOpenAPIRouter(oa *openapi, flatOperations []operation) error {
 	l := oa.logger()
-	l.ErrorIfNotNil(validateContentTypes(*oa))
 	declaredOperation := utils.NewSet[string]()
 	excludeOperations := utils.NewSet(oa.options.ExcludeOperations...)
+	l.ErrorIfNotNil(validateContentTypes(*oa, excludeOperations))
 	for _, flatOp := range flatOperations {
 		if excludeOperations.Has(flatOp.id) {
 			l.Errorf(anExcludedOperationIsImplemented(flatOp.id))
@@ -55,10 +55,10 @@ func validateMustHandleAllOperations(oa *openapi, declaredOperations utils.Set[s
 }
 
 // validateContentTypes checks that all content types defined in the spec for request or responses have an implementation on the router.
-func validateContentTypes(oa openapi) error {
+func validateContentTypes(oa openapi, excludeOperations utils.Set[string]) error {
 	log := oa.logger()
 	level := utils.LogLevel(oa.options.HandleAllContentTypes)
-	specContentTypes := oa.spec.findSpecContentTypes()
+	specContentTypes := oa.spec.findSpecContentTypes(excludeOperations)
 	for _, specContentType := range specContentTypes {
 		_, exist := oa.contentTypes[specContentType]
 		if !exist {
@@ -206,7 +206,7 @@ func structKeys(structType reflect.Type, tag string) map[string]reflect.StructFi
 	if structType == nil || structType == nilType {
 		return map[string]reflect.StructField{}
 	}
-	return utils.FromEntries(utils.Map(utils.Filter(reflect.VisibleFields(structType), func(field reflect.StructField) bool {
+	return utils.FromEntries(utils.ConcatSlices(utils.Map(utils.Filter(reflect.VisibleFields(structType), func(field reflect.StructField) bool {
 		return !field.Anonymous && field.IsExported() && field.Tag.Get(tag) != ignoreFieldTagValue
 	}), func(field reflect.StructField) utils.Entry[string, reflect.StructField] {
 		name := field.Tag.Get(tag)
@@ -215,7 +215,11 @@ func structKeys(structType reflect.Type, tag string) map[string]reflect.StructFi
 			name = field.Name
 		}
 		return utils.Entry[string, reflect.StructField]{Key: name, Value: field}
-	}))
+	}), utils.ConcatSlices(utils.Map(utils.Filter(reflect.VisibleFields(structType), func(field reflect.StructField) bool {
+		return field.Anonymous && field.IsExported() && field.Tag.Get(tag) != ignoreFieldTagValue
+	}), func(field reflect.StructField) []utils.Entry[string, reflect.StructField] {
+		return utils.Entries(structKeys(field.Type, tag))
+	})...)))
 }
 
 // validateResponseTypes check that all responses declared on a handler are available on the spec with a compatible schema.

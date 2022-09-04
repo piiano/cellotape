@@ -119,3 +119,51 @@ func TestRequestBodyBinderFactoryContentTypeError(t *testing.T) {
 	}, &param)
 	require.Error(t, err)
 }
+
+type CollidingFieldsParam1 struct {
+	Value string `form:"param1"`
+}
+type CollidingFieldsParam2 struct {
+	Value string `form:"param2"`
+}
+type CollidingFieldsParams struct {
+	CollidingFieldsParam1
+	CollidingFieldsParam2
+}
+
+func TestBindingEmbeddedQueryParamsCollidingFields(t *testing.T) {
+	requestBodyBinder := queryBinderFactory[CollidingFieldsParams](reflect.TypeOf(CollidingFieldsParams{}))
+	requestURL, err := url.Parse("http://http:0.0.0.0:8080/path?param1=foo&param2=bar")
+	require.NoError(t, err)
+	var param CollidingFieldsParams
+	err = requestBodyBinder(&http.Request{
+		URL: requestURL,
+	}, &param)
+	require.NoError(t, err)
+	require.Equal(t, "foo", param.CollidingFieldsParam1.Value)
+	require.Equal(t, "bar", param.CollidingFieldsParam2.Value)
+}
+
+type CollidingParamString struct {
+	Value string `form:"param1"`
+}
+type CollidingParamInt struct {
+	Value int `form:"param1"`
+}
+type CollidingParams struct {
+	CollidingParamString
+	CollidingParamInt
+}
+
+func TestBindingEmbeddedQueryParamsCollidingParams(t *testing.T) {
+	requestBodyBinder := queryBinderFactory[CollidingParams](reflect.TypeOf(CollidingParams{}))
+	requestURL, err := url.Parse("http://http:0.0.0.0:8080/path?param1=42")
+	require.NoError(t, err)
+	var param CollidingParams
+	err = requestBodyBinder(&http.Request{
+		URL: requestURL,
+	}, &param)
+	require.NoError(t, err)
+	require.Equal(t, "42", param.CollidingParamString.Value)
+	require.Equal(t, 42, param.CollidingParamInt.Value)
+}

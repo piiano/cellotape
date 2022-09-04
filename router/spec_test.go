@@ -4,6 +4,7 @@ import (
 	"bytes"
 	_ "embed"
 	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/piiano/cellotape/router/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -76,6 +77,6 @@ func TestFindSpecContentTypes(t *testing.T) {
 		},
 	})
 
-	contentTypes := spec.findSpecContentTypes()
+	contentTypes := spec.findSpecContentTypes(utils.NewSet[string]())
 	require.ElementsMatch(t, []string{"application/json", "text/plain"}, contentTypes)
 }

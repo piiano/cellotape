@@ -2,6 +2,7 @@ package router
 
 import (
 	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/piiano/cellotape/router/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"reflect"
@@ -12,7 +13,7 @@ func TestValidateContentTypes(t *testing.T) {
 	err := validateContentTypes(openapi{
 		options:      DefaultOptions(),
 		contentTypes: ContentTypes{},
-	})
+	}, utils.NewSet[string]())
 	require.NoError(t, err)
 }
 
@@ -31,7 +32,27 @@ func TestValidateContentTypesWithJSONContentType(t *testing.T) {
 				},
 			},
 		}),
-	})
+	}, utils.NewSet[string]())
+	require.NoError(t, err)
+}
+
+func TestValidateContentTypesWithExcludedOperation(t *testing.T) {
+	err := validateContentTypes(openapi{
+		options:      DefaultOptions(),
+		contentTypes: ContentTypes{},
+		spec: OpenAPISpec(openapi3.T{
+			Paths: openapi3.Paths{
+				"/": &openapi3.PathItem{
+					Get: &openapi3.Operation{
+						OperationID: "foo",
+						RequestBody: &openapi3.RequestBodyRef{
+							Value: openapi3.NewRequestBody().WithJSONSchema(openapi3.NewSchema()),
+						},
+					},
+				},
+			},
+		}),
+	}, utils.NewSet[string]("foo"))
 	require.NoError(t, err)
 }
 
@@ -50,7 +71,7 @@ func TestValidateContentTypesErrorWithMissingJSONContentType(t *testing.T) {
 				},
 			},
 		}),
-	})
+	}, utils.NewSet[string]())
 	require.Error(t, err)
 }
 
@@ -263,6 +284,34 @@ func TestValidateQueryParamsType(t *testing.T) {
 			Value: openapi3.NewQueryParameter("foo").WithSchema(openapi3.NewStringSchema()),
 		},
 	}, "")
+	assert.Equal(t, 0, counter.Errors)
+	assert.Equal(t, 0, counter.Warnings)
+}
+
+func TestValidateCollidingEmbeddedQueryQueryParamsType(t *testing.T) {
+	counter := validateQueryParamsType(openapi{}, PropagateError, handler{}, openapi3.Parameters{}, "")
+	assert.Equal(t, 0, counter.Errors)
+	assert.Equal(t, 0, counter.Warnings)
+	counter = validateHandleAllQueryParams(openapi{
+		options: DefaultOptions(),
+	}, PropagateError, operation{
+		handler: handler{
+			request: requestTypes{
+				queryParams: reflect.TypeOf(CollidingFieldsParams{}),
+			},
+		},
+	}, SpecOperation{
+		Operation: &openapi3.Operation{
+			Parameters: openapi3.Parameters{
+				&openapi3.ParameterRef{
+					Value: openapi3.NewQueryParameter("param1").WithSchema(openapi3.NewStringSchema()),
+				},
+				&openapi3.ParameterRef{
+					Value: openapi3.NewQueryParameter("param2").WithSchema(openapi3.NewStringSchema()),
+				},
+			},
+		},
+	})
 	assert.Equal(t, 0, counter.Errors)
 	assert.Equal(t, 0, counter.Warnings)
 }
