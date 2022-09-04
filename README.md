@@ -8,7 +8,7 @@
 > 
 > Please note that this is a beta version and the API may change.
 
-A type safe approach to HTTP routing with OpenAPI in Golang.
+A type safe approach to HTTP routing with OpenAPI in Go.
 We aim to simplify the way REST APIs are developed with OpenAPI.
 This project allow you to do it in a **design-first** approach.
 

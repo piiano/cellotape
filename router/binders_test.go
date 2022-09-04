@@ -14,7 +14,7 @@ import (
 )
 
 func TestResponseContentType(t *testing.T) {
-	_, err := responseContentType("no-such-content-type", http.Header{}, DefaultContentTypes(), JSONContentType{})
+	_, err := responseContentType("no-such-content-type", DefaultContentTypes(), JSONContentType{})
 	require.ErrorIs(t, err, UnsupportedResponseContentTypeErr)
 }
 

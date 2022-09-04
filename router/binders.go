@@ -10,8 +10,7 @@ import (
 	"reflect"
 )
 
-const ContentTypeHeader = "Content-Type"
-const AcceptHeader = "Accept"
+const contentTypeHeader = "Content-Type"
 
 // A request binder takes a Context with its untyped Context.Request and Context.Params and produce a typed Request.
 type requestBinder[B, P, Q any] func(ctx Context) (Request[B, P, Q], error)
@@ -101,7 +100,7 @@ func responseBinderFactory[R any](responses handlerResponses, contentTypes Conte
 		if ctx.RawResponse.Status != 0 {
 			return *ctx.RawResponse, nil
 		}
-		contentType, err := responseContentType(r.contentType, ctx.Request.Header, contentTypes, JSONContentType{})
+		contentType, err := responseContentType(r.contentType, contentTypes, JSONContentType{})
 		if err != nil {
 			log.Printf("[WARNING] %s. fallback to %s\n", err, contentType.Mime())
 		}
@@ -118,7 +117,7 @@ func responseBinderFactory[R any](responses handlerResponses, contentTypes Conte
 			if err != nil {
 				return RawResponse{}, err
 			}
-			r.headers.Set(ContentTypeHeader, contentType.Mime())
+			r.headers.Set(contentTypeHeader, contentType.Mime())
 		}
 		bindResponseHeaders(ctx.Writer, r)
 		ctx.Writer.WriteHeader(r.status)
@@ -143,7 +142,7 @@ func bindResponseHeaders[R any](writer http.ResponseWriter, r Response[R]) {
 // requestContentType extracts the ContentType implementation to use base on the "Content-Type" request header.
 // If "Content-Type" request header is missing fallback to the provided default ContentType.
 func requestContentType(r *http.Request, supportedTypes ContentTypes, defaultContentType ContentType) (ContentType, error) {
-	mimeType := r.Header.Get(ContentTypeHeader)
+	mimeType := r.Header.Get(contentTypeHeader)
 	if mimeType == "*/*" || mimeType == "" {
 		return defaultContentType, nil
 	}
@@ -153,11 +152,8 @@ func requestContentType(r *http.Request, supportedTypes ContentTypes, defaultCon
 	return nil, fmt.Errorf("%w: %q", UnsupportedRequestContentTypeErr, mimeType)
 }
 
-// responseContentType extracts the ContentType implementation to use base on the "Accept" request header.
-// If the "Accept" header is missing fallback to "Content-Type" request header.
-// If "Content-Type" request header is also missing fallback to the provided default ContentType.
-func responseContentType(responseContentType string, requestHeaders http.Header, supportedTypes ContentTypes, defaultContentType ContentType) (ContentType, error) {
-	responseContentType = bestResponseContentType(responseContentType, requestHeaders)
+// responseContentType extracts the ContentType implementation to use base on the response content type, supported content types and default fallback.
+func responseContentType(responseContentType string, supportedTypes ContentTypes, defaultContentType ContentType) (ContentType, error) {
 	if responseContentType == "" {
 		return defaultContentType, nil
 	}
@@ -165,17 +161,4 @@ func responseContentType(responseContentType string, requestHeaders http.Header,
 		return contentTypes, nil
 	}
 	return defaultContentType, fmt.Errorf("%w: %s", UnsupportedResponseContentTypeErr, responseContentType)
-}
-
-// bestResponseContentType extracts the ContentType implementation to use base on the "Accept" request header.
-// If the "Accept" header is missing fallback to "Content-Type" request header.
-// If "Content-Type" request header is also missing fallback to the provided default ContentType.
-func bestResponseContentType(responseContentType string, requestHeaders http.Header) string {
-	mimeTypes := []string{responseContentType, requestHeaders.Get(AcceptHeader), requestHeaders.Get(ContentTypeHeader)}
-	for _, mimeType := range mimeTypes {
-		if mimeType != "" && mimeType != "*/*" {
-			return mimeType
-		}
-	}
-	return ""
 }
