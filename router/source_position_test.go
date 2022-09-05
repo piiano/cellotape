@@ -15,12 +15,12 @@ func TestFunctionSourcePosition(t *testing.T) {
 	testFuncPos := functionSourcePosition(TestFunctionSourcePosition)
 	assert.True(t, testFuncPos.ok)
 	assert.Equal(t, testFileName, path.Base(testFuncPos.file))
-	assert.Equal(t, 13, testFuncPos.line)
+	assert.Equal(t, 14, testFuncPos.line)
 
 	anonymousFuncPos := functionSourcePosition(func() {})
 	assert.True(t, anonymousFuncPos.ok)
 	assert.Equal(t, testFileName, path.Base(anonymousFuncPos.file))
-	assert.Equal(t, 19, anonymousFuncPos.line)
+	assert.Equal(t, 20, anonymousFuncPos.line)
 
 	funcPosStr := anonymousFuncPos.String()
 	assert.True(t, strings.HasSuffix(funcPosStr, fmt.Sprintf(":%d", anonymousFuncPos.line)))
