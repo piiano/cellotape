@@ -21,6 +21,19 @@ const (
 	InQueryParams
 )
 
+func (in In) String() string {
+	inString := ""
+	switch in {
+	case InBody:
+		inString = "body"
+	case InPathParams:
+		inString = "path param"
+	case InQueryParams:
+		inString = "query param"
+	}
+	return inString
+}
+
 // BadRequestErr is the error returned when there is an error binding the request.
 // You can handle this request using an ErrorHandler middleware to return a custom HTTP response.
 type BadRequestErr struct {
@@ -41,16 +54,7 @@ func newBadRequestErr(ctx Context, err error, in In) BadRequestErr {
 }
 
 func (e BadRequestErr) Error() string {
-	var in string
-	switch e.In {
-	case InBody:
-		in = "body"
-	case InPathParams:
-		in = "path param"
-	case InQueryParams:
-		in = "query param"
-	}
-	return fmt.Sprintf("invalid request %s. %s", in, e.Err)
+	return fmt.Sprintf("invalid request %s. %s", e.In, e.Err)
 }
 
 func (e BadRequestErr) Is(err error) bool {
