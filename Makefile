@@ -1,7 +1,7 @@
 
 COVERAGE_PROFILE_FILE := profile.cov
 COVERAGE_HTML_FILE    := coverage.html
-SHELL := bash -euo pipefail -c
+SHELL := bash -eo pipefail -c
 
 
 $(COVERAGE_PROFILE_FILE): $(shell find router examples)
