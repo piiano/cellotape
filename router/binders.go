@@ -9,6 +9,8 @@ import (
 
 	"github.com/gin-gonic/gin/binding"
 	"github.com/julienschmidt/httprouter"
+
+	"github.com/piiano/cellotape/router/utils"
 )
 
 const contentTypeHeader = "Content-Type"
@@ -87,9 +89,26 @@ func queryBinderFactory[Q any](queryParamsType reflect.Type) func(*http.Request,
 	if queryParamsType == nilType {
 		return func(*http.Request, *Q) error { return nil }
 	}
+	paramFields := structKeys(queryParamsType, "form")
+	arrayParams := utils.NewSet[string]()
+	for param, paramType := range paramFields {
+		if paramType.Type.Kind() == reflect.Slice ||
+			paramType.Type.Kind() == reflect.Array ||
+			(paramType.Type.Kind() == reflect.Pointer &&
+				(paramType.Type.Elem().Kind() == reflect.Slice ||
+					paramType.Type.Elem().Kind() == reflect.Array)) {
+			arrayParams.Add(param)
+		}
+	}
+
 	return func(r *http.Request, queryParams *Q) error {
 		if err := binding.Query.Bind(r, queryParams); err != nil {
 			return err
+		}
+		for param, values := range r.URL.Query() {
+			if len(values) > 1 && !arrayParams.Has(param) {
+				return fmt.Errorf("multiple values received for query param %s", param)
+			}
 		}
 		return nil
 	}

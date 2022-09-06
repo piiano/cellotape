@@ -42,6 +42,33 @@ func TestQueryBinderFactory(t *testing.T) {
 	assert.Equal(t, StructType{Foo: 42}, params)
 }
 
+type StructWithArrayType struct {
+	Foo []int
+}
+
+func TestQueryBinderFactoryWithArrayType(t *testing.T) {
+	queryBinder := queryBinderFactory[StructWithArrayType](reflect.TypeOf(StructWithArrayType{}))
+	var params StructWithArrayType
+	requestURL, err := url.Parse("http:0.0.0.0:90/abc?Foo=42&Foo=6&Foo=7")
+	require.NoError(t, err)
+	err = queryBinder(&http.Request{
+		URL: requestURL,
+	}, &params)
+	require.NoError(t, err)
+	assert.Equal(t, StructWithArrayType{Foo: []int{42, 6, 7}}, params)
+}
+
+func TestQueryBinderFactoryMultipleParamToNonArrayError(t *testing.T) {
+	queryBinder := queryBinderFactory[StructType](reflect.TypeOf(StructType{}))
+	var params StructType
+	requestURL, err := url.Parse("http:0.0.0.0:90/abc?Foo=42&Foo=6&Foo=7")
+	require.NoError(t, err)
+	err = queryBinder(&http.Request{
+		URL: requestURL,
+	}, &params)
+	require.Error(t, err)
+}
+
 func TestQueryBinderFactoryError(t *testing.T) {
 	queryBinder := queryBinderFactory[StructType](reflect.TypeOf(StructType{}))
 	var params StructType
