@@ -90,15 +90,16 @@ func queryBinderFactory[Q any](queryParamsType reflect.Type) func(*http.Request,
 		return func(*http.Request, *Q) error { return nil }
 	}
 	paramFields := structKeys(queryParamsType, "form")
-	arrayParams := utils.NewSet[string]()
+	nonArrayParams := utils.NewSet[string]()
 	for param, paramType := range paramFields {
 		if paramType.Type.Kind() == reflect.Slice ||
 			paramType.Type.Kind() == reflect.Array ||
 			(paramType.Type.Kind() == reflect.Pointer &&
 				(paramType.Type.Elem().Kind() == reflect.Slice ||
 					paramType.Type.Elem().Kind() == reflect.Array)) {
-			arrayParams.Add(param)
+			continue
 		}
+		nonArrayParams.Add(param)
 	}
 
 	return func(r *http.Request, queryParams *Q) error {
@@ -106,7 +107,7 @@ func queryBinderFactory[Q any](queryParamsType reflect.Type) func(*http.Request,
 			return err
 		}
 		for param, values := range r.URL.Query() {
-			if len(values) > 1 && !arrayParams.Has(param) {
+			if nonArrayParams.Has(param) && len(values) > 1 {
 				return fmt.Errorf("multiple values received for query param %s", param)
 			}
 		}
