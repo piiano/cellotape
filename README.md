@@ -1,4 +1,4 @@
-![Cellotape mascot](./Cellotape-gopher.png)
+![Cellotape mascot](./cellotape-gopher.png)
 
 # Cellotape - Beta - OpenAPI Router for Go
 
