@@ -683,8 +683,8 @@ for a more realistic use.
 - [ ] Improve the documentation with more usage details.
 - [ ] Runtime validation for request body & parameters based on the OpenAPI spec.
   Considered multiple options, including:
-  - https://github.com/Go-playground/validator
-  - https://github.com/xeipuuv/Gojsonschema
+  - https://github.com/go-playground/validator
+  - https://github.com/xeipuuv/gojsonschema
 - [ ] Add support for serialization of OpenAPI parameters `style` and `explode`, 
   and the `allowReserved` property.
 - [ ] Add support for OpenAPI Header parameters.
