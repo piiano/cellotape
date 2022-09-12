@@ -1,4 +1,4 @@
-![Cellotape mascot](./Cellotape-Gopher.png)
+![Cellotape mascot](./Cellotape-gopher.png)
 
 # Cellotape - Beta - OpenAPI Router for Go
 
@@ -25,8 +25,8 @@ in your code. The handler signatures are validated with your OpenAPI spec to ver
 - [Loading an OpenAPI spec (`router.OpenAPISpec`)](#loading-openapi-spec-routeropenapispec)
   - [Using FS embedding (recommended)](#using-fs-embedding-recommended)
   - [Read file at runtime](#read-file-at-runtime)
-  - [Define programmatically in Go](#define-programmatically-in-Go)
-- [Initialize new HTTP router (`router.OpenAPIRouter`)](#init-new-http-router-routeropenapirouter)
+  - [Define programmatically in Go](#define-programmatically-in-go)
+- [Initialize new HTTP router (`router.OpenAPIRouter`)](#initialize-new-http-router-routeropenapirouter)
   - [Create from spec with default options](#create-from-spec-with-default-options)
   - [Create from spec with custom options](#create-from-spec-with-custom-options)
 - [Add operation implementation - `router.OpenAPIRouter.WithOperation`](#add-operation-implementation---routeropenapirouterwithoperation)
@@ -74,15 +74,15 @@ validated at runtime with an OpenAPI specification.
   - Path parameters
   - Query parameters
   - Responses
-- Support for middleware chain and group mechanisms that enable middleware to 
-  apply specific operations or specific groups.
+- Support for middleware chain and group mechanisms so that middleware can be 
+  applied to operations or groups.
 - Compatibility with the `HTTP.Handler` interface for the router and middleware 
   to enable easy integration of the router into any popular framework.
 - Support for custom content types to align with content types defined in the spec.
   This can be done by implementing the `router.ContentType` interface.
 - Support for customization of validation behavior and other configuration using
   `router.Options`.
-  See the documentation on the [`router.Options`](./router/options.Go) struct 
+  See the documentation on the [`router.Options`](./router/options.go) struct 
   for details of the options.
 
 ### What this project isn't doing
@@ -91,12 +91,13 @@ validated at runtime with an OpenAPI specification.
   Code generators have their issues, such as minimal control over the generated 
   code and the overwriting of manual edits whenever the spec changes.
 
-- It's not using comments on your code. Some approaches might suggest you 
-  comment code in a way that produces an OpenAPI spec that can be compared to the 
-  spec.
-  The issue with this approach is that the spec, code, and comments can get out 
-  of sync too easily. Primarily when HTTP handlers in Go provide an opaque 
-  interface with no type information.
+- It's not using comments in your code. 
+  With this approach, you use comments in the code to generate an OpenAPI spec 
+  (a code-first approach). Then, to implement a design-first approach, you compare
+  the generated spec to the desired spec.
+  The issue with this approach is that the specification, code, and comments can 
+  get out of sync too easily. Particularly when HTTP handlers in Go provide an 
+  opaque interface with no type information.
 
 Cellotape use of strongly typed handlers can help create an implementation for 
 your API that never gets out of sync and is easily maintained.
@@ -106,7 +107,7 @@ your API that never gets out of sync and is easily maintained.
 Add Cellotape to your project using `go get`:
 
 ```bash
-go get github.com/piiano/Cellotape@latest
+go get github.com/piiano/cellotape@latest
 ```
 
 Add an `openapi.yml` describing your API to your project. For example, this spec 
@@ -222,7 +223,7 @@ func greetHandler(_ router.Context, request router.Request[body, router.Nil, que
 
 This code uses `router.NewSpecFromData` to load the OpenAPI spec.
 
-You initialize the Cellotape router with `router.NewOpenAPIRouter`. 
+You initialize the Cellotape router with `router.NewOpenAPIRouter`.
 
 Then, calling `WithOperation("greet", r.NewHandler(greetHandler))` tells Cellotape 
 to use `greetHandler` to implement the `greet` operation.
