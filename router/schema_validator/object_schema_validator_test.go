@@ -62,7 +62,13 @@ func TestObjectSchemaValidatorWithSimpleStructAdditionalProperties(t *testing.T)
 	expectTypeToBeCompatible(t, validator, simpleStructType, errTemplate, "compatible", simpleStructType)
 
 	expectTypeToBeCompatible(t, validator.WithSchema(*simpleStructSchema.WithAnyAdditionalProperties()),
-		simpleStructType, errTemplate, "expectTypeToBeCompatible", simpleStructType)
+		simpleStructType, errTemplate, "compatible", simpleStructType)
+
+	explicitWithoutAdditionalProperties := *simpleStructSchema
+	var f = false
+	explicitWithoutAdditionalProperties.AdditionalPropertiesAllowed = &f
+	expectTypeToBeIncompatible(t, validator.WithSchema(explicitWithoutAdditionalProperties),
+		simpleStructType, errTemplate, "incompatible", simpleStructType)
 
 	expectTypeToBeIncompatible(t, validator.WithSchema(*simpleStructSchema.
 		WithAdditionalProperties(openapi3.NewStringSchema())),
