@@ -23,11 +23,15 @@ func (c typeSchemaValidatorContext) validateObjectSchema() error {
 		if c.schema.Properties != nil {
 			// TODO: add support for receiving in options how to extract type keys (to support schema for non-json serializers)
 			fields := structJsonFields(c.goType)
-			//c.schema.AdditionalPropertiesAllowed
 			for name, field := range fields {
 				property, ok := c.schema.Properties[name]
 				if !ok {
-					if c.schema.AdditionalPropertiesAllowed == nil || !*c.schema.AdditionalPropertiesAllowed {
+					if c.schema.AdditionalProperties == nil &&
+						(c.schema.AdditionalPropertiesAllowed == nil || *c.schema.AdditionalPropertiesAllowed) {
+						continue
+					}
+
+					if c.schema.AdditionalPropertiesAllowed != nil && !*c.schema.AdditionalPropertiesAllowed {
 						l.Logf(c.level, fmt.Sprintf("field %q (%q) with type %s not found in object schema properties", field.Name, name, field.Type))
 						continue
 					}
