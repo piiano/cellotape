@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/getkin/kin-openapi/openapi3"
+
 	"github.com/piiano/cellotape/router/utils"
 )
 
@@ -18,13 +20,17 @@ func (c typeSchemaValidatorContext) validateObjectSchema() error {
 	if c.schema.Type != objectSchemaType {
 		return nil
 	}
+	properties := c.schema.Properties
+	if properties == nil {
+		properties = make(map[string]*openapi3.SchemaRef, 0)
+	}
 	switch c.goType.Kind() {
 	case reflect.Struct:
-		if c.schema.Properties != nil {
+		if properties != nil {
 			// TODO: add support for receiving in options how to extract type keys (to support schema for non-json serializers)
 			fields := structJsonFields(c.goType)
 			for name, field := range fields {
-				property, ok := c.schema.Properties[name]
+				property, ok := properties[name]
 				if !ok {
 					if c.schema.AdditionalProperties == nil &&
 						(c.schema.AdditionalPropertiesAllowed == nil || *c.schema.AdditionalPropertiesAllowed) {
@@ -46,7 +52,7 @@ func (c typeSchemaValidatorContext) validateObjectSchema() error {
 					l.Logf(c.level, schemaPropertyIsIncompatibleWithFieldType(name, field.Name, field.Type))
 				}
 			}
-			for name, property := range c.schema.Properties {
+			for name, property := range properties {
 				field, ok := fields[name]
 				if !ok {
 					l.Logf(c.level, schemaPropertyIsNotMappedToFieldInType(name, c.goType))
@@ -69,8 +75,8 @@ func (c typeSchemaValidatorContext) validateObjectSchema() error {
 				l.Logf(c.level, "object schema with map type must have a string compatible type. %s key is not string compatible", keyType)
 			}
 		}
-		if c.schema.Properties != nil {
-			for name, property := range c.schema.Properties {
+		if properties != nil {
+			for name, property := range properties {
 				// check if property name is compatible with the map key type
 				keyName, _ := json.Marshal(name)
 				if err := json.Unmarshal(keyName, reflect.New(keyType).Interface()); err != nil {
