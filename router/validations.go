@@ -155,14 +155,18 @@ func validateRequestBodyType(oa openapi, behaviour Behaviour, handler handler, s
 	if bodyType == nilType {
 		return utils.LogCounters{}
 	}
-	validator := schema_validator.NewTypeSchemaValidator(l, level, bodyType, openapi3.Schema{})
 	if specBody == nil {
 		l.Logf(level, handlerDefinesRequestBodyWhenNoRequestBodyInSpec(operationID))
 		return l.Counters()
 	}
-	for _, mediaType := range specBody.Value.Content {
-		// TODO: allow different media types to fine tune behaviour of validation (for example use non json tags during struct validation for non json mime type)
-		if err := validator.WithSchema(*mediaType.Schema.Value).Validate(); err != nil {
+	for mimeType, mediaType := range specBody.Value.Content {
+		contentType, ok := oa.contentTypes[mimeType]
+		if !ok {
+			// handled by validateContentTypes
+			continue
+		}
+
+		if err := contentType.ValidateTypeSchema(l.NewCounter(), level, bodyType, *mediaType.Schema.Value); err != nil {
 			l.Logf(level, incompatibleRequestBodyType(operationID, bodyType))
 		}
 	}
@@ -229,20 +233,25 @@ func structKeys(structType reflect.Type, tag string) map[string]reflect.StructFi
 func validateResponseTypes(oa openapi, behaviour Behaviour, handler handler, specOperation *openapi3.Operation, operationId string) utils.LogCounters {
 	l := oa.logger()
 	level := utils.LogLevel(behaviour)
-	validator := schema_validator.NewTypeSchemaValidator(l, level, nilType, openapi3.Schema{})
 	for status, response := range handler.responses {
 		specResponse := specOperation.Responses.Get(status)
 		if specResponse == nil {
 			l.Logf(level, handlerDefinesResponseThatIsMissingInTheSpec(status, operationId))
 			continue
 		}
-		responseValidator := validator.WithType(response.responseType)
-		for _, mediaType := range specResponse.Value.Content {
-			// TODO: allow different media types to fine tune behaviour of validation (for example use non json tags during struct validation for non json mime type)
-			if err := responseValidator.WithSchema(*mediaType.Schema.Value).Validate(); err != nil {
+
+		for mimeType, mediaType := range specResponse.Value.Content {
+			contentType, ok := oa.contentTypes[mimeType]
+			if !ok {
+				// handled by validateContentTypes
+				continue
+			}
+
+			if err := contentType.ValidateTypeSchema(l.NewCounter(), level, response.responseType, *mediaType.Schema.Value); err != nil {
 				l.Logf(level, incompatibleResponseType(operationId, status, response.responseType))
 			}
 		}
+		return l.Counters()
 	}
 	return l.Counters()
 }
