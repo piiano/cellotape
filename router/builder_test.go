@@ -2,10 +2,14 @@ package router
 
 import (
 	_ "embed"
+	"reflect"
 	"testing"
 
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/piiano/cellotape/router/utils"
 )
 
 func TestNewOpenAPIRouter(t *testing.T) {
@@ -25,6 +29,9 @@ type nilContentType struct{}
 func (m nilContentType) Mime() string                 { return "nil" }
 func (m nilContentType) Encode(_ any) ([]byte, error) { return nil, nil }
 func (m nilContentType) Decode(_ []byte, _ any) error { return nil }
+func (m nilContentType) ValidateTypeSchema(utils.Logger, utils.LogLevel, reflect.Type, openapi3.Schema) error {
+	return nil
+}
 
 func TestOpenAPIRouterWithContentType(t *testing.T) {
 	spec := NewSpec()

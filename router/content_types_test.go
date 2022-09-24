@@ -1,10 +1,14 @@
 package router
 
 import (
+	"reflect"
 	"testing"
 
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/piiano/cellotape/router/utils"
 )
 
 func TestContentTypeMime(t *testing.T) {
@@ -81,6 +85,44 @@ func TestOctetStreamContentTypeError(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestOctetStreamContentTypeSchemaCompatability(t *testing.T) {
+	l := utils.NewInMemoryLogger()
+	err := OctetStreamContentType{}.ValidateTypeSchema(
+		l, utils.Error,
+		reflect.TypeOf([]byte{}),
+		*openapi3.NewStringSchema().WithFormat("binary"))
+	require.NoError(t, err)
+	assert.Equal(t, 0, l.Counters().Errors)
+	assert.Equal(t, 0, l.Counters().Warnings)
+
+	l = utils.NewInMemoryLogger()
+	err = OctetStreamContentType{}.ValidateTypeSchema(
+		l, utils.Error,
+		reflect.TypeOf(""),
+		*openapi3.NewStringSchema().WithFormat("binary"))
+	require.Error(t, err)
+	assert.Equal(t, 1, l.Counters().Errors)
+	assert.Equal(t, 0, l.Counters().Warnings)
+
+	l = utils.NewInMemoryLogger()
+	err = OctetStreamContentType{}.ValidateTypeSchema(
+		l, utils.Error,
+		reflect.TypeOf([]byte{}),
+		*openapi3.NewStringSchema().WithFormat("base64"))
+	require.Error(t, err)
+	assert.Equal(t, 1, l.Counters().Errors)
+	assert.Equal(t, 0, l.Counters().Warnings)
+
+	l = utils.NewInMemoryLogger()
+	err = OctetStreamContentType{}.ValidateTypeSchema(
+		l, utils.Error,
+		reflect.TypeOf([]byte{}),
+		*openapi3.NewIntegerSchema())
+	require.Error(t, err)
+	assert.Equal(t, 1, l.Counters().Errors)
+	assert.Equal(t, 0, l.Counters().Warnings)
+}
+
 func TestPlainTextContentTypeString(t *testing.T) {
 	encodedString, err := PlainTextContentType{}.Encode("foo")
 	require.NoError(t, err)
@@ -97,4 +139,42 @@ func TestPlainTextContentTypeError(t *testing.T) {
 	var value int
 	err = PlainTextContentType{}.Decode([]byte("foo"), &value)
 	require.Error(t, err)
+}
+
+func TestPlainTextContentTypeSchemaCompatability(t *testing.T) {
+	l := utils.NewInMemoryLogger()
+	err := PlainTextContentType{}.ValidateTypeSchema(
+		l, utils.Error,
+		reflect.TypeOf(""),
+		*openapi3.NewStringSchema())
+	require.NoError(t, err)
+	assert.Equal(t, 0, l.Counters().Errors)
+	assert.Equal(t, 0, l.Counters().Warnings)
+
+	l = utils.NewInMemoryLogger()
+	err = PlainTextContentType{}.ValidateTypeSchema(
+		l, utils.Error,
+		reflect.PointerTo(reflect.TypeOf("")),
+		*openapi3.NewStringSchema())
+	require.NoError(t, err)
+	assert.Equal(t, 0, l.Counters().Errors)
+	assert.Equal(t, 0, l.Counters().Warnings)
+
+	l = utils.NewInMemoryLogger()
+	err = PlainTextContentType{}.ValidateTypeSchema(
+		l, utils.Error,
+		reflect.TypeOf([]byte{}),
+		*openapi3.NewStringSchema())
+	require.Error(t, err)
+	assert.Equal(t, 1, l.Counters().Errors)
+	assert.Equal(t, 0, l.Counters().Warnings)
+
+	l = utils.NewInMemoryLogger()
+	err = PlainTextContentType{}.ValidateTypeSchema(
+		l, utils.Error,
+		reflect.TypeOf(""),
+		*openapi3.NewIntegerSchema())
+	require.Error(t, err)
+	assert.Equal(t, 1, l.Counters().Errors)
+	assert.Equal(t, 0, l.Counters().Warnings)
 }
