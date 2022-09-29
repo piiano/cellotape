@@ -37,7 +37,7 @@ func createMainRouterHandler(oa *openapi) (http.Handler, error) {
 	return router, nil
 }
 
-func (oa openapi) logger() utils.Logger {
+func (oa *openapi) logger() utils.Logger {
 	return utils.NewLoggerWithLevel(oa.options.LogOutput, oa.options.LogLevel)
 }
 

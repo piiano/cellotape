@@ -47,8 +47,11 @@ func TestOpenAPIRouterWithContentType(t *testing.T) {
 
 }
 
-//func TestNewOpenAPIRouterWithOptions(t *testing.T) {
-//	spec := NewSpec()
-//	oa := NewOpenAPIRouterWithOptions(spec, Options{})
-//	assert.NotNil(t, oa)
-//}
+func TestNewOpenAPIRouterReturnSpec(t *testing.T) {
+	spec := NewSpec()
+	oa := NewOpenAPIRouter(spec)
+	require.NotNil(t, oa)
+
+	routerSpec := oa.Spec()
+	assert.Equal(t, spec, routerSpec)
+}
