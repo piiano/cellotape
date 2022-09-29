@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"runtime/debug"
 
 	"github.com/julienschmidt/httprouter"
 
@@ -17,15 +18,21 @@ func createMainRouterHandler(oa *openapi) (http.Handler, error) {
 	}
 	router := httprouter.New()
 	router.HandleMethodNotAllowed = false
+	////router.PanicHandler = nil
+	//router.PanicHandler = func(writer http.ResponseWriter, request *http.Request, i interface{}) {
+	//	log.Println("http-router handler")
+	//}
 	logger := oa.logger()
 	pathParamsMatcher := regexp.MustCompile(`\{([^/}]*)}`)
+
+	specOperations := oa.spec.Operations()
 	for _, flatOp := range flatOperations {
-		specOp, _ := oa.spec.findSpecOperationByID(flatOp.id)
-		path := pathParamsMatcher.ReplaceAllString(specOp.path, ":$1")
+		specOp := specOperations[flatOp.id]
+		path := pathParamsMatcher.ReplaceAllString(specOp.Path, ":$1")
 		chainHead := chainHandlers(*oa, append(flatOp.handlers, flatOp.handler)...)
 		httpRouterHandler := asHttpRouterHandler(*oa, specOp, chainHead)
-		router.Handle(specOp.method, path, httpRouterHandler)
-		logger.Infof("register handler for operation %q - %s %s", flatOp.id, specOp.method, specOp.path)
+		router.Handle(specOp.Method, path, httpRouterHandler)
+		logger.Infof("register handler for operation %q - %s %s", flatOp.id, specOp.Method, specOp.Path)
 	}
 	return router, nil
 }
@@ -81,5 +88,6 @@ func defaultRecoverBehaviour(writer http.ResponseWriter) {
 	if r := recover(); r != nil {
 		writer.WriteHeader(500)
 		log.Printf("[Error] recovered from panic. %v. respond with status 500\n", r)
+		debug.PrintStack()
 	}
 }

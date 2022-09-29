@@ -52,8 +52,8 @@ func TestFindSpecOperationByIDPass(t *testing.T) {
 	assert.True(t, ok)
 	require.NotNil(t, op)
 	require.Equal(t, "greet", op.OperationID)
-	require.Equal(t, "/{version}/greet", op.path)
-	require.Equal(t, "POST", op.method)
+	require.Equal(t, "/{version}/greet", op.Path)
+	require.Equal(t, "POST", op.Method)
 }
 
 func TestFindSpecContentTypes(t *testing.T) {
