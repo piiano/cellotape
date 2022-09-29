@@ -29,6 +29,9 @@ type OpenAPIRouter interface {
 	// The returned handler can be used easily with any go http web framework as it is implementing the builtin
 	// http.Handler interface.
 	AsHandler() (http.Handler, error)
+
+	// Spec returns the OpenAPI spec used by the router.
+	Spec() OpenAPISpec
 }
 
 type Group interface {
@@ -96,6 +99,9 @@ func (oa *openapi) WithContentType(contentType ContentType) OpenAPIRouter {
 }
 func (oa *openapi) AsHandler() (http.Handler, error) {
 	return createMainRouterHandler(oa)
+}
+func (oa *openapi) Spec() OpenAPISpec {
+	return oa.spec
 }
 
 func (g *group) Use(handlers ...Handler) Group {
