@@ -159,6 +159,16 @@ func TestRequestBodyBinderFactoryContentTypeWithCharset(t *testing.T) {
 	assert.Equal(t, 42, param)
 }
 
+func TestRequestBodyBinderFactoryInvalidContentType(t *testing.T) {
+	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes())
+	var param int
+	err := requestBodyBinder(&http.Request{
+		Header: http.Header{"Content-Type": {"invalid content type"}},
+		Body:   io.NopCloser(bytes.NewBuffer([]byte("42"))),
+	}, &param)
+	require.Error(t, err)
+}
+
 func TestRequestBodyBinderFactoryContentTypeAnyWithCharset(t *testing.T) {
 	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes())
 	var param int
