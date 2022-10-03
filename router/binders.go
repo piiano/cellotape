@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"mime"
 	"net/http"
 	"reflect"
 
@@ -164,13 +165,24 @@ func bindResponseHeaders[R any](writer http.ResponseWriter, r Response[R]) {
 // If "Content-Type" request header is missing fallback to the provided default ContentType.
 func requestContentType(r *http.Request, supportedTypes ContentTypes, defaultContentType ContentType) (ContentType, error) {
 	mimeType := r.Header.Get(contentTypeHeader)
-	if mimeType == "*/*" || mimeType == "" {
+
+	if mimeType == "" {
 		return defaultContentType, nil
 	}
-	if contentType, found := supportedTypes[mimeType]; found {
+
+	parsedMimeType, _, err := mime.ParseMediaType(mimeType)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %q. %s", UnsupportedRequestContentTypeErr, mimeType, err)
+	}
+
+	if parsedMimeType == "*/*" {
+		return defaultContentType, nil
+	}
+
+	if contentType, found := supportedTypes[parsedMimeType]; found {
 		return contentType, nil
 	}
-	return nil, fmt.Errorf("%w: %q", UnsupportedRequestContentTypeErr, mimeType)
+	return nil, fmt.Errorf("%w: %q", UnsupportedRequestContentTypeErr, parsedMimeType)
 }
 
 // responseContentType extracts the ContentType implementation to use base on the response content type, supported content types and default fallback.

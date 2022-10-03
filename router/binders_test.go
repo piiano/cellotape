@@ -148,6 +148,38 @@ func TestRequestBodyBinderFactoryContentTypeError(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestRequestBodyBinderFactoryContentTypeWithCharset(t *testing.T) {
+	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes())
+	var param int
+	err := requestBodyBinder(&http.Request{
+		Header: http.Header{"Content-Type": {"application/json; charset=utf-8"}},
+		Body:   io.NopCloser(bytes.NewBuffer([]byte("42"))),
+	}, &param)
+	require.NoError(t, err)
+	assert.Equal(t, 42, param)
+}
+
+func TestRequestBodyBinderFactoryInvalidContentType(t *testing.T) {
+	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes())
+	var param int
+	err := requestBodyBinder(&http.Request{
+		Header: http.Header{"Content-Type": {"invalid content type"}},
+		Body:   io.NopCloser(bytes.NewBuffer([]byte("42"))),
+	}, &param)
+	require.Error(t, err)
+}
+
+func TestRequestBodyBinderFactoryContentTypeAnyWithCharset(t *testing.T) {
+	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes())
+	var param int
+	err := requestBodyBinder(&http.Request{
+		Header: http.Header{"Content-Type": {"*/*; charset=utf-8"}},
+		Body:   io.NopCloser(bytes.NewBuffer([]byte("42"))),
+	}, &param)
+	require.NoError(t, err)
+	assert.Equal(t, 42, param)
+}
+
 type CollidingFieldsParam1 struct {
 	Value string `form:"param1"`
 }
