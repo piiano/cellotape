@@ -20,7 +20,7 @@ func TestDefaultRecoverFromError(t *testing.T) {
 
 func TestName(t *testing.T) {
 	writer := httptest.ResponseRecorder{}
-	handlerFunc := asHttpRouterHandler(openapi{}, SpecOperation{}, func(context Context) (RawResponse, error) {
+	handlerFunc := asHttpRouterHandler(openapi{}, SpecOperation{}, func(_ *Context) (RawResponse, error) {
 		return RawResponse{}, nil
 	})
 	handlerFunc(&writer, &http.Request{}, httprouter.Params{})

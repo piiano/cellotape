@@ -12,7 +12,7 @@ const token = "secret"
 
 var authHeader = fmt.Sprintf("Bearer %s", token)
 
-var AuthMiddleware = r.NewHandler(func(c r.Context, req r.Request[r.Nil, r.Nil, r.Nil]) (r.Response[authResponses], error) {
+var AuthMiddleware = r.NewHandler(func(c *r.Context, req r.Request[r.Nil, r.Nil, r.Nil]) (r.Response[authResponses], error) {
 	if req.Headers.Get("Authorization") != authHeader {
 		return r.SendJSON(authResponses{Unauthorized: models.HttpError{
 			Error:  "Unauthorized",

@@ -61,8 +61,8 @@ func Error[R any](err error) (Response[R], error) {
 }
 
 // RawHandler adds a handler that doesn't define any type information.
-func RawHandler(f func(c Context) error) Handler {
-	return NewHandler(func(c Context, _ Request[Nil, Nil, Nil]) (Response[any], error) {
+func RawHandler(f func(c *Context) error) Handler {
+	return NewHandler(func(c *Context, _ Request[Nil, Nil, Nil]) (Response[any], error) {
 		return Response[any]{}, f(c)
 	})
 }

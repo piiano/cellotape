@@ -103,7 +103,7 @@ func TestError(t *testing.T) {
 }
 
 func TestRawHandler(t *testing.T) {
-	rawHandler := RawHandler(func(c Context) error {
+	rawHandler := RawHandler(func(c *Context) error {
 		assert.Zero(t, *c.RawResponse)
 		response, err := c.Next()
 		assert.NoError(t, err)
@@ -122,10 +122,10 @@ func TestRawHandler(t *testing.T) {
 		Body:        []byte("test"),
 		Headers:     nil,
 	}
-	handlerFunc := rawHandler.handlerFactory(openapi{}, func(c Context) (RawResponse, error) {
+	handlerFunc := rawHandler.handlerFactory(openapi{}, func(c *Context) (RawResponse, error) {
 		return rawResponse, nil
 	})
-	resp, err := handlerFunc(Context{Request: &http.Request{}, RawResponse: &RawResponse{}})
+	resp, err := handlerFunc(&Context{Request: &http.Request{}, RawResponse: &RawResponse{}})
 	require.ErrorIs(t, err, UnsupportedResponseStatusErr)
 	assert.Zero(t, resp)
 

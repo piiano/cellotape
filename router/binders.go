@@ -17,10 +17,10 @@ import (
 const contentTypeHeader = "Content-Type"
 
 // A request binder takes a Context with its untyped Context.Request and Context.Params and produce a typed Request.
-type requestBinder[B, P, Q any] func(ctx Context) (Request[B, P, Q], error)
+type requestBinder[B, P, Q any] func(ctx *Context) (Request[B, P, Q], error)
 
 // A response binder takes a Context with its Context.Writer and previous Context.RawResponse to write a typed Response output.
-type responseBinder[R any] func(Context, Response[R]) (RawResponse, error)
+type responseBinder[R any] func(*Context, Response[R]) (RawResponse, error)
 
 // produce the binder function that can be called at runtime to create the httpRequest object for the handler.
 func requestBinderFactory[B, P, Q any](oa openapi, types requestTypes) requestBinder[B, P, Q] {
@@ -29,7 +29,7 @@ func requestBinderFactory[B, P, Q any](oa openapi, types requestTypes) requestBi
 	queryParamsBinder := queryBinderFactory[Q](types.queryParams)
 
 	// this is what actually build the httpRequest object at runtime for the handler.
-	return func(ctx Context) (Request[B, P, Q], error) {
+	return func(ctx *Context) (Request[B, P, Q], error) {
 		var request = Request[B, P, Q]{
 			Headers: ctx.Request.Header,
 		}
@@ -118,7 +118,7 @@ func queryBinderFactory[Q any](queryParamsType reflect.Type) func(*http.Request,
 
 // responseBinderFactory creates a responseBinder that can be used in runtime
 func responseBinderFactory[R any](responses handlerResponses, contentTypes ContentTypes) responseBinder[R] {
-	return func(ctx Context, r Response[R]) (RawResponse, error) {
+	return func(ctx *Context, r Response[R]) (RawResponse, error) {
 		if ctx.RawResponse.Status != 0 {
 			return *ctx.RawResponse, nil
 		}

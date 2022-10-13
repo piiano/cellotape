@@ -10,7 +10,7 @@ import (
 
 var GreetOperationHandler = r.NewHandler(greetHandler)
 
-func greetHandler(_ r.Context, request r.Request[body, pathParams, queryParams]) (r.Response[responses], error) {
+func greetHandler(_ *r.Context, request r.Request[body, pathParams, queryParams]) (r.Response[responses], error) {
 	if request.PathParams.Version != "v1" && request.PathParams.Version != "1" && request.PathParams.Version != "1.0" {
 		errMessage := fmt.Sprintf("unsupported version %q", request.PathParams.Version)
 		return r.SendJSON(responses{BadRequest: badRequest{Message: errMessage}}).Status(http.StatusBadRequest), nil

@@ -12,8 +12,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var testContext = func() Context {
-	return Context{
+var testContext = func() *Context {
+	return &Context{
 		RawResponse: &RawResponse{},
 		Request: &http.Request{
 			Header: http.Header{},
@@ -58,7 +58,7 @@ type ErrorResponse struct {
 }
 
 func TestErrorHandler(t *testing.T) {
-	errorHandler := ErrorHandler(func(c Context, err error) (Response[ErrorResponse], error) {
+	errorHandler := ErrorHandler(func(c *Context, err error) (Response[ErrorResponse], error) {
 		return SendText(ErrorResponse{Message: err.Error()}).Status(400), nil
 	})
 	assert.Equal(t, nilType, errorHandler.requestTypes().requestBody)
@@ -87,7 +87,7 @@ func TestErrorHandler(t *testing.T) {
 	}
 	handlerFunc := errorHandler.handlerFactory(openapi{contentTypes: ContentTypes{
 		"text/plain": PlainTextContentType{},
-	}}, func(c Context) (RawResponse, error) {
+	}}, func(c *Context) (RawResponse, error) {
 		if c.Params.ByName("foo") == "bar" {
 			return RawResponse{}, errors.New("foo can not be bar")
 		}

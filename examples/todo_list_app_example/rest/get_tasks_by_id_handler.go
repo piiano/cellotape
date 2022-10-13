@@ -12,7 +12,7 @@ import (
 )
 
 func getTaskByIDOperation(tasks services.TasksService) r.Handler {
-	return r.NewHandler(func(_ r.Context, request r.Request[r.Nil, idPathParam, r.Nil]) (r.Response[getTaskByIDResponses], error) {
+	return r.NewHandler(func(_ *r.Context, request r.Request[r.Nil, idPathParam, r.Nil]) (r.Response[getTaskByIDResponses], error) {
 		id, err := uuid.Parse(request.PathParams.ID)
 		if err != nil {
 			return r.SendJSON(getTaskByIDResponses{

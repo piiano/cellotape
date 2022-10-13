@@ -9,7 +9,7 @@ import (
 )
 
 func getTasksPageOperation(tasks services.TasksService) r.Handler {
-	return r.NewHandler(func(_ r.Context, request r.Request[r.Nil, r.Nil, paginationQueryParams]) (r.Response[getTasksPageResponses], error) {
+	return r.NewHandler(func(_ *r.Context, request r.Request[r.Nil, r.Nil, paginationQueryParams]) (r.Response[getTasksPageResponses], error) {
 		tasksPage := tasks.GetTasksPage(request.QueryParams.Page, request.QueryParams.PageSize)
 		return r.SendOKJSON(getTasksPageResponses{OK: tasksPage}, http.Header{"Cache-Control": {"max-age=10"}}), nil
 	})
