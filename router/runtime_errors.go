@@ -39,13 +39,13 @@ func (in In) String() string {
 type BadRequestErr struct {
 	Err     error
 	In      In
-	Context Context
+	Context *Context
 }
 
 // newBadRequestErr returns a new BadRequestErr.
 // BadRequestErr is the error returned when there is an error binding the request.
 // You can handle this request using an ErrorHandler middleware to return a custom HTTP response.
-func newBadRequestErr(ctx Context, err error, in In) BadRequestErr {
+func newBadRequestErr(ctx *Context, err error, in In) BadRequestErr {
 	return BadRequestErr{
 		Err:     err,
 		In:      in,
@@ -71,8 +71,8 @@ func (e BadRequestErr) Unwrap() error {
 // ErrorHandler allows providing a handler function that can handle errors occurred in the handlers chain.
 // This type of handler is particularly useful for handling BadRequestErr caused by a request binding errors and
 // translate it to an HTTP response.
-func ErrorHandler[R any](errHandler func(c Context, err error) (Response[R], error)) HandlerFunc[Nil, Nil, Nil, R] {
-	return func(c Context, _ Request[Nil, Nil, Nil]) (Response[R], error) {
+func ErrorHandler[R any](errHandler func(c *Context, err error) (Response[R], error)) HandlerFunc[Nil, Nil, Nil, R] {
+	return func(c *Context, _ Request[Nil, Nil, Nil]) (Response[R], error) {
 		_, err := c.Next()
 		if err != nil {
 			return errHandler(c, err)

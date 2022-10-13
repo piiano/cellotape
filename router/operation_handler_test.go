@@ -13,7 +13,7 @@ import (
 )
 
 func TestHandlerFuncTypeExtraction(t *testing.T) {
-	fn := HandlerFunc[Nil, Nil, Nil, Nil](func(Context, Request[Nil, Nil, Nil]) (Response[Nil], error) { return Response[Nil]{}, nil })
+	fn := HandlerFunc[Nil, Nil, Nil, Nil](func(*Context, Request[Nil, Nil, Nil]) (Response[Nil], error) { return Response[Nil]{}, nil })
 	types := fn.requestTypes()
 	assert.Equal(t, types.requestBody, nilType)
 	assert.Equal(t, types.pathParams, nilType)
@@ -24,7 +24,7 @@ func TestRouterAsHandler(t *testing.T) {
 	type responses struct {
 		Answer int `status:"200"`
 	}
-	fn := HandlerFunc[Nil, Nil, Nil, responses](func(Context, Request[Nil, Nil, Nil]) (Response[responses], error) {
+	fn := HandlerFunc[Nil, Nil, Nil, responses](func(*Context, Request[Nil, Nil, Nil]) (Response[responses], error) {
 		return SendOKJSON(responses{Answer: 42}), nil
 	})
 	spec, err := NewSpecFromData([]byte(`

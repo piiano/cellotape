@@ -9,7 +9,7 @@ import (
 
 var LoggerMiddleware = r.NewHandler(loggerHandler)
 
-func loggerHandler(c r.Context, request r.Request[r.Nil, r.Nil, r.Nil]) (r.Response[any], error) {
+func loggerHandler(c *r.Context, request r.Request[r.Nil, r.Nil, r.Nil]) (r.Response[any], error) {
 	start := time.Now()
 	response, err := c.Next()
 	duration := time.Since(start)

@@ -21,11 +21,11 @@ type Handler interface {
 
 // HandlerFunc is the typed handler that declare explicitly all types of request and responses.
 // Check the repo examples for seeing how the HandlerFunc can be used to define Handler for operations and middlewares.
-type HandlerFunc[B, P, Q, R any] func(Context, Request[B, P, Q]) (Response[R], error)
+type HandlerFunc[B, P, Q, R any] func(*Context, Request[B, P, Q]) (Response[R], error)
 
 // BoundHandlerFunc is an untyped wrapper to HandlerFunc that bound internally calls to request binding, response
 // binding and propagate next handler in the Context.
-type BoundHandlerFunc func(Context) (RawResponse, error)
+type BoundHandlerFunc func(*Context) (RawResponse, error)
 
 // Context carries the original http.Request and http.ResponseWriter and additional important parameters through the
 // handlers chain.
@@ -38,7 +38,7 @@ type Context struct {
 	NextFunc    BoundHandlerFunc
 }
 
-func (c Context) Next() (RawResponse, error) {
+func (c *Context) Next() (RawResponse, error) {
 	return c.NextFunc(c)
 }
 
@@ -128,7 +128,7 @@ func (h HandlerFunc[B, P, Q, R]) sourcePosition() sourcePosition {
 func (h HandlerFunc[B, P, Q, R]) handlerFactory(oa openapi, next BoundHandlerFunc) BoundHandlerFunc {
 	bindRequest := requestBinderFactory[B, P, Q](oa, h.requestTypes())
 	bindResponse := responseBinderFactory[R](h.responseTypes(), oa.contentTypes)
-	return func(context Context) (RawResponse, error) {
+	return func(context *Context) (RawResponse, error) {
 		// when handler will be called, set the next to next
 		context.NextFunc = next
 		request, err := bindRequest(context)

@@ -67,7 +67,7 @@ func asHttpRouterHandler(oa openapi, specOp SpecOperation, head BoundHandlerFunc
 		if oa.options.RecoverOnPanic {
 			defer defaultRecoverBehaviour(writer)
 		}
-		ctx := Context{
+		ctx := &Context{
 			Operation:   specOp,
 			Writer:      writer,
 			Request:     request,
