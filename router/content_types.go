@@ -1,6 +1,7 @@
 package router
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -99,9 +100,17 @@ func (t PlainTextContentType) ValidateTypeSchema(
 
 type JSONContentType struct{}
 
-func (t JSONContentType) Mime() string                        { return "application/json" }
-func (t JSONContentType) Encode(value any) ([]byte, error)    { return json.Marshal(value) }
-func (t JSONContentType) Decode(data []byte, value any) error { return json.Unmarshal(data, value) }
+func (t JSONContentType) Mime() string                     { return "application/json" }
+func (t JSONContentType) Encode(value any) ([]byte, error) { return json.Marshal(value) }
+func (t JSONContentType) Decode(data []byte, value any) error {
+	// When unmarshalling, do not automatically represent a number as a float64.
+	// Rather, use json.Number (which is internally a string) so that the interpretation of the
+	// type can be determined by the handler. This allows handlers to accept integers
+	// whose absolute value is larger than 2^53 – 1 without losing precision.
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.UseNumber()
+	return decoder.Decode(value)
+}
 func (t JSONContentType) ValidateTypeSchema(
 	logger utils.Logger, level utils.LogLevel, goType reflect.Type, schema openapi3.Schema) error {
 	return schema_validator.NewTypeSchemaValidator(logger, level, goType, schema).Validate()
