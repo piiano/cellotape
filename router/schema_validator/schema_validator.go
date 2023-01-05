@@ -1,6 +1,8 @@
 package schema_validator
 
 import (
+	"errors"
+	"fmt"
 	"reflect"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -8,20 +10,10 @@ import (
 	"github.com/piiano/cellotape/router/utils"
 )
 
-// schema types allowed by OpenAPI specification.
-const (
-	objectSchemaType  = "object"
-	arraySchemaType   = "array"
-	stringSchemaType  = "string"
-	booleanSchemaType = "boolean"
-	numberSchemaType  = "number"
-	integerSchemaType = "integer"
-)
+var ErrSchemaIncompatibleWithType = errors.New("schema is incompatible with type")
 
 // TypeSchemaValidator helps validate reflect.Type and openapi3.Schema compatibility using the validation Options.
 type TypeSchemaValidator interface {
-	// WithLogger immutably returns a new TypeSchemaValidator with the specified utils.Logger.
-	WithLogger(utils.Logger) TypeSchemaValidator
 	// WithType immutably returns a new TypeSchemaValidator with the specified reflect.Type to validate.
 	WithType(reflect.Type) TypeSchemaValidator
 	// WithSchema immutably returns a new TypeSchemaValidator with the specified openapi3.Schema to validate.
@@ -32,106 +24,93 @@ type TypeSchemaValidator interface {
 	// Returns error with all compatability errors found or nil if compatible.
 	Validate() error
 
-	validateSchemaAllOf() error
-	validateSchemaOneOf() error
-	validateSchemaAnyOf() error
-	validateSchemaNot() error
-	validateObjectSchema() error
-	validateArraySchema() error
-	validateStringSchema() error
-	validateBooleanSchema() error
-	validateIntegerSchema() error
-	validateNumberSchema() error
+	Errors() []string
 
-	newLogger() utils.Logger
-	logLevel() utils.LogLevel
+	matchAllSchemaValidator(string, openapi3.SchemaRefs)
+	validateSchemaAllOf()
+	validateSchemaNot()
+	validateObjectSchema()
+	validateArraySchema()
+	validateStringSchema()
+	validateBooleanSchema()
+	validateIntegerSchema()
+	validateNumberSchema()
 }
 
 // NewEmptyTypeSchemaValidator returns a new TypeSchemaValidator that have no reflect.Type or openapi3.Schema configured yet.
-func NewEmptyTypeSchemaValidator(logger utils.Logger) TypeSchemaValidator {
+func NewEmptyTypeSchemaValidator() TypeSchemaValidator {
 	return typeSchemaValidatorContext{
-		logger: logger,
-		level:  utils.Error,
+		errors: new([]string),
 	}
 }
 
 // NewTypeSchemaValidator returns a new TypeSchemaValidator that helps validate reflect.Type and openapi3.Schema compatibility using the validation Options.
-func NewTypeSchemaValidator(logger utils.Logger, level utils.LogLevel, goType reflect.Type, schema openapi3.Schema) TypeSchemaValidator {
+func NewTypeSchemaValidator(goType reflect.Type, schema openapi3.Schema) TypeSchemaValidator {
 	return typeSchemaValidatorContext{
-		logger: logger,
-		level:  level,
+		errors: new([]string),
 		schema: schema,
 		goType: goType,
 	}
 }
 
-func (c typeSchemaValidatorContext) newLogger() utils.Logger {
-	return c.logger.NewCounter()
-}
-func (c typeSchemaValidatorContext) logLevel() utils.LogLevel {
-	return c.level
-}
-
 // typeSchemaValidatorContext an internal struct that implementation TypeSchemaValidator
 type typeSchemaValidatorContext struct {
-	logger utils.Logger
-	level  utils.LogLevel
+	errors *[]string
 	schema openapi3.Schema
 	goType reflect.Type
 }
 
-func (c typeSchemaValidatorContext) WithLogger(logger utils.Logger) TypeSchemaValidator {
-	c.logger = logger
-	return c
+func (c typeSchemaValidatorContext) err(format string, args ...any) {
+	*c.errors = append(*c.errors, fmt.Sprintf(format, args...))
 }
+
 func (c typeSchemaValidatorContext) WithType(goType reflect.Type) TypeSchemaValidator {
 	c.goType = goType
-	c.logger = c.newLogger()
 	return c
 }
 func (c typeSchemaValidatorContext) WithSchema(schema openapi3.Schema) TypeSchemaValidator {
 	c.schema = schema
-	c.logger = c.newLogger()
 	return c
 }
 func (c typeSchemaValidatorContext) WithSchemaAndType(schema openapi3.Schema, goType reflect.Type) TypeSchemaValidator {
 	c.schema = schema
 	c.goType = goType
-	c.logger = c.newLogger()
 	return c
+}
+func (c typeSchemaValidatorContext) Errors() []string {
+	return *c.errors
 }
 
 func (c typeSchemaValidatorContext) Validate() error {
-	if isEmptyInterface(c.goType) {
+	if isAny(c.goType) {
 		return nil
 	}
-	if c.goType.Kind() == reflect.Pointer {
+	if utils.IsMultiType(c.goType) {
+		if _, err := utils.ExtractMultiTypeTypes(c.goType); err != nil {
+			c.err(err.Error())
+		}
+	}
+	if c.goType.Kind() == reflect.Pointer && !utils.IsMultiType(c.goType) {
 		return c.WithType(c.goType.Elem()).Validate()
 	}
+
 	// Test global schema validation properties
-	c.logger.ErrorIfNotNil(c.validateSchemaAllOf())
-	c.logger.ErrorIfNotNil(c.validateSchemaOneOf())
-	c.logger.ErrorIfNotNil(c.validateSchemaAnyOf())
-	c.logger.ErrorIfNotNil(c.validateSchemaNot())
+	c.validateSchemaAllOf()
+	c.validateSchemaNot()
+	c.matchAllSchemaValidator("oneOf", c.schema.OneOf)
+	c.matchAllSchemaValidator("anyOf", c.schema.AnyOf)
 
 	// Test specific schema types validations
-	switch c.schema.Type {
-	case objectSchemaType:
-		c.logger.ErrorIfNotNil(c.validateObjectSchema())
-	case arraySchemaType:
-		c.logger.ErrorIfNotNil(c.validateArraySchema())
-	case stringSchemaType:
-		c.logger.ErrorIfNotNil(c.validateStringSchema())
-	case booleanSchemaType:
-		c.logger.ErrorIfNotNil(c.validateBooleanSchema())
-	case numberSchemaType:
-		c.logger.ErrorIfNotNil(c.validateNumberSchema())
-	case integerSchemaType:
-		c.logger.ErrorIfNotNil(c.validateIntegerSchema())
-	}
-	return c.logger.MustHaveNoErrors()
-}
+	c.validateObjectSchema()
+	c.validateArraySchema()
+	c.validateStringSchema()
+	c.validateBooleanSchema()
+	c.validateNumberSchema()
+	c.validateIntegerSchema()
 
-func isEmptyInterface(t reflect.Type) bool {
-	return t.Kind() == reflect.Interface && t.NumMethod() == 0
+	if len(*c.errors) > 0 {
+		return fmt.Errorf("%w %s", ErrSchemaIncompatibleWithType, c.goType)
+	}
+
+	return nil
 }

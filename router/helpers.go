@@ -2,6 +2,8 @@ package router
 
 import (
 	"net/http"
+
+	"github.com/piiano/cellotape/router/utils"
 )
 
 // Send constructs a new Response.
@@ -62,7 +64,7 @@ func Error[R any](err error) (Response[R], error) {
 
 // RawHandler adds a handler that doesn't define any type information.
 func RawHandler(f func(c *Context) error) Handler {
-	return NewHandler(func(c *Context, _ Request[Nil, Nil, Nil]) (Response[any], error) {
+	return NewHandler(func(c *Context, _ Request[utils.Nil, utils.Nil, utils.Nil]) (Response[any], error) {
 		return Response[any]{}, f(c)
 	})
 }

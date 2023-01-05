@@ -80,4 +80,7 @@ func TestErrorMessages(t *testing.T) {
 		`query param "bar" exists on the spec for operation "foo" but not declared on any handler`,
 		paramMissingImplementationInChain("query", "bar", "foo"))
 
+	assert.Equal(t,
+		`the excluded operation "foo" is implemented by a handler`,
+		anExcludedOperationIsImplemented("foo"))
 }

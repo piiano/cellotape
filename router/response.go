@@ -5,6 +5,8 @@ import (
 	"math/bits"
 	"reflect"
 	"strconv"
+
+	"github.com/piiano/cellotape/router/utils"
 )
 
 const statusTag = "status"
@@ -44,7 +46,7 @@ func extractResponses(t reflect.Type) handlerResponses {
 			status:       status,
 			fieldIndex:   field.Index,
 			responseType: field.Type,
-			isNilType:    field.Type == nilType,
+			isNilType:    field.Type == utils.NilType,
 		}
 	}
 	return responseTypesMap

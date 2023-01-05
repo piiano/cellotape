@@ -34,7 +34,7 @@ func TestGetAllTasks(t *testing.T) {
 	assert.JSONEq(t, `{
 		"results": [],
 		"page": 0,
-		"pageSize": 0,
+		"pageSize": 10,
 		"isLast": true
 	}`, string(response))
 }
@@ -52,7 +52,7 @@ func TestCreateNewTaskAndGetIt(t *testing.T) {
 	req, err := http.NewRequest("POST", fmt.Sprintf("%s/tasks", ts.URL), request)
 	require.NoError(t, err)
 	req.Header.Set("Authorization", "Bearer secret")
-	//req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", "application/json")
 	client := http.Client{}
 	resp, err := client.Do(req)
 	require.NoError(t, err)
@@ -75,6 +75,65 @@ func TestCreateNewTaskAndGetIt(t *testing.T) {
 	data, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 	assert.JSONEq(t, taskJson, string(data))
+}
+
+func TestRequestQueryParamViolateSchemaValidations(t *testing.T) {
+	ts := initAPI(t)
+	defer ts.Close()
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/tasks?pageSize=30", ts.URL), nil)
+	require.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer secret")
+	client := http.Client{}
+	resp, err := client.Do(req)
+	require.NoError(t, err)
+	assert.Equal(t, 400, resp.StatusCode)
+	response, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	assert.Equal(t,
+		`invalid request query param. parameter "pageSize" in query has an error: number must be at most 20`,
+		string(response))
+}
+
+func TestRequestPathParamViolateSchemaValidations(t *testing.T) {
+	ts := initAPI(t)
+	defer ts.Close()
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/tasks/123", ts.URL), nil)
+	require.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer secret")
+	client := http.Client{}
+	resp, err := client.Do(req)
+	require.NoError(t, err)
+	assert.Equal(t, 400, resp.StatusCode)
+	response, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	assert.Equal(t,
+		`invalid request path param. parameter "id" in path has an error: minimum string length is 36`,
+		string(response))
+}
+
+func TestRequestBodyViolateSchemaValidations(t *testing.T) {
+	ts := initAPI(t)
+	defer ts.Close()
+	taskJson := `{
+		"summary": "code first approach",
+		"description": "add support for code first approach",
+		"status": "archived"
+	}`
+	request := bytes.NewBufferString(taskJson)
+
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/tasks", ts.URL), request)
+	require.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer secret")
+	req.Header.Set("Content-Type", "application/json")
+	client := http.Client{}
+	resp, err := client.Do(req)
+	require.NoError(t, err)
+	assert.Equal(t, 400, resp.StatusCode)
+	response, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	assert.Equal(t,
+		`invalid request body. request body has an error: doesn't match schema #/components/schemas/Task: value "archived" is not one of the allowed values`,
+		string(response))
 }
 
 func initAPI(t *testing.T) *httptest.Server {

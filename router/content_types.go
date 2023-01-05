@@ -104,7 +104,13 @@ func (t JSONContentType) Encode(value any) ([]byte, error)    { return json.Mars
 func (t JSONContentType) Decode(data []byte, value any) error { return json.Unmarshal(data, value) }
 func (t JSONContentType) ValidateTypeSchema(
 	logger utils.Logger, level utils.LogLevel, goType reflect.Type, schema openapi3.Schema) error {
-	return schema_validator.NewTypeSchemaValidator(logger, level, goType, schema).Validate()
+	validator := schema_validator.NewTypeSchemaValidator(goType, schema)
+	err := validator.Validate()
+	for errMessage := range validator.Errors() {
+		logger.Log(level, errMessage)
+	}
+
+	return err
 }
 
 func DefaultContentTypes() ContentTypes {

@@ -1,13 +1,18 @@
 package router
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"log"
 	"mime"
 	"net/http"
+	"net/url"
 	"reflect"
 
+	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/getkin/kin-openapi/openapi3filter"
+	"github.com/getkin/kin-openapi/routers"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/julienschmidt/httprouter"
 
@@ -16,8 +21,14 @@ import (
 
 const contentTypeHeader = "Content-Type"
 
+type binder[T any] func(*Context, *T) error
+
+func nilBinder[T any](*Context, *T) error {
+	return nil
+}
+
 // A request binder takes a Context with its untyped Context.Request and Context.Params and produce a typed Request.
-type requestBinder[B, P, Q any] func(ctx *Context) (Request[B, P, Q], error)
+type requestBinder[B, P, Q any] func(*Context) (Request[B, P, Q], error)
 
 // A response binder takes a Context with its Context.Writer and previous Context.RawResponse to write a typed Response output.
 type responseBinder[R any] func(*Context, Response[R]) (RawResponse, error)
@@ -33,13 +44,13 @@ func requestBinderFactory[B, P, Q any](oa openapi, types requestTypes) requestBi
 		var request = Request[B, P, Q]{
 			Headers: ctx.Request.Header,
 		}
-		if err := requestBodyBinder(ctx.Request, &request.Body); err != nil {
+		if err := requestBodyBinder(ctx, &request.Body); err != nil {
 			return request, newBadRequestErr(ctx, err, InBody)
 		}
-		if err := pathParamsBinder(ctx.Params, &request.PathParams); err != nil {
+		if err := pathParamsBinder(ctx, &request.PathParams); err != nil {
 			return request, newBadRequestErr(ctx, err, InPathParams)
 		}
-		if err := queryParamsBinder(ctx.Request, &request.QueryParams); err != nil {
+		if err := queryParamsBinder(ctx, &request.QueryParams); err != nil {
 			return request, newBadRequestErr(ctx, err, InQueryParams)
 		}
 		return request, nil
@@ -47,17 +58,24 @@ func requestBinderFactory[B, P, Q any](oa openapi, types requestTypes) requestBi
 }
 
 // produce the httpRequest Body binder that can be used in runtime
-func requestBodyBinderFactory[B any](requestBodyType reflect.Type, contentTypes ContentTypes) func(*http.Request, *B) error {
-	if requestBodyType == nilType {
-		return func(r *http.Request, body *B) error { return nil }
+func requestBodyBinderFactory[B any](requestBodyType reflect.Type, contentTypes ContentTypes) binder[B] {
+	if requestBodyType == utils.NilType {
+		return nilBinder[B]
 	}
-	return func(r *http.Request, body *B) error {
-		contentType, err := requestContentType(r, contentTypes, JSONContentType{})
+	return func(ctx *Context, body *B) error {
+		input := requestValidationInput(ctx)
+		if ctx.Operation.RequestBody != nil {
+			if err := openapi3filter.ValidateRequestBody(ctx.Request.Context(), input, ctx.Operation.RequestBody.Value); err != nil {
+				return err
+			}
+		}
+
+		contentType, err := requestContentType(input.Request, contentTypes, JSONContentType{})
 		if err != nil {
 			return err
 		}
-		defer func() { _ = r.Body.Close() }()
-		bodyBytes, err := io.ReadAll(r.Body)
+		defer func() { _ = input.Request.Body.Close() }()
+		bodyBytes, err := io.ReadAll(input.Request.Body)
 		if err != nil {
 			return err
 		}
@@ -69,16 +87,22 @@ func requestBodyBinderFactory[B any](requestBodyType reflect.Type, contentTypes 
 }
 
 // produce the pathParamInValue pathParams binder that can be used in runtime
-func pathBinderFactory[P any](pathParamsType reflect.Type) func(*httprouter.Params, *P) error {
-	if pathParamsType == nilType {
-		return func(params *httprouter.Params, body *P) error { return nil }
+func pathBinderFactory[P any](pathParamsType reflect.Type) binder[P] {
+	if pathParamsType == utils.NilType {
+		return nilBinder[P]
 	}
-	return func(params *httprouter.Params, pathParams *P) error {
-		m := make(map[string][]string)
-		for _, v := range *params {
-			m[v.Key] = []string{v.Value}
+	return func(ctx *Context, target *P) error {
+		defaults, err := validateParamsAndPopulateDefaults(ctx, "path")
+		if err != nil {
+			return err
 		}
-		if err := binding.Uri.BindUri(m, pathParams); err != nil {
+
+		m := make(map[string][]string)
+		for k, v := range defaults.PathParams {
+			m[k] = []string{v}
+		}
+
+		if err = binding.Uri.BindUri(m, target); err != nil {
 			return err
 		}
 		return nil
@@ -86,11 +110,11 @@ func pathBinderFactory[P any](pathParamsType reflect.Type) func(*httprouter.Para
 }
 
 // produce the queryParamInValue pathParams binder that can be used in runtime
-func queryBinderFactory[Q any](queryParamsType reflect.Type) func(*http.Request, *Q) error {
-	if queryParamsType == nilType {
-		return func(*http.Request, *Q) error { return nil }
+func queryBinderFactory[Q any](queryParamsType reflect.Type) binder[Q] {
+	if queryParamsType == utils.NilType {
+		return nilBinder[Q]
 	}
-	paramFields := structKeys(queryParamsType, "form")
+	paramFields := utils.StructKeys(queryParamsType, "form")
 	nonArrayParams := utils.NewSet[string]()
 	for param, paramType := range paramFields {
 		if paramType.Type.Kind() == reflect.Slice ||
@@ -103,11 +127,17 @@ func queryBinderFactory[Q any](queryParamsType reflect.Type) func(*http.Request,
 		nonArrayParams.Add(param)
 	}
 
-	return func(r *http.Request, queryParams *Q) error {
-		if err := binding.Query.Bind(r, queryParams); err != nil {
+	return func(ctx *Context, queryParams *Q) error {
+		defaults, err := validateParamsAndPopulateDefaults(ctx, "query")
+		if err != nil {
 			return err
 		}
-		for param, values := range r.URL.Query() {
+
+		if err = binding.Query.Bind(defaults.Request, queryParams); err != nil {
+			return err
+		}
+
+		for param, values := range defaults.QueryParams {
 			if nonArrayParams.Has(param) && len(values) > 1 {
 				return fmt.Errorf("multiple values received for query param %s", param)
 			}
@@ -143,12 +173,28 @@ func responseBinderFactory[R any](responses handlerResponses, contentTypes Conte
 		}
 		bindResponseHeaders(ctx.Writer, r)
 		ctx.Writer.WriteHeader(r.status)
-		_, err = ctx.Writer.Write(responseBytes)
 		ctx.RawResponse.Status = r.status
 		ctx.RawResponse.ContentType = r.contentType
 		ctx.RawResponse.Body = responseBytes
 		ctx.RawResponse.Headers = r.headers
-		return *ctx.RawResponse, err
+
+		if _, err = ctx.Writer.Write(responseBytes); err != nil {
+			return *ctx.RawResponse, err
+		}
+
+		input := &openapi3filter.ResponseValidationInput{
+			RequestValidationInput: requestValidationInput(ctx),
+			Status:                 r.status,
+			Header:                 r.headers,
+			Body:                   io.NopCloser(bytes.NewReader(responseBytes)),
+			Options:                openapi3filter.DefaultOptions,
+		}
+
+		if err = openapi3filter.ValidateResponse(ctx.Request.Context(), input); err != nil {
+			log.Printf("[WARNING] %s. response violates the spec\n", err)
+		}
+
+		return *ctx.RawResponse, nil
 	}
 }
 
@@ -194,4 +240,55 @@ func responseContentType(responseContentType string, supportedTypes ContentTypes
 		return contentTypes, nil
 	}
 	return defaultContentType, fmt.Errorf("%w: %s", UnsupportedResponseContentTypeErr, responseContentType)
+}
+
+func validateParamsAndPopulateDefaults(ctx *Context, in string) (*openapi3filter.RequestValidationInput, error) {
+	input := requestValidationInput(ctx)
+	parameters := utils.Filter(utils.Map(ctx.Operation.Parameters, func(p *openapi3.ParameterRef) *openapi3.Parameter {
+		return p.Value
+	}), func(p *openapi3.Parameter) bool { return p.In == in })
+
+	for _, param := range parameters {
+		if err := openapi3filter.ValidateParameter(ctx.Request.Context(), input, param); err != nil {
+			return nil, err
+		}
+	}
+
+	// after processing params input is populated with defaults
+	return input, nil
+}
+
+func requestValidationInput(ctx *Context) *openapi3filter.RequestValidationInput {
+	input := openapi3filter.RequestValidationInput{
+		Request:     &http.Request{},
+		PathParams:  make(map[string]string),
+		QueryParams: url.Values{},
+		Options:     openapi3filter.DefaultOptions,
+		Route: &routers.Route{
+			Operation: ctx.Operation.Operation,
+		},
+		ParamDecoder: nil,
+	}
+
+	input.Options.WithCustomSchemaErrorFunc(func(err *openapi3.SchemaError) string {
+		return err.Reason
+	})
+
+	if ctx.Request != nil {
+		input.Request = ctx.Request
+		if ctx.Request.URL != nil {
+			input.QueryParams = ctx.Request.URL.Query()
+		}
+	}
+
+	if ctx.Params != nil {
+		input.PathParams = utils.FromEntries(utils.Map(*ctx.Params, func(p httprouter.Param) utils.Entry[string, string] {
+			return utils.Entry[string, string]{
+				Key:   p.Key,
+				Value: p.Value,
+			}
+		}))
+	}
+
+	return &input
 }

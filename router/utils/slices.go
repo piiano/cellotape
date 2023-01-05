@@ -53,3 +53,7 @@ func ConcatSlices[T any](slices ...[]T) []T {
 	}
 	return target
 }
+
+func Ptr[T any](value T) *T {
+	return &value
+}

@@ -1,12 +1,14 @@
 package schema_validator
 
-func (c typeSchemaValidatorContext) validateSchemaAllOf() error {
+func (c typeSchemaValidatorContext) validateSchemaAllOf() {
 	if c.schema.AllOf == nil {
-		return nil
+		return
 	}
-	l := c.newLogger()
+	errors := len(*c.errors)
 	for _, option := range c.schema.AllOf {
-		l.LogIfNotNil(c.level, c.WithSchema(*option.Value).Validate())
+		_ = c.WithSchema(*option.Value).Validate()
 	}
-	return l.MustHaveNoErrorsf(schemaAllOfPropertyIncompatibleWithType(l.Errors(), len(c.schema.AllOf), c.goType))
+	if len(*c.errors) > errors {
+		c.err(schemaAllOfPropertyIncompatibleWithType(len(*c.errors)-errors, len(c.schema.AllOf), c.goType))
+	}
 }

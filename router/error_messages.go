@@ -57,5 +57,5 @@ func paramMissingImplementationInChain(in string, name string, operationId strin
 	return fmt.Sprintf("%s param %q exists on the spec for operation %q but not declared on any handler", in, name, operationId)
 }
 func anExcludedOperationIsImplemented(operationId string) string {
-	return fmt.Sprintf("the excluded operation %s is implemented by a handler", operationId)
+	return fmt.Sprintf("the excluded operation %q is implemented by a handler", operationId)
 }

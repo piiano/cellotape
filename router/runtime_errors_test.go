@@ -4,18 +4,26 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"reflect"
 	"testing"
 
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/julienschmidt/httprouter"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/piiano/cellotape/router/utils"
 )
 
 var testContext = func() *Context {
 	return &Context{
+		Operation: SpecOperation{
+			Operation: openapi3.NewOperation(),
+		},
 		RawResponse: &RawResponse{},
 		Request: &http.Request{
+			URL:    &url.URL{},
 			Header: http.Header{},
 		},
 		Writer: &httptest.ResponseRecorder{},
@@ -61,9 +69,9 @@ func TestErrorHandler(t *testing.T) {
 	errorHandler := ErrorHandler(func(c *Context, err error) (Response[ErrorResponse], error) {
 		return SendText(ErrorResponse{Message: err.Error()}).Status(400), nil
 	})
-	assert.Equal(t, nilType, errorHandler.requestTypes().requestBody)
-	assert.Equal(t, nilType, errorHandler.requestTypes().pathParams)
-	assert.Equal(t, nilType, errorHandler.requestTypes().queryParams)
+	assert.Equal(t, utils.NilType, errorHandler.requestTypes().requestBody)
+	assert.Equal(t, utils.NilType, errorHandler.requestTypes().pathParams)
+	assert.Equal(t, utils.NilType, errorHandler.requestTypes().queryParams)
 	assert.Equal(t, handlerResponses{
 		200: {
 			status:       200,

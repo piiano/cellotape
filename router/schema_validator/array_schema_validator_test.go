@@ -5,17 +5,25 @@ import (
 	"testing"
 
 	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/stretchr/testify/require"
 )
 
 // according to the spec the array validation properties should apply oly when the type is set to array
 func TestArraySchemaValidatorWithUntypedSchema(t *testing.T) {
 	// create with NewSchema and not with NewArraySchema for an untyped schema
 	untypedSchemaWithItemsProperty := openapi3.NewSchema().WithItems(openapi3.NewStringSchema())
-	validator := schemaValidator(*untypedSchemaWithItemsProperty)
-	for _, validType := range types {
-		t.Run(validType.String(), func(t *testing.T) {
-			if err := validator.WithType(validType).validateArraySchema(); err != nil {
-				t.Errorf("expect untyped schema to be compatible with %s type", validType)
+
+	for _, goType := range types {
+		valid := (kindIs(reflect.Array, reflect.Slice)(goType) && isSerializedFromString(goType.Elem())) ||
+			!kindIs(reflect.Array, reflect.Slice)(goType) ||
+			(uuidType.ConvertibleTo(goType))
+
+		t.Run(goType.String(), func(t *testing.T) {
+			err := schemaValidator(*untypedSchemaWithItemsProperty).WithType(goType).Validate()
+			if valid {
+				require.NoErrorf(t, err, "expect untyped schema to be compatible with %s type", goType)
+			} else {
+				require.Errorf(t, err, "expect untyped schema to be incompatible with %s type", goType)
 			}
 		})
 	}

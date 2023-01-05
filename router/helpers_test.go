@@ -6,6 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/piiano/cellotape/router/utils"
 )
 
 type OKResponse[R any] struct {
@@ -112,9 +114,9 @@ func TestRawHandler(t *testing.T) {
 		assert.Equal(t, []byte("test"), response.Body)
 		return nil
 	})
-	assert.Equal(t, nilType, rawHandler.requestTypes().requestBody)
-	assert.Equal(t, nilType, rawHandler.requestTypes().pathParams)
-	assert.Equal(t, nilType, rawHandler.requestTypes().queryParams)
+	assert.Equal(t, utils.NilType, rawHandler.requestTypes().requestBody)
+	assert.Equal(t, utils.NilType, rawHandler.requestTypes().pathParams)
+	assert.Equal(t, utils.NilType, rawHandler.requestTypes().queryParams)
 	assert.Len(t, rawHandler.responseTypes(), 0)
 	rawResponse := RawResponse{
 		Status:      200,

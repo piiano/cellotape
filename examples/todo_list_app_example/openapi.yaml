@@ -120,6 +120,8 @@ components:
     Id:
       type: string
       format: uuid
+      minLength: 36
+      maxLength: 36
       nullable: false
     Identifiable:
       type: object

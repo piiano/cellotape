@@ -3,6 +3,8 @@ package router
 import (
 	"errors"
 	"fmt"
+
+	"github.com/piiano/cellotape/router/utils"
 )
 
 // Runtime errors causes
@@ -71,8 +73,8 @@ func (e BadRequestErr) Unwrap() error {
 // ErrorHandler allows providing a handler function that can handle errors occurred in the handlers chain.
 // This type of handler is particularly useful for handling BadRequestErr caused by a request binding errors and
 // translate it to an HTTP response.
-func ErrorHandler[R any](errHandler func(c *Context, err error) (Response[R], error)) HandlerFunc[Nil, Nil, Nil, R] {
-	return func(c *Context, _ Request[Nil, Nil, Nil]) (Response[R], error) {
+func ErrorHandler[R any](errHandler func(c *Context, err error) (Response[R], error)) HandlerFunc[utils.Nil, utils.Nil, utils.Nil, R] {
+	return func(c *Context, _ Request[utils.Nil, utils.Nil, utils.Nil]) (Response[R], error) {
 		_, err := c.Next()
 		if err != nil {
 			return errHandler(c, err)

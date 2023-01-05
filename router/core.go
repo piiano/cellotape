@@ -1,6 +1,7 @@
 package router
 
 import (
+	"errors"
 	"log"
 	"net/http"
 	"regexp"
@@ -59,6 +60,16 @@ func chainHandlers(oa openapi, handlers ...handler) (head BoundHandlerFunc) {
 	for i := len(handlers) - 1; i >= 0; i-- {
 		next = handlers[i].handlerFunc.handlerFactory(oa, next)
 	}
+	next = ErrorHandler(func(c *Context, err error) (Response[any], error) {
+		var badRequestError BadRequestErr
+		if err != nil && c.RawResponse.Status == 0 && errors.As(err, &badRequestError) {
+			c.Writer.Header().Add("Content-Type", "text/plain")
+			c.Writer.WriteHeader(400)
+			_, writeErr := c.Writer.Write([]byte(err.Error()))
+			return Error[any](writeErr)
+		}
+		return Error[any](err)
+	}).handlerFactory(oa, next)
 	return next
 }
 

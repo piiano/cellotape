@@ -10,21 +10,25 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/piiano/cellotape/router/utils"
 )
 
 func TestHandlerFuncTypeExtraction(t *testing.T) {
-	fn := HandlerFunc[Nil, Nil, Nil, Nil](func(*Context, Request[Nil, Nil, Nil]) (Response[Nil], error) { return Response[Nil]{}, nil })
+	fn := HandlerFunc[utils.Nil, utils.Nil, utils.Nil, utils.Nil](func(*Context, Request[utils.Nil, utils.Nil, utils.Nil]) (Response[utils.Nil], error) {
+		return Response[utils.Nil]{}, nil
+	})
 	types := fn.requestTypes()
-	assert.Equal(t, types.requestBody, nilType)
-	assert.Equal(t, types.pathParams, nilType)
-	assert.Equal(t, types.queryParams, nilType)
+	assert.Equal(t, types.requestBody, utils.NilType)
+	assert.Equal(t, types.pathParams, utils.NilType)
+	assert.Equal(t, types.queryParams, utils.NilType)
 }
 
 func TestRouterAsHandler(t *testing.T) {
 	type responses struct {
 		Answer int `status:"200"`
 	}
-	fn := HandlerFunc[Nil, Nil, Nil, responses](func(*Context, Request[Nil, Nil, Nil]) (Response[responses], error) {
+	fn := HandlerFunc[utils.Nil, utils.Nil, utils.Nil, responses](func(*Context, Request[utils.Nil, utils.Nil, utils.Nil]) (Response[responses], error) {
 		return SendOKJSON(responses{Answer: 42}), nil
 	})
 	spec, err := NewSpecFromData([]byte(`
