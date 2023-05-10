@@ -106,7 +106,7 @@ func (t JSONContentType) ValidateTypeSchema(
 	logger utils.Logger, level utils.LogLevel, goType reflect.Type, schema openapi3.Schema) error {
 	validator := schema_validator.NewTypeSchemaValidator(goType, schema)
 	err := validator.Validate()
-	for errMessage := range validator.Errors() {
+	for _, errMessage := range validator.Errors() {
 		logger.Log(level, errMessage)
 	}
 

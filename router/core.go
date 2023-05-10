@@ -2,11 +2,14 @@ package router
 
 import (
 	"errors"
+	"io"
 	"log"
 	"net/http"
 	"regexp"
 	"runtime/debug"
 
+	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/piiano/cellotape/router/utils"
@@ -35,6 +38,46 @@ func createMainRouterHandler(oa *openapi) (http.Handler, error) {
 		router.Handle(specOp.Method, path, httpRouterHandler)
 		logger.Infof("register handler for operation %q - %s %s", flatOp.id, specOp.Method, specOp.Path)
 	}
+
+	for _, contentType := range oa.contentTypes {
+		mimeType := contentType.Mime()
+		if openapi3filter.RegisteredBodyEncoder(mimeType) == nil {
+			openapi3filter.RegisterBodyEncoder(contentType.Mime(), contentType.Encode)
+		}
+		if openapi3filter.RegisteredBodyDecoder(mimeType) == nil {
+			openapi3filter.RegisterBodyDecoder(contentType.Mime(), func(reader io.Reader, _ http.Header, schema *openapi3.SchemaRef, enc openapi3filter.EncodingFn) (any, error) {
+				//err := contentType.ValidateTypeSchema(oa.logger(),
+				//	oa.options.LogLevel,
+				//	utils.GetType[any](),
+				//	*schema.Value)
+				//
+				//bytes, err := io.ReadAll(reader)
+				//if err != nil {
+				//	return nil, err
+				//}
+				//
+				//var target any
+				//if err = contentType.Decode(bytes, &target); err != nil {
+				//	return nil, err
+				//}
+				switch schema.Value.Type {
+				case openapi3.TypeArray:
+					return []any{}, nil
+				case openapi3.TypeObject:
+					return map[string]any{}, nil
+				case openapi3.TypeBoolean:
+					return false, nil
+				case openapi3.TypeString:
+					return "", nil
+				case openapi3.TypeNumber, openapi3.TypeInteger:
+					return 0, nil
+				}
+				return nil, nil
+			})
+		}
+
+	}
+
 	return router, nil
 }
 
@@ -87,8 +130,6 @@ func asHttpRouterHandler(oa openapi, specOp SpecOperation, head BoundHandlerFunc
 		}
 		_, err := head(ctx)
 		if err != nil || ctx.RawResponse.Status == 0 {
-			log.Println("unhandled error")
-			log.Println(err)
 			writer.WriteHeader(500)
 			return
 		}

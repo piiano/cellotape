@@ -6,7 +6,22 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/stretchr/testify/require"
+
+	"github.com/piiano/cellotape/router/utils"
 )
+
+// according to the spec the array validation properties should apply oly when the type is set to array
+func TestArraySchemaValidator(t *testing.T) {
+	// create with NewSchema and not with NewArraySchema for an untyped schema
+	schemaWithItemsProperty := openapi3.NewArraySchema().
+		WithItems(openapi3.NewObjectSchema().
+			WithProperty("token_id", openapi3.NewStringSchema()))
+	goType := utils.GetType[[]struct {
+		Value string `json:"token_id"`
+	}]()
+	err := schemaValidator(*schemaWithItemsProperty).WithType(goType).Validate()
+	require.NoErrorf(t, err, "expect untyped schema to be compatible with %s type", goType)
+}
 
 // according to the spec the array validation properties should apply oly when the type is set to array
 func TestArraySchemaValidatorWithUntypedSchema(t *testing.T) {

@@ -109,7 +109,9 @@ func (c typeSchemaValidatorContext) Validate() error {
 	c.validateIntegerSchema()
 
 	if len(*c.errors) > 0 {
-		return fmt.Errorf("%w %s", ErrSchemaIncompatibleWithType, c.goType)
+		err := fmt.Errorf("%w %s", ErrSchemaIncompatibleWithType, c.goType)
+		c.err(err.Error())
+		return err
 	}
 
 	return nil

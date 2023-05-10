@@ -6,6 +6,9 @@ import (
 	"github.com/piiano/cellotape/router/utils"
 )
 
+type Nil = utils.Nil
+type MultiType[T any] utils.MultiType[T]
+
 // Send constructs a new Response.
 func Send[R any](response R, headers ...http.Header) Response[R] {
 	aggregatedHeaders := make(http.Header, 0)

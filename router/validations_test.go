@@ -382,7 +382,7 @@ func TestValidateQueryParamsTypeFailWhenIncompatibleType(t *testing.T) {
 			Value: openapi3.NewQueryParameter("foo").WithSchema(openapi3.NewIntegerSchema()),
 		},
 	}, "")
-	assert.Equal(t, 3, counter.Errors)
+	assert.Equal(t, 4, counter.Errors)
 	assert.Equal(t, 0, counter.Warnings)
 }
 
@@ -428,6 +428,7 @@ func TestValidatePathParamsTypeFailWhenIncompatibleType(t *testing.T) {
 	counter := validatePathParamsType(openapi{}, PropagateError, handler{}, openapi3.Parameters{}, "")
 	assert.Equal(t, 0, counter.Errors)
 	assert.Equal(t, 0, counter.Warnings)
+
 	counter = validatePathParamsType(openapi{
 		options:      DefaultTestOptions(),
 		contentTypes: DefaultContentTypes(),
@@ -442,7 +443,7 @@ func TestValidatePathParamsTypeFailWhenIncompatibleType(t *testing.T) {
 			Value: openapi3.NewPathParameter("foo").WithSchema(openapi3.NewIntegerSchema()),
 		},
 	}, "")
-	assert.Equal(t, 3, counter.Errors)
+	assert.Equal(t, 4, counter.Errors)
 	assert.Equal(t, 0, counter.Warnings)
 }
 

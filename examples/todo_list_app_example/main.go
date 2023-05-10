@@ -36,7 +36,7 @@ func mainHandler() error {
 		return err
 	}
 	port := 8080
-	fmt.Printf("Starting HTTP server on port %d\n", port)
+	log.Printf("Starting HTTP server on port %d\n", port)
 	if err = http.ListenAndServe(fmt.Sprintf(":%d", port), handler); err != nil {
 		return err
 	}

@@ -203,7 +203,7 @@ func validateParamsType(oa openapi, behaviour Behaviour, in string, tag string, 
 		// TODO: schema validator check object schemas with json keys
 		if err := validator.WithType(field.Type).WithSchema(*specParameter.Schema.Value).Validate(); err != nil {
 			l.Logf(level, incompatibleParamType(operationId, in, name, field.Name, field.Type))
-			for errMessage := range validator.Errors() {
+			for _, errMessage := range validator.Errors() {
 				l.Log(level, errMessage)
 			}
 		}

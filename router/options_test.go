@@ -2,7 +2,7 @@ package router
 
 import (
 	"encoding/json"
-	"log"
+	"os"
 	"testing"
 
 	"github.com/invopop/jsonschema"
@@ -13,11 +13,13 @@ import (
 )
 
 func TestSchema(t *testing.T) {
-
 	schema := jsonschema.Reflect(&Options{})
-	bytes, _ := schema.MarshalJSON()
-	log.Println(string(bytes))
+	bytes, _ := json.MarshalIndent(schema, "", "  ")
 
+	schemaFile, err := os.ReadFile("../options-schema.json")
+	assert.NoError(t, err)
+
+	assert.Equal(t, string(schemaFile), string(bytes))
 }
 
 func TestBehaviourZeroValue(t *testing.T) {
