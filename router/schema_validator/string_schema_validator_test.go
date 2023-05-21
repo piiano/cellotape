@@ -12,6 +12,16 @@ import (
 	"github.com/piiano/cellotape/router/utils"
 )
 
+func TestStringSchemaValidatorWithByteFormat(t *testing.T) {
+	stringSchema := openapi3.NewStringSchema()
+	stringSchema.Format = "byte"
+
+	validator := schemaValidator(*stringSchema)
+	errTemplate := "expect string schema to be compatible with %s type"
+	bytes := reflect.TypeOf([]byte{})
+	expectTypeToBeCompatible(t, validator, bytes, errTemplate, bytes)
+}
+
 func TestStringSchemaValidatorPassForStringType(t *testing.T) {
 	stringSchema := openapi3.NewStringSchema()
 	validator := schemaValidator(*stringSchema)
@@ -23,7 +33,11 @@ func TestStringSchemaValidatorPassForStringType(t *testing.T) {
 func TestStringSchemaValidatorWithUntypedSchema(t *testing.T) {
 	untypedSchemaWithUUIDFormat := openapi3.NewSchema().WithFormat(uuidFormat)
 
-	for _, validType := range types {
+	otherNonStringTypes := utils.Filter(types, func(t reflect.Type) bool {
+		return t != sliceOfBytesType && t != timeType
+	})
+
+	for _, validType := range otherNonStringTypes {
 		t.Run(validType.String(), func(t *testing.T) {
 			err := schemaValidator(*untypedSchemaWithUUIDFormat).WithType(validType).Validate()
 			require.NoErrorf(t, err, "expect untyped schema to be compatible with %s type", validType)

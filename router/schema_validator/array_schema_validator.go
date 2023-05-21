@@ -10,7 +10,7 @@ func (c typeSchemaValidatorContext) validateArraySchema() {
 	}
 
 	if !isSchemaTypeArrayOrEmpty(c.schema) {
-		if isArrayGoType(c.goType) {
+		if isArrayGoType(c.goType) && !isSliceOfBytes(c.goType) {
 			c.err(schemaTypeIsIncompatibleWithType(c.schema, c.goType))
 		}
 		return

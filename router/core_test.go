@@ -32,7 +32,6 @@ func TestName(t *testing.T) {
 }
 
 func TestFailStartOnValidationError(t *testing.T) {
-
 	_, err := createMainRouterHandler(&openapi{
 		spec:    NewSpec(),
 		options: DefaultOptions(),

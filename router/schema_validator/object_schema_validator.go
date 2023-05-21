@@ -34,8 +34,11 @@ func (c typeSchemaValidatorContext) validateObjectSchema() {
 			return c.assertStruct(t)
 		}
 
-		// kind must be struct or object because we validated above serializedFromObject
-		return c.assertMap(t)
+		if t.Kind() == reflect.Map {
+			return c.assertMap(t)
+		}
+
+		return false
 	})(c.goType)
 }
 

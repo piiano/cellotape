@@ -127,7 +127,7 @@ func TestRawHandler(t *testing.T) {
 	handlerFunc := rawHandler.handlerFactory(openapi{}, func(c *Context) (RawResponse, error) {
 		return rawResponse, nil
 	})
-	resp, err := handlerFunc(&Context{Request: &http.Request{}, RawResponse: &RawResponse{}})
+	resp, err := handlerFunc(testContext())
 	require.ErrorIs(t, err, UnsupportedResponseStatusErr)
 	assert.Zero(t, resp)
 

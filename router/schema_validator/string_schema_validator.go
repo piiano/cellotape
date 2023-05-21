@@ -25,6 +25,14 @@ func (c typeSchemaValidatorContext) validateStringSchema() {
 		return
 	}
 
+	// if schema format is "byte" expect type to be compatible with []byte
+	if c.schema.Format == byteFormat {
+		if (c.schema.Type == openapi3.TypeString || isSerializedFromString(c.goType)) && !isSliceOfBytes(c.goType) {
+			c.err(schemaTypeWithFormatIsIncompatibleWithType(c.schema, c.goType))
+		}
+		return
+	}
+
 	// if schema format is "uuid" expect type to be compatible with UUID
 	if c.schema.Format == uuidFormat {
 		if (c.schema.Type == openapi3.TypeString || isSerializedFromString(c.goType)) && !isUUIDCompatible(c.goType) {
@@ -46,8 +54,4 @@ func (c typeSchemaValidatorContext) validateStringSchema() {
 		c.err(schemaTypeWithFormatIsIncompatibleWithType(c.schema, c.goType))
 		return
 	}
-
-	//if isString(c.goType) {
-	//	c.err(schemaTypeIsIncompatibleWithType(c.schema, c.goType))
-	//}
 }

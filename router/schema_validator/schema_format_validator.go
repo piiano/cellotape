@@ -47,6 +47,9 @@ const (
 	// A string instance is valid against this attribute if it is a valid string representation of a UUID, according to [RFC4122].
 	uuidFormat = "uuid"
 	// use with openapi3.TypeString
+	// A string instance is valid against this attribute if it is a valid base64 string.
+	byteFormat = "byte"
+	// use with openapi3.TypeString
 	// This attribute applies to string instances.
 	// A string instance is valid against this attribute if it is a valid URI Template (of any level), according to [RFC6570].
 	// Note that URI Templates may be used for IRIs; there is no separate IRI Template specification.

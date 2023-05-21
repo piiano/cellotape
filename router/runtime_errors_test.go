@@ -1,7 +1,9 @@
 package router
 
 import (
+	"bytes"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -16,8 +18,10 @@ import (
 	"github.com/piiano/cellotape/router/utils"
 )
 
-var testContext = func() *Context {
-	return &Context{
+type contextModifier func(*Context)
+
+func testContext(modifiers ...contextModifier) *Context {
+	ctx := &Context{
 		Operation: SpecOperation{
 			Operation: openapi3.NewOperation(),
 		},
@@ -28,6 +32,56 @@ var testContext = func() *Context {
 		},
 		Writer: &httptest.ResponseRecorder{},
 		Params: &httprouter.Params{},
+	}
+	for _, modifier := range modifiers {
+		modifier(ctx)
+	}
+	return ctx
+}
+
+func withURL(t *testing.T, urlString string) contextModifier {
+	urlValue, err := url.Parse(urlString)
+	require.NoError(t, err)
+	return func(ctx *Context) {
+		ctx.Request.URL = urlValue
+	}
+}
+
+func withBody(body string) contextModifier {
+	bodyReader := io.NopCloser(bytes.NewBuffer([]byte(body)))
+
+	return withBodyReader(bodyReader)
+}
+
+func withBodyReader(bodyReader io.ReadCloser) contextModifier {
+	return func(ctx *Context) {
+		ctx.Request.Body = bodyReader
+	}
+}
+
+func withParams(params *httprouter.Params) contextModifier {
+	return func(ctx *Context) {
+		ctx.Params = params
+	}
+}
+
+func withHeader(header string, values ...string) contextModifier {
+	return func(ctx *Context) {
+		for _, value := range values {
+			ctx.Request.Header.Add(header, value)
+		}
+	}
+}
+
+func withOperation(operation *openapi3.Operation) contextModifier {
+	return func(ctx *Context) {
+		ctx.Operation.Operation = operation
+	}
+}
+
+func withResponseWriter(writer http.ResponseWriter) contextModifier {
+	return func(ctx *Context) {
+		ctx.Writer = writer
 	}
 }
 

@@ -11,16 +11,18 @@ import (
 )
 
 var (
-	timeType = utils.GetType[time.Time]()
-	uuidType = utils.GetType[uuid.UUID]()
+	timeType         = utils.GetType[time.Time]()
+	uuidType         = utils.GetType[uuid.UUID]()
+	sliceOfBytesType = utils.GetType[[]byte]()
 
 	isString               = kindIs(reflect.String)
 	isUUIDCompatible       = anyOf(isString, convertibleTo(uuidType))
+	isSliceOfBytes         = anyOf(isString, typeIs(sliceOfBytesType))
 	isTimeCompatible       = anyOf(isString, convertibleTo(timeType))
-	isSerializedFromString = anyOf(isString, isUUIDCompatible, isTimeCompatible)
+	isSerializedFromString = anyOf(isString, isUUIDCompatible, isTimeCompatible, isSliceOfBytes)
 
 	isTimeFormat         = schemaFormatIs(dateTimeFormat, timeFormat)
-	isSchemaStringFormat = schemaFormatIs(uuidFormat, dateTimeFormat, timeFormat, dateFormat, durationFormat,
+	isSchemaStringFormat = schemaFormatIs(uuidFormat, byteFormat, dateTimeFormat, timeFormat, dateFormat, durationFormat,
 		emailFormat, idnEmailFormat, hostnameFormat, idnHostnameFormat, ipv4Format, ipv6Format, uriFormat,
 		uriReferenceFormat, iriFormat, iriReferenceFormat, uriTemplateFormat, jsonPointerFormat,
 		relativeJsonPointerFormat, regexFormat, passwordFormat)
@@ -95,6 +97,12 @@ func schemaFormatIs(types ...string) schemaAssertion {
 func kindIs(kinds ...reflect.Kind) typeAssertion {
 	return handleMultiType(func(t reflect.Type) bool {
 		return utils.NewSet(kinds...).Has(t.Kind())
+	})
+}
+
+func typeIs(types ...reflect.Type) typeAssertion {
+	return handleMultiType(func(t reflect.Type) bool {
+		return utils.NewSet(types...).Has(t)
 	})
 }
 

@@ -270,10 +270,6 @@ func requestValidationInput(ctx *Context) *openapi3filter.RequestValidationInput
 		ParamDecoder: nil,
 	}
 
-	input.Options.WithCustomSchemaErrorFunc(func(err *openapi3.SchemaError) string {
-		return err.Reason
-	})
-
 	if ctx.Request != nil {
 		input.Request = ctx.Request
 		if ctx.Request.URL != nil {

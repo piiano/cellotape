@@ -1,8 +1,15 @@
 package router
 
 import (
+	"bytes"
+	"errors"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"reflect"
 	"testing"
+	"testing/iotest"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/stretchr/testify/assert"
@@ -64,6 +71,106 @@ func TestContentTypeMime(t *testing.T) {
 		err = test.contentType.Decode(test.bytes, &value)
 		require.NoError(t, err)
 		assert.Equal(t, test.value, value)
+	}
+}
+
+type foo struct {
+	Foo string `json:"foo"`
+}
+type fooContentType struct {
+	shouldErr bool
+}
+
+func (f fooContentType) Mime() string { return "foo" }
+
+func (f fooContentType) Encode(a any) ([]byte, error) {
+	return []byte(a.(foo).Foo), nil
+}
+
+func (f fooContentType) Decode(bytes []byte, a any) error {
+	if f.shouldErr {
+		return errors.New("foo decode error")
+	}
+	switch typedValue := a.(type) {
+	case *foo:
+		(*typedValue).Foo = string(bytes)
+	case *any:
+		*typedValue = string(bytes)
+	}
+	return nil
+}
+
+func (f fooContentType) ValidateTypeSchema(_ utils.Logger, _ utils.LogLevel, _ reflect.Type, _ openapi3.Schema) error {
+	return nil
+}
+
+func TestValidationsWithCustomContentType(t *testing.T) {
+	testSpec, err := NewSpecFromData([]byte(`
+paths:
+  /test:
+    post:
+      operationId: test
+      requestBody:
+        content:
+          foo:
+            schema:
+              type: string
+      responses:
+        '200':
+          description: ok
+`))
+	require.NoError(t, err)
+
+	testCases := []struct {
+		contentType ContentType
+		bodyReader  io.ReadCloser
+		shouldErr   bool
+	}{
+		{
+			contentType: fooContentType{},
+			bodyReader:  io.NopCloser(bytes.NewBufferString("bar")),
+		},
+		{
+			contentType: fooContentType{shouldErr: true},
+			bodyReader:  io.NopCloser(bytes.NewBufferString("bar")),
+			shouldErr:   true,
+		},
+		{
+			contentType: fooContentType{},
+			bodyReader:  io.NopCloser(iotest.ErrReader(errors.New("failed reading body"))),
+			shouldErr:   true,
+		},
+	}
+
+	for _, test := range testCases {
+		var calledWithBody *foo
+		var badRequestErr error
+		router := NewOpenAPIRouter(testSpec).
+			WithContentType(test.contentType).
+			WithOperation("test", HandlerFunc[foo, Nil, Nil, OKResponse[Nil]](func(_ *Context, r Request[foo, Nil, Nil]) (Response[OKResponse[Nil]], error) {
+				calledWithBody = &r.Body
+				return SendOK(OKResponse[Nil]{}), nil
+			}), ErrorHandler(func(_ *Context, err error) (Response[any], error) {
+				badRequestErr = err
+				return Response[any]{}, nil
+			}))
+		handler, err := router.AsHandler()
+		require.NoError(t, err)
+
+		handler.ServeHTTP(&httptest.ResponseRecorder{}, &http.Request{
+			Method: http.MethodPost,
+			URL:    &url.URL{Path: "/test"},
+			Header: http.Header{"Content-Type": []string{"foo"}},
+			Body:   test.bodyReader,
+		})
+
+		if test.shouldErr {
+			//require.Nil(t, calledWithBody)
+			require.Error(t, badRequestErr)
+		} else {
+			assert.Equal(t, foo{Foo: "bar"}, *calledWithBody)
+			require.NoError(t, badRequestErr)
+		}
 	}
 }
 
