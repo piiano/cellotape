@@ -182,19 +182,24 @@ func responseBinderFactory[R any](responses handlerResponses, contentTypes Conte
 			return *ctx.RawResponse, err
 		}
 
-		input := &openapi3filter.ResponseValidationInput{
-			RequestValidationInput: requestValidationInput(ctx),
-			Status:                 r.status,
-			Header:                 r.headers,
-			Body:                   io.NopCloser(bytes.NewReader(responseBytes)),
-			Options:                openapi3filter.DefaultOptions,
-		}
-
-		if err = openapi3filter.ValidateResponse(ctx.Request.Context(), input); err != nil {
-			log.Printf("[WARNING] %s. response violates the spec\n", err)
-		}
+		validateResponse(ctx, r, responseBytes)
 
 		return *ctx.RawResponse, nil
+	}
+}
+
+// validateResponse validates the response against the spec. It logs a warning if the response violates the spec.
+func validateResponse[R any](ctx *Context, r Response[R], responseBytes []byte) {
+	input := &openapi3filter.ResponseValidationInput{
+		RequestValidationInput: requestValidationInput(ctx),
+		Status:                 r.status,
+		Header:                 r.headers,
+		Body:                   io.NopCloser(bytes.NewReader(responseBytes)),
+		Options:                openapi3filter.DefaultOptions,
+	}
+
+	if err := openapi3filter.ValidateResponse(ctx.Request.Context(), input); err != nil {
+		log.Printf("[WARNING] %s. response violates the spec\n", err)
 	}
 }
 
