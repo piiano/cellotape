@@ -106,6 +106,10 @@ func (f fooContentType) ValidateTypeSchema(_ utils.Logger, _ utils.LogLevel, _ r
 
 func TestValidationsWithCustomContentType(t *testing.T) {
 	testSpec, err := NewSpecFromData([]byte(`
+openapi: 3.0.3
+info:
+  title: test
+  version: 1.0.0
 paths:
   /test:
     post:

@@ -132,7 +132,7 @@ func TestRequestBodyViolateSchemaValidations(t *testing.T) {
 	response, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 	assert.Equal(t,
-		`invalid request body. request body has an error: doesn't match schema #/components/schemas/Task: value "archived" is not one of the allowed values`,
+		`invalid request body. request body has an error: doesn't match schema #/components/schemas/Task: value is not one of the allowed values ["open","in progress","closed"]`,
 		string(response))
 }
 

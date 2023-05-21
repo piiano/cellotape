@@ -103,7 +103,7 @@ func TestObjectSchemaValidatorWithSimpleStructAdditionalProperties(t *testing.T)
 
 	explicitWithoutAdditionalProperties := *simpleStructSchema
 
-	explicitWithoutAdditionalProperties.AdditionalPropertiesAllowed = utils.Ptr(false)
+	explicitWithoutAdditionalProperties.AdditionalProperties.Has = utils.Ptr(false)
 	expectTypeToBeIncompatible(t, schemaValidator(*simpleStructSchema).WithSchema(explicitWithoutAdditionalProperties),
 		simpleStructType, errTemplate, "incompatible", simpleStructType)
 

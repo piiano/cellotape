@@ -155,12 +155,12 @@ func structJsonFields(structType reflect.Type) map[string]reflect.StructField {
 
 func additionalPropertiesSchema(schema openapi3.Schema) *openapi3.Schema {
 	// if additional properties schema is defined explicitly return it
-	if schema.AdditionalProperties != nil {
-		return schema.AdditionalProperties.Value
+	if schema.AdditionalProperties.Schema != nil {
+		return schema.AdditionalProperties.Schema.Value
 	}
 
-	// if additional properties is empty (tru by default) or set explicitly to true return an empty schema (schema for any type)
-	if schema.AdditionalPropertiesAllowed == nil || *schema.AdditionalPropertiesAllowed {
+	// if additional properties is empty (true by default) or set explicitly to true return an empty schema (schema for any type)
+	if schema.AdditionalProperties.Has == nil || *schema.AdditionalProperties.Has {
 		return openapi3.NewSchema()
 	}
 

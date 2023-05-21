@@ -205,7 +205,7 @@ func validateResponse[R any](ctx *Context, r Response[R], responseBytes []byte) 
 		Status:                 r.status,
 		Header:                 r.headers,
 		Body:                   io.NopCloser(bytes.NewReader(responseBytes)),
-		Options:                openapi3filter.DefaultOptions,
+		Options:                validationOptions(),
 	}
 
 	if err := openapi3filter.ValidateResponse(ctx.Request.Context(), input); err != nil {
@@ -278,7 +278,7 @@ func requestValidationInput(ctx *Context) *openapi3filter.RequestValidationInput
 		Request:     &http.Request{},
 		PathParams:  make(map[string]string),
 		QueryParams: url.Values{},
-		Options:     openapi3filter.DefaultOptions,
+		Options:     validationOptions(),
 		Route: &routers.Route{
 			Operation: ctx.Operation.Operation,
 		},
@@ -302,4 +302,13 @@ func requestValidationInput(ctx *Context) *openapi3filter.RequestValidationInput
 	}
 
 	return &input
+}
+
+func validationOptions() *openapi3filter.Options {
+	options := openapi3filter.Options{}
+	// Customize the error message returned by the kin-openapi library to be more user-friendly.
+	options.WithCustomSchemaErrorFunc(func(err *openapi3.SchemaError) string {
+		return err.Reason
+	})
+	return &options
 }

@@ -32,10 +32,10 @@ func TestRouterAsHandler(t *testing.T) {
 		return SendOKJSON(responses{Answer: 42}), nil
 	})
 	spec, err := NewSpecFromData([]byte(`
-  { "paths": { "/abc": { "post": {
+  { "openapi": "3.0.3", "info": { "title": "test", "version": "1.0.0" }, "paths": { "/abc": { "post": {
     "operationId": "id",
     "summary": "the ultimate answer to life the universe and everything",
-    "responses":{ "200": { "content": { "application/json": { "schema": { "type": "integer" } } } } }
+    "responses":{ "200": { "description": "ok", "content": { "application/json": { "schema": { "type": "integer" } } } } }
   } } } }`))
 	require.NoError(t, err)
 	router := NewOpenAPIRouter(spec).WithOperation("id", fn)
