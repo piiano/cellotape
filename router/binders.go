@@ -13,9 +13,9 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/getkin/kin-openapi/routers"
-	"github.com/gin-gonic/gin/binding"
 	"github.com/julienschmidt/httprouter"
 
+	"github.com/piiano/cellotape/router/ginbinders"
 	"github.com/piiano/cellotape/router/utils"
 )
 
@@ -111,7 +111,7 @@ func pathBinderFactory[P any](pathParamsType reflect.Type) binder[P] {
 			m[k] = []string{v}
 		}
 
-		if err = binding.Uri.BindUri(m, target); err != nil {
+		if err = ginbinders.BindPath(m, target); err != nil {
 			return err
 		}
 		return nil
@@ -143,7 +143,7 @@ func queryBinderFactory[Q any](queryParamsType reflect.Type) binder[Q] {
 			return err
 		}
 
-		if err = binding.Query.Bind(defaults.Request, queryParams); err != nil {
+		if err = ginbinders.BindQueries(defaults.Request.URL.Query(), queryParams); err != nil {
 			return err
 		}
 
