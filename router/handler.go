@@ -2,9 +2,10 @@ package router
 
 import (
 	"net/http"
-	"reflect"
 
 	"github.com/julienschmidt/httprouter"
+
+	"github.com/piiano/cellotape/router/utils"
 )
 
 // Handler described the HandlerFunc in a non parametrized way.
@@ -95,29 +96,18 @@ func NewHandler[B, P, Q, R any](h HandlerFunc[B, P, Q, R]) Handler {
 	return h
 }
 
-// getType returns reflect.Type of the generic parameter it receives.
-func getType[T any]() reflect.Type { return reflect.TypeOf(new(T)).Elem() }
-
-// Nil represents an empty type.
-// You can use it with the HandlerFunc generic parameters to declare no Request with no request body, no path or query
-// params, or responses with no response body.
-type Nil *uintptr
-
-// nilType represent the type of Nil.
-var nilType = getType[Nil]()
-
 // requestTypes extracts the request types defined by the HandlerFunc
 func (h HandlerFunc[B, P, Q, R]) requestTypes() requestTypes {
 	return requestTypes{
-		requestBody: getType[B](),
-		pathParams:  getType[P](),
-		queryParams: getType[Q](),
+		requestBody: utils.GetType[B](),
+		pathParams:  utils.GetType[P](),
+		queryParams: utils.GetType[Q](),
 	}
 }
 
 // responseTypes extracts the responses defined by the HandlerFunc and returns handlerResponses
 func (h HandlerFunc[B, P, Q, R]) responseTypes() handlerResponses {
-	return extractResponses(getType[R]())
+	return extractResponses(utils.GetType[R]())
 }
 
 // sourcePosition finds the sourcePosition of the HandlerFunc function for printing meaningful messages during validations

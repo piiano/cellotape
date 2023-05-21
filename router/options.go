@@ -8,6 +8,15 @@ import (
 	"github.com/piiano/cellotape/router/utils"
 )
 
+type LogLevel = utils.LogLevel
+
+const (
+	LogLevelError = utils.Error
+	LogLevelWarn  = utils.Warn
+	LogLevelInfo  = utils.Info
+	LogLevelOff   = utils.Off
+)
+
 // Behaviour defines a possible behaviour for a validation error.
 // Possible values are PropagateError, PrintWarning and Ignore.
 //
@@ -75,7 +84,7 @@ type Options struct {
 	// By default, LogLevel is set to utils.Info to print all info to the log.
 	// The router prints to the log only during initialization to show validation errors, warnings and useful info.
 	// No printing is done after initialization.
-	LogLevel utils.LogLevel `json:"logLevel,omitempty"`
+	LogLevel LogLevel `json:"logLevel,omitempty"`
 
 	// LogOutput defines where to write the outputs too.
 	// By default, it is set to write to os.Stderr.
@@ -159,7 +168,7 @@ type SchemaValidationOptions struct {
 func DefaultOptions() Options {
 	return Options{
 		RecoverOnPanic: true,
-		LogLevel:       utils.Info,
+		LogLevel:       LogLevelInfo,
 		LogOutput:      os.Stderr,
 		DefaultOperationValidation: OperationValidationOptions{
 			ValidateRequestBody:         PropagateError,

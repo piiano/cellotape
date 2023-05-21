@@ -9,10 +9,11 @@ import (
 	m "github.com/piiano/cellotape/examples/todo_list_app_example/models"
 	"github.com/piiano/cellotape/examples/todo_list_app_example/services"
 	r "github.com/piiano/cellotape/router"
+	"github.com/piiano/cellotape/router/utils"
 )
 
 func getTaskByIDOperation(tasks services.TasksService) r.Handler {
-	return r.NewHandler(func(_ *r.Context, request r.Request[r.Nil, idPathParam, r.Nil]) (r.Response[getTaskByIDResponses], error) {
+	return r.NewHandler(func(_ *r.Context, request r.Request[utils.Nil, idPathParam, utils.Nil]) (r.Response[getTaskByIDResponses], error) {
 		id, err := uuid.Parse(request.PathParams.ID)
 		if err != nil {
 			return r.SendJSON(getTaskByIDResponses{

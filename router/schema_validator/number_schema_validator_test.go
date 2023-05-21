@@ -6,13 +6,14 @@ import (
 	"testing"
 
 	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/stretchr/testify/require"
 
 	"github.com/piiano/cellotape/router/utils"
 )
 
 func TestNumberSchemaValidatorPassForIntType(t *testing.T) {
 	numberSchema := openapi3.NewSchema()
-	numberSchema.Type = numberSchemaType
+	numberSchema.Type = openapi3.TypeNumber
 	validator := schemaValidator(*numberSchema)
 	errTemplate := "expect number schema to be compatible with %s type"
 	for _, numericType := range numericTypes {
@@ -25,11 +26,15 @@ func TestNumberSchemaValidatorPassForIntType(t *testing.T) {
 // according to the spec the number validation properties should apply only when the type is set to number
 func TestNumberSchemaValidatorWithUntypedSchema(t *testing.T) {
 	untypedSchemaWithDoubleFormat := openapi3.NewSchema().WithFormat(doubleFormat)
-	validator := schemaValidator(*untypedSchemaWithDoubleFormat)
-	for _, validType := range types {
-		t.Run(validType.String(), func(t *testing.T) {
-			if err := validator.WithType(validType).validateNumberSchema(); err != nil {
-				t.Errorf("expect untyped schema to be compatible with %s type", validType)
+	for _, goType := range types {
+		valid := isFloat64(goType) || !isNumericType(goType)
+
+		t.Run(goType.String(), func(t *testing.T) {
+			err := schemaValidator(*untypedSchemaWithDoubleFormat).WithType(goType).Validate()
+			if valid {
+				require.NoErrorf(t, err, "expect untyped schema to be compatible with %s type", goType)
+			} else {
+				require.Errorf(t, err, "expect untyped schema to be incompatible with %s type", goType)
 			}
 		})
 	}
@@ -37,7 +42,7 @@ func TestNumberSchemaValidatorWithUntypedSchema(t *testing.T) {
 
 func TestNumberSchemaValidatorFailOnWrongType(t *testing.T) {
 	numberSchema := openapi3.NewSchema()
-	numberSchema.Type = numberSchemaType
+	numberSchema.Type = openapi3.TypeNumber
 	validator := schemaValidator(*numberSchema)
 	errTemplate := "expect number schema to be incompatible with %s type"
 	// filter all numeric types from all defined test types
@@ -56,7 +61,7 @@ func TestNumberSchemaValidatorFailOnWrongType(t *testing.T) {
 
 func TestFloatFormatSchemaValidatorPassForFloat32Type(t *testing.T) {
 	floatSchema := openapi3.NewSchema()
-	floatSchema.Type = numberSchemaType
+	floatSchema.Type = openapi3.TypeNumber
 	floatSchema.Format = floatFormat
 	validator := schemaValidator(*floatSchema)
 	errTemplate := "expect number schema with float format to be compatible with %s type"
@@ -65,7 +70,7 @@ func TestFloatFormatSchemaValidatorPassForFloat32Type(t *testing.T) {
 
 func TestFloat32FormatSchemaValidatorFailOnWrongType(t *testing.T) {
 	floatSchema := openapi3.NewSchema()
-	floatSchema.Type = numberSchemaType
+	floatSchema.Type = openapi3.TypeNumber
 	floatSchema.Format = floatFormat
 	validator := schemaValidator(*floatSchema)
 	errTemplate := "expect number schema with float format to be incompatible with %s type"
@@ -82,7 +87,7 @@ func TestFloat32FormatSchemaValidatorFailOnWrongType(t *testing.T) {
 
 func TestDoubleFormatSchemaValidatorPassForFloat32Type(t *testing.T) {
 	doubleSchema := openapi3.NewSchema()
-	doubleSchema.Type = numberSchemaType
+	doubleSchema.Type = openapi3.TypeNumber
 	doubleSchema.Format = doubleFormat
 	validator := schemaValidator(*doubleSchema)
 	errTemplate := "expect number schema with double format to be compatible with %s type"
@@ -91,7 +96,7 @@ func TestDoubleFormatSchemaValidatorPassForFloat32Type(t *testing.T) {
 
 func TestDoubleFormatSchemaValidatorFailOnWrongType(t *testing.T) {
 	doubleSchema := openapi3.NewSchema()
-	doubleSchema.Type = numberSchemaType
+	doubleSchema.Type = openapi3.TypeNumber
 	doubleSchema.Format = doubleFormat
 	validator := schemaValidator(*doubleSchema)
 	errTemplate := "expect number schema with double format to be incompatible with %s type"

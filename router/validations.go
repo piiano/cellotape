@@ -3,7 +3,6 @@ package router
 import (
 	"fmt"
 	"reflect"
-	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
 
@@ -12,11 +11,10 @@ import (
 )
 
 const (
-	pathParamInValue    = "path"
-	pathParamFieldTag   = "uri"
-	queryParamInValue   = "query"
-	queryParamFieldTag  = "form"
-	ignoreFieldTagValue = "-"
+	pathParamInValue   = "path"
+	pathParamFieldTag  = "uri"
+	queryParamInValue  = "query"
+	queryParamFieldTag = "form"
 )
 
 // validateOpenAPIRouter validates the entire OpenAPI Router structure built with the builder with the spec.
@@ -95,7 +93,7 @@ func validateOperation(oa openapi, operation operation) error {
 func validateHandleAllPathParams(oa openapi, behaviour Behaviour, operation operation, specOp SpecOperation) utils.LogCounters {
 	handlers := append(operation.handlers, operation.handler)
 	declaredParams := utils.NewSet[string](utils.ConcatSlices[string](utils.Map(handlers, func(h handler) []string {
-		return utils.Keys(structKeys(h.request.pathParams, pathParamFieldTag))
+		return utils.Keys(utils.StructKeys(h.request.pathParams, pathParamFieldTag))
 	})...)...)
 	return validateHandleAllParams(oa, behaviour, operation, specOp, pathParamInValue, declaredParams)
 }
@@ -104,7 +102,7 @@ func validateHandleAllPathParams(oa openapi, behaviour Behaviour, operation oper
 func validateHandleAllQueryParams(oa openapi, behaviour Behaviour, operation operation, specOp SpecOperation) utils.LogCounters {
 	handlers := append(operation.handlers, operation.handler)
 	declaredParams := utils.NewSet[string](utils.ConcatSlices[string](utils.Map(handlers, func(h handler) []string {
-		return utils.Keys(structKeys(h.request.queryParams, queryParamFieldTag))
+		return utils.Keys(utils.StructKeys(h.request.queryParams, queryParamFieldTag))
 	})...)...)
 	return validateHandleAllParams(oa, behaviour, operation, specOp, queryParamInValue, declaredParams)
 }
@@ -152,7 +150,7 @@ func validateRequestBodyType(oa openapi, behaviour Behaviour, handler handler, s
 	l := oa.logger()
 	level := utils.LogLevel(behaviour)
 	bodyType := handler.request.requestBody
-	if bodyType == nilType {
+	if bodyType == utils.NilType {
 		return utils.LogCounters{}
 	}
 	if specBody == nil {
@@ -190,11 +188,13 @@ func validateQueryParamsType(oa openapi, behaviour Behaviour, handler handler, s
 func validateParamsType(oa openapi, behaviour Behaviour, in string, tag string, paramsType reflect.Type, specParameters openapi3.Parameters, operationId string) utils.LogCounters {
 	l := oa.logger()
 	level := utils.LogLevel(behaviour)
-	if paramsType == nilType {
+	if paramsType == utils.NilType {
 		return utils.LogCounters{}
 	}
-	validator := schema_validator.NewTypeSchemaValidator(l, level, nilType, openapi3.Schema{})
-	for name, field := range structKeys(paramsType, tag) {
+
+	validator := schema_validator.NewTypeSchemaValidator(utils.NilType, openapi3.Schema{})
+
+	for name, field := range utils.StructKeys(paramsType, tag) {
 		specParameter := specParameters.GetByInAndName(in, name)
 		if specParameter == nil {
 			l.Logf(level, paramDefinedByHandlerButMissingInSpec(in, name, paramsType, operationId))
@@ -203,29 +203,12 @@ func validateParamsType(oa openapi, behaviour Behaviour, in string, tag string, 
 		// TODO: schema validator check object schemas with json keys
 		if err := validator.WithType(field.Type).WithSchema(*specParameter.Schema.Value).Validate(); err != nil {
 			l.Logf(level, incompatibleParamType(operationId, in, name, field.Name, field.Type))
+			for _, errMessage := range validator.Errors() {
+				l.Log(level, errMessage)
+			}
 		}
 	}
 	return l.Counters()
-}
-
-func structKeys(structType reflect.Type, tag string) map[string]reflect.StructField {
-	if structType == nil || structType == nilType {
-		return map[string]reflect.StructField{}
-	}
-	return utils.FromEntries(utils.ConcatSlices(utils.Map(utils.Filter(reflect.VisibleFields(structType), func(field reflect.StructField) bool {
-		return !field.Anonymous && field.IsExported() && field.Tag.Get(tag) != ignoreFieldTagValue
-	}), func(field reflect.StructField) utils.Entry[string, reflect.StructField] {
-		name := field.Tag.Get(tag)
-		name, _, _ = strings.Cut(name, ",")
-		if name == "" {
-			name = field.Name
-		}
-		return utils.Entry[string, reflect.StructField]{Key: name, Value: field}
-	}), utils.ConcatSlices(utils.Map(utils.Filter(reflect.VisibleFields(structType), func(field reflect.StructField) bool {
-		return field.Anonymous && field.IsExported() && field.Tag.Get(tag) != ignoreFieldTagValue
-	}), func(field reflect.StructField) []utils.Entry[string, reflect.StructField] {
-		return utils.Entries(structKeys(field.Type, tag))
-	})...)))
 }
 
 // validateResponseTypes check that all responses declared on a handler are available on the spec with a compatible schema.

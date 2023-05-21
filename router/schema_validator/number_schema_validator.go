@@ -1,31 +1,28 @@
 package schema_validator
 
 import (
-	"reflect"
+	"github.com/getkin/kin-openapi/openapi3"
 )
 
-func (c typeSchemaValidatorContext) validateNumberSchema() error {
-	l := c.newLogger()
-	if c.schema.Type != numberSchemaType {
-		return nil
-	}
-	switch c.goType.Kind() {
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr,
-		reflect.Float32, reflect.Float64:
-	default:
-		l.Logf(c.level, schemaTypeIsIncompatibleWithType(c.schema, c.goType))
-	}
-	switch c.schema.Format {
-	case floatFormat:
-		if c.goType.Kind() != reflect.Float32 {
-			l.Logf(c.level, schemaTypeWithFormatIsIncompatibleWithType(c.schema, c.goType))
+func (c typeSchemaValidatorContext) validateNumberSchema() {
+	isGoTypeNumeric := isNumericType(c.goType)
+
+	if !isGoTypeNumeric {
+		if c.schema.Type != openapi3.TypeNumber {
+			return
 		}
-	case doubleFormat:
-		if c.goType.Kind() != reflect.Float64 {
-			l.Logf(c.level, schemaTypeWithFormatIsIncompatibleWithType(c.schema, c.goType))
-		}
+
+		// schema type is numeric and go type is not numeric
+		c.err(schemaTypeIsIncompatibleWithType(c.schema, c.goType))
+		return
 	}
+
+	// schema type is numeric and go type is not numeric
+	if (c.schema.Format == floatFormat && !isFloat32(c.goType)) ||
+		(c.schema.Format == doubleFormat && !isFloat64(c.goType)) {
+		c.err(schemaTypeWithFormatIsIncompatibleWithType(c.schema, c.goType))
+		return
+	}
+
 	// TODO: check type compatability with Max, ExclusiveMax, Min, and ExclusiveMin
-	return formatMustHaveNoError(l.MustHaveNoErrors(), c.schema.Type, c.goType)
 }

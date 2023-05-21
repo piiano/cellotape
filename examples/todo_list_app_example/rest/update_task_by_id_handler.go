@@ -9,10 +9,11 @@ import (
 	m "github.com/piiano/cellotape/examples/todo_list_app_example/models"
 	"github.com/piiano/cellotape/examples/todo_list_app_example/services"
 	r "github.com/piiano/cellotape/router"
+	"github.com/piiano/cellotape/router/utils"
 )
 
 func updateTaskByIDOperation(tasks services.TasksService) r.Handler {
-	return r.NewHandler(func(_ *r.Context, request r.Request[m.Task, idPathParam, r.Nil]) (r.Response[updateTaskByIDResponses], error) {
+	return r.NewHandler(func(_ *r.Context, request r.Request[m.Task, idPathParam, utils.Nil]) (r.Response[updateTaskByIDResponses], error) {
 		id, err := uuid.Parse(request.PathParams.ID)
 		if err != nil {
 			return r.SendJSON(updateTaskByIDResponses{
@@ -35,7 +36,7 @@ func updateTaskByIDOperation(tasks services.TasksService) r.Handler {
 }
 
 type updateTaskByIDResponses struct {
-	NoContent  r.Nil       `status:"204"`
+	NoContent  utils.Nil   `status:"204"`
 	BadRequest m.HttpError `status:"400"`
 	NotFound   m.HttpError `status:"404"`
 }

@@ -2,7 +2,12 @@ package router
 
 import (
 	"net/http"
+
+	"github.com/piiano/cellotape/router/utils"
 )
+
+type Nil = utils.Nil
+type MultiType[T any] utils.MultiType[T]
 
 // Send constructs a new Response.
 func Send[R any](response R, headers ...http.Header) Response[R] {
@@ -62,7 +67,7 @@ func Error[R any](err error) (Response[R], error) {
 
 // RawHandler adds a handler that doesn't define any type information.
 func RawHandler(f func(c *Context) error) Handler {
-	return NewHandler(func(c *Context, _ Request[Nil, Nil, Nil]) (Response[any], error) {
+	return NewHandler(func(c *Context, _ Request[utils.Nil, utils.Nil, utils.Nil]) (Response[any], error) {
 		return Response[any]{}, f(c)
 	})
 }

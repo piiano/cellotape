@@ -27,7 +27,7 @@ func TestIntegerSchemaValidatorWithUntypedSchema(t *testing.T) {
 	validator := schemaValidator(*untypedSchemaWithInt64Format)
 	for _, validType := range types {
 		t.Run(validType.String(), func(t *testing.T) {
-			if err := validator.WithType(validType).validateIntegerSchema(); err != nil {
+			if err := validator.WithType(validType).Validate(); err != nil {
 				t.Errorf("expect untyped schema to be compatible with %s type", validType)
 			}
 		})

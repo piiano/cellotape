@@ -142,7 +142,7 @@ func (l *logger) Log(level LogLevel, arg any) {
 	write := func(string) {}
 
 	if l.level != Off && l.level >= level {
-		write = func(levelStr string) { fmt.Fprintln(l.output, levelStr, arg) }
+		write = func(levelStr string) { fmt.Fprintln(l.output, levelStr, strings.Trim(fmt.Sprint(arg), "\n")) }
 	}
 	switch level {
 	case Info:

@@ -6,6 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/piiano/cellotape/router/utils"
 )
 
 type OKResponse[R any] struct {
@@ -112,9 +114,9 @@ func TestRawHandler(t *testing.T) {
 		assert.Equal(t, []byte("test"), response.Body)
 		return nil
 	})
-	assert.Equal(t, nilType, rawHandler.requestTypes().requestBody)
-	assert.Equal(t, nilType, rawHandler.requestTypes().pathParams)
-	assert.Equal(t, nilType, rawHandler.requestTypes().queryParams)
+	assert.Equal(t, utils.NilType, rawHandler.requestTypes().requestBody)
+	assert.Equal(t, utils.NilType, rawHandler.requestTypes().pathParams)
+	assert.Equal(t, utils.NilType, rawHandler.requestTypes().queryParams)
 	assert.Len(t, rawHandler.responseTypes(), 0)
 	rawResponse := RawResponse{
 		Status:      200,
@@ -125,7 +127,7 @@ func TestRawHandler(t *testing.T) {
 	handlerFunc := rawHandler.handlerFactory(openapi{}, func(c *Context) (RawResponse, error) {
 		return rawResponse, nil
 	})
-	resp, err := handlerFunc(&Context{Request: &http.Request{}, RawResponse: &RawResponse{}})
+	resp, err := handlerFunc(testContext())
 	require.ErrorIs(t, err, UnsupportedResponseStatusErr)
 	assert.Zero(t, resp)
 

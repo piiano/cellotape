@@ -7,9 +7,20 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/require"
 
 	"github.com/piiano/cellotape/router/utils"
 )
+
+func TestStringSchemaValidatorWithByteFormat(t *testing.T) {
+	stringSchema := openapi3.NewStringSchema()
+	stringSchema.Format = "byte"
+
+	validator := schemaValidator(*stringSchema)
+	errTemplate := "expect string schema to be compatible with %s type"
+	bytes := reflect.TypeOf([]byte{})
+	expectTypeToBeCompatible(t, validator, bytes, errTemplate, bytes)
+}
 
 func TestStringSchemaValidatorPassForStringType(t *testing.T) {
 	stringSchema := openapi3.NewStringSchema()
@@ -21,12 +32,15 @@ func TestStringSchemaValidatorPassForStringType(t *testing.T) {
 // according to the spec the string validation properties should apply only when the type is set to string
 func TestStringSchemaValidatorWithUntypedSchema(t *testing.T) {
 	untypedSchemaWithUUIDFormat := openapi3.NewSchema().WithFormat(uuidFormat)
-	validator := schemaValidator(*untypedSchemaWithUUIDFormat)
-	for _, validType := range types {
+
+	otherNonStringTypes := utils.Filter(types, func(t reflect.Type) bool {
+		return t != sliceOfBytesType && t != timeType
+	})
+
+	for _, validType := range otherNonStringTypes {
 		t.Run(validType.String(), func(t *testing.T) {
-			if err := validator.WithType(validType).validateStringSchema(); err != nil {
-				t.Errorf("expect untyped schema to be compatible with %s type", validType)
-			}
+			err := schemaValidator(*untypedSchemaWithUUIDFormat).WithType(validType).Validate()
+			require.NoErrorf(t, err, "expect untyped schema to be compatible with %s type", validType)
 		})
 	}
 }
@@ -66,36 +80,39 @@ func TestUUIDFormatSchemaValidator(t *testing.T) {
 
 func TestTimeFormatSchemaValidator(t *testing.T) {
 	timeSchema := openapi3.NewStringSchema().WithFormat(timeFormat)
-	validator := schemaValidator(*timeSchema)
+
 	errTemplate := "expect string schema with time format to be %s with %s type"
-	timeType := reflect.TypeOf(time.Now())
-	expectTypeToBeCompatible(t, validator, timeType, errTemplate, "compatible", timeType)
-	expectTypeToBeCompatible(t, validator, stringType, errTemplate, "compatible", stringType)
-	// omit the uuid compatible types from all defined test types
-	var nonTimeCompatibleTypes = utils.Filter(types, func(t reflect.Type) bool {
-		return t != timeType && t != stringType && t != reflect.PointerTo(timeType) && t != reflect.PointerTo(stringType)
-	})
-	for _, nonTimeCompatibleType := range nonTimeCompatibleTypes {
-		t.Run(nonTimeCompatibleType.String(), func(t *testing.T) {
-			expectTypeToBeIncompatible(t, validator, nonTimeCompatibleType, errTemplate, "incompatible", nonTimeCompatibleType)
+	timeCompatibleType := utils.NewSet(utils.Map([]reflect.Type{
+		timeType, stringType, reflect.PointerTo(timeType), reflect.PointerTo(stringType),
+	}, reflect.Type.String)...)
+
+	for _, goType := range append(types, timeType, reflect.PointerTo(timeType)) {
+		t.Run(goType.String(), func(t *testing.T) {
+			err := schemaValidator(*timeSchema).WithType(goType).Validate()
+			valid := timeCompatibleType.Has(goType.String())
+			if valid {
+				require.NoErrorf(t, err, errTemplate, "compatible", goType)
+			} else {
+				require.Errorf(t, err, errTemplate, "incompatible", goType)
+			}
 		})
 	}
 }
 
 func TestDateTimeFormatSchemaValidator(t *testing.T) {
 	timeSchema := openapi3.NewStringSchema().WithFormat(dateTimeFormat)
-	validator := schemaValidator(*timeSchema)
+
 	errTemplate := "expect string schema with time format to be %s with %s type"
 	timeType := reflect.TypeOf(time.Now())
-	expectTypeToBeCompatible(t, validator, timeType, errTemplate, "compatible", timeType)
-	expectTypeToBeCompatible(t, validator, stringType, errTemplate, "compatible", stringType)
+	expectTypeToBeCompatible(t, schemaValidator(*timeSchema), timeType, errTemplate, "compatible", timeType)
+	expectTypeToBeCompatible(t, schemaValidator(*timeSchema), stringType, errTemplate, "compatible", stringType)
 	// omit the uuid compatible types from all defined test types
 	var nonTimeCompatibleTypes = utils.Filter(types, func(t reflect.Type) bool {
 		return t != timeType && t != stringType && t != reflect.PointerTo(timeType) && t != reflect.PointerTo(stringType)
 	})
 	for _, nonTimeCompatibleType := range nonTimeCompatibleTypes {
 		t.Run(nonTimeCompatibleType.String(), func(t *testing.T) {
-			expectTypeToBeIncompatible(t, validator, nonTimeCompatibleType, errTemplate, "incompatible", nonTimeCompatibleType)
+			expectTypeToBeIncompatible(t, schemaValidator(*timeSchema), nonTimeCompatibleType, errTemplate, "incompatible", nonTimeCompatibleType)
 		})
 	}
 }

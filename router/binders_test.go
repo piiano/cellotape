@@ -1,17 +1,19 @@
 package router
 
 import (
-	"bytes"
 	"errors"
 	"io"
 	"net/http"
-	"net/url"
+	"net/http/httptest"
 	"reflect"
 	"testing"
 
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/julienschmidt/httprouter"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/piiano/cellotape/router/utils"
 )
 
 func TestResponseContentType(t *testing.T) {
@@ -33,11 +35,7 @@ type StructType struct {
 func TestQueryBinderFactory(t *testing.T) {
 	queryBinder := queryBinderFactory[StructType](reflect.TypeOf(StructType{}))
 	var params StructType
-	requestURL, err := url.Parse("http:0.0.0.0:90/abc?Foo=42")
-	require.NoError(t, err)
-	err = queryBinder(&http.Request{
-		URL: requestURL,
-	}, &params)
+	err := queryBinder(testContext(withURL(t, "http:0.0.0.0:90/abc?Foo=42")), &params)
 	require.NoError(t, err)
 	assert.Equal(t, StructType{Foo: 42}, params)
 }
@@ -49,11 +47,7 @@ type StructWithArrayType struct {
 func TestQueryBinderFactoryWithArrayType(t *testing.T) {
 	queryBinder := queryBinderFactory[StructWithArrayType](reflect.TypeOf(StructWithArrayType{}))
 	var params StructWithArrayType
-	requestURL, err := url.Parse("http:0.0.0.0:90/abc?Foo=42&Foo=6&Foo=7")
-	require.NoError(t, err)
-	err = queryBinder(&http.Request{
-		URL: requestURL,
-	}, &params)
+	err := queryBinder(testContext(withURL(t, "http:0.0.0.0:90/abc?Foo=42&Foo=6&Foo=7")), &params)
 	require.NoError(t, err)
 	assert.Equal(t, StructWithArrayType{Foo: []int{42, 6, 7}}, params)
 }
@@ -61,33 +55,24 @@ func TestQueryBinderFactoryWithArrayType(t *testing.T) {
 func TestQueryBinderFactoryMultipleParamToNonArrayError(t *testing.T) {
 	queryBinder := queryBinderFactory[StructType](reflect.TypeOf(StructType{}))
 	var params StructType
-	requestURL, err := url.Parse("http:0.0.0.0:90/abc?Foo=42&Foo=6&Foo=7")
-	require.NoError(t, err)
-	err = queryBinder(&http.Request{
-		URL: requestURL,
-	}, &params)
+	err := queryBinder(testContext(withURL(t, "http:0.0.0.0:90/abc?Foo=42&Foo=6&Foo=7")), &params)
 	require.Error(t, err)
 }
 
 func TestQueryBinderFactoryError(t *testing.T) {
 	queryBinder := queryBinderFactory[StructType](reflect.TypeOf(StructType{}))
 	var params StructType
-	requestURL, err := url.Parse("http:0.0.0.0:90/abc?Foo=abc")
-	require.NoError(t, err)
-	err = queryBinder(&http.Request{
-		URL: requestURL,
-	}, &params)
-
+	err := queryBinder(testContext(withURL(t, "http:0.0.0.0:90/abc?Foo=abc")), &params)
 	require.Error(t, err)
 }
 
 func TestPathBinderFactory(t *testing.T) {
 	pathBinder := pathBinderFactory[StructType](reflect.TypeOf(StructType{}))
 	var params StructType
-	err := pathBinder(&httprouter.Params{{
+	err := pathBinder(testContext(withParams(&httprouter.Params{{
 		Key:   "Foo",
 		Value: "42",
-	}}, &params)
+	}})), &params)
 	require.NoError(t, err)
 	assert.Equal(t, StructType{Foo: 42}, params)
 }
@@ -95,19 +80,32 @@ func TestPathBinderFactory(t *testing.T) {
 func TestPathBinderFactoryError(t *testing.T) {
 	pathBinder := pathBinderFactory[StructType](reflect.TypeOf(StructType{}))
 	var params StructType
-	err := pathBinder(&httprouter.Params{{
+	err := pathBinder(testContext(withParams(&httprouter.Params{{
 		Key:   "Foo",
 		Value: "bar",
-	}}, &params)
+	}})), &params)
 	require.Error(t, err)
 }
 
 func TestRequestBodyBinderFactory(t *testing.T) {
 	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes())
 	var param int
-	err := requestBodyBinder(&http.Request{
-		Body: io.NopCloser(bytes.NewBuffer([]byte("42"))),
-	}, &param)
+	err := requestBodyBinder(testContext(withBody("42")), &param)
+	require.NoError(t, err)
+	assert.Equal(t, 42, param)
+}
+
+func TestRequestBodyBinderFactoryWithSchema(t *testing.T) {
+	testOp := openapi3.NewOperation()
+	testOp.RequestBody = &openapi3.RequestBodyRef{
+		Value: openapi3.NewRequestBody().WithJSONSchema(openapi3.NewIntegerSchema()),
+	}
+	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes())
+	var param int
+	err := requestBodyBinder(testContext(
+		withBody("42"),
+		withHeader("Content-Type", "application/json"),
+		withOperation(testOp)), &param)
 	require.NoError(t, err)
 	assert.Equal(t, 42, param)
 }
@@ -115,9 +113,8 @@ func TestRequestBodyBinderFactory(t *testing.T) {
 func TestRequestBodyBinderFactoryError(t *testing.T) {
 	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes())
 	var param int
-	err := requestBodyBinder(&http.Request{
-		Body: io.NopCloser(bytes.NewBuffer([]byte(`"foo"`))),
-	}, &param)
+
+	err := requestBodyBinder(testContext(withBody(`"foo"`)), &param)
 	require.Error(t, err)
 }
 
@@ -132,29 +129,27 @@ func (r readerWithError) Read(_ []byte) (int, error) {
 func TestRequestBodyBinderFactoryReaderError(t *testing.T) {
 	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes())
 	var param int
-	err := requestBodyBinder(&http.Request{
-		Body: io.NopCloser(readerWithError(`42`)),
-	}, &param)
+	err := requestBodyBinder(testContext(
+		withBodyReader(io.NopCloser(readerWithError(`42`)))), &param)
 	require.Error(t, err)
 }
 
 func TestRequestBodyBinderFactoryContentTypeError(t *testing.T) {
 	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes())
 	var param int
-	err := requestBodyBinder(&http.Request{
-		Header: http.Header{"Content-Type": {"no-such-content-type"}},
-		Body:   io.NopCloser(bytes.NewBuffer([]byte(`42`))),
-	}, &param)
+
+	err := requestBodyBinder(testContext(
+		withBody("42"),
+		withHeader("Content-Type", "no-such-content-type")), &param)
 	require.Error(t, err)
 }
 
 func TestRequestBodyBinderFactoryContentTypeWithCharset(t *testing.T) {
 	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes())
 	var param int
-	err := requestBodyBinder(&http.Request{
-		Header: http.Header{"Content-Type": {"application/json; charset=utf-8"}},
-		Body:   io.NopCloser(bytes.NewBuffer([]byte("42"))),
-	}, &param)
+	err := requestBodyBinder(testContext(
+		withBody("42"),
+		withHeader("Content-Type", "application/json; charset=utf-8")), &param)
 	require.NoError(t, err)
 	assert.Equal(t, 42, param)
 }
@@ -162,20 +157,18 @@ func TestRequestBodyBinderFactoryContentTypeWithCharset(t *testing.T) {
 func TestRequestBodyBinderFactoryInvalidContentType(t *testing.T) {
 	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes())
 	var param int
-	err := requestBodyBinder(&http.Request{
-		Header: http.Header{"Content-Type": {"invalid content type"}},
-		Body:   io.NopCloser(bytes.NewBuffer([]byte("42"))),
-	}, &param)
+	err := requestBodyBinder(testContext(
+		withBody("42"),
+		withHeader("Content-Type", "invalid content type")), &param)
 	require.Error(t, err)
 }
 
 func TestRequestBodyBinderFactoryContentTypeAnyWithCharset(t *testing.T) {
 	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes())
 	var param int
-	err := requestBodyBinder(&http.Request{
-		Header: http.Header{"Content-Type": {"*/*; charset=utf-8"}},
-		Body:   io.NopCloser(bytes.NewBuffer([]byte("42"))),
-	}, &param)
+	err := requestBodyBinder(testContext(
+		withBody("42"),
+		withHeader("Content-Type", "*/*; charset=utf-8")), &param)
 	require.NoError(t, err)
 	assert.Equal(t, 42, param)
 }
@@ -193,12 +186,11 @@ type CollidingFieldsParams struct {
 
 func TestBindingEmbeddedQueryParamsCollidingFields(t *testing.T) {
 	requestBodyBinder := queryBinderFactory[CollidingFieldsParams](reflect.TypeOf(CollidingFieldsParams{}))
-	requestURL, err := url.Parse("http://http:0.0.0.0:8080/path?param1=foo&param2=bar")
-	require.NoError(t, err)
 	var param CollidingFieldsParams
-	err = requestBodyBinder(&http.Request{
-		URL: requestURL,
-	}, &param)
+
+	ctx := testContext(withURL(t, "http://http:0.0.0.0:8080/path?param1=foo&param2=bar"))
+
+	err := requestBodyBinder(ctx, &param)
 	require.NoError(t, err)
 	require.Equal(t, "foo", param.CollidingFieldsParam1.Value)
 	require.Equal(t, "bar", param.CollidingFieldsParam2.Value)
@@ -217,13 +209,56 @@ type CollidingParams struct {
 
 func TestBindingEmbeddedQueryParamsCollidingParams(t *testing.T) {
 	requestBodyBinder := queryBinderFactory[CollidingParams](reflect.TypeOf(CollidingParams{}))
-	requestURL, err := url.Parse("http://http:0.0.0.0:8080/path?param1=42")
-	require.NoError(t, err)
+
 	var param CollidingParams
-	err = requestBodyBinder(&http.Request{
-		URL: requestURL,
-	}, &param)
+	err := requestBodyBinder(testContext(
+		withURL(t, "http://http:0.0.0.0:8080/path?param1=42")), &param)
 	require.NoError(t, err)
 	require.Equal(t, "42", param.CollidingParamString.Value)
 	require.Equal(t, 42, param.CollidingParamInt.Value)
+}
+
+type errWriter struct{}
+
+func (e errWriter) Header() http.Header { return http.Header{} }
+func (e errWriter) WriteHeader(int)     {}
+func (e errWriter) Write(i []byte) (int, error) {
+	return 0, errors.New("error")
+}
+
+func TestErrOnWriterError(t *testing.T) {
+	type R = OKResponse[string]
+	responses := extractResponses(utils.GetType[R]())
+	binder := responseBinderFactory[R](responses, DefaultContentTypes())
+	response := SendOK(R{OK: "foo"}).ContentType("unknown")
+
+	testCases := []struct {
+		name      string
+		writer    http.ResponseWriter
+		assertion func(require.TestingT, error, ...any)
+	}{
+		{
+			name:      "writer error",
+			writer:    errWriter{},
+			assertion: require.Error,
+		},
+		{
+			name:      "proper writer",
+			writer:    httptest.NewRecorder(),
+			assertion: require.NoError,
+		},
+	}
+	testOp := openapi3.NewOperation()
+	testOp.AddResponse(200, openapi3.NewResponse().WithJSONSchema(openapi3.NewStringSchema()))
+
+	for _, test := range testCases {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := testContext(
+				withOperation(testOp),
+				withResponseWriter(test.writer),
+			)
+			_, err := binder(ctx, response)
+			test.assertion(t, err)
+		})
+	}
 }

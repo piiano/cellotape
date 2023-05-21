@@ -1,6 +1,7 @@
 package router
 
 import (
+	"bytes"
 	"reflect"
 	"testing"
 
@@ -13,7 +14,7 @@ import (
 
 func TestValidateContentTypes(t *testing.T) {
 	err := validateContentTypes(openapi{
-		options:      DefaultOptions(),
+		options:      DefaultTestOptions(),
 		contentTypes: DefaultContentTypes(),
 	}, utils.NewSet[string]())
 	require.NoError(t, err)
@@ -21,7 +22,7 @@ func TestValidateContentTypes(t *testing.T) {
 
 func TestValidateContentTypesWithJSONContentType(t *testing.T) {
 	err := validateContentTypes(openapi{
-		options:      DefaultOptions(),
+		options:      DefaultTestOptions(),
 		contentTypes: DefaultContentTypes(),
 		spec: OpenAPISpec(openapi3.T{
 			Paths: openapi3.Paths{
@@ -40,7 +41,7 @@ func TestValidateContentTypesWithJSONContentType(t *testing.T) {
 
 func TestValidateContentTypesWithExcludedOperation(t *testing.T) {
 	err := validateContentTypes(openapi{
-		options:      DefaultOptions(),
+		options:      DefaultTestOptions(),
 		contentTypes: DefaultContentTypes(),
 		spec: OpenAPISpec(openapi3.T{
 			Paths: openapi3.Paths{
@@ -60,7 +61,7 @@ func TestValidateContentTypesWithExcludedOperation(t *testing.T) {
 
 func TestValidateContentTypesErrorWithMissingJSONContentType(t *testing.T) {
 	err := validateContentTypes(openapi{
-		options:      DefaultOptions(),
+		options:      DefaultTestOptions(),
 		contentTypes: ContentTypes{},
 		spec: OpenAPISpec(openapi3.T{
 			Paths: openapi3.Paths{
@@ -79,7 +80,7 @@ func TestValidateContentTypesErrorWithMissingJSONContentType(t *testing.T) {
 
 func TestValidateHandleAllPathParams(t *testing.T) {
 	counter := validateHandleAllPathParams(openapi{
-		options: DefaultOptions(),
+		options: DefaultTestOptions(),
 	}, PropagateError, operation{
 		handler: handler{
 			request: requestTypes{
@@ -106,7 +107,7 @@ func TestValidateHandleAllPathParams(t *testing.T) {
 
 func TestValidateHandleAllQueryParams(t *testing.T) {
 	counter := validateHandleAllQueryParams(openapi{
-		options: DefaultOptions(),
+		options: DefaultTestOptions(),
 	}, PropagateError, operation{
 		handler: handler{
 			request: requestTypes{
@@ -133,7 +134,7 @@ func TestValidateHandleAllQueryParams(t *testing.T) {
 
 func TestValidateHandleAllResponses(t *testing.T) {
 	counter := validateHandleAllResponses(openapi{
-		options:      DefaultOptions(),
+		options:      DefaultTestOptions(),
 		contentTypes: DefaultContentTypes(),
 	}, PropagateError, operation{
 		handler: handler{
@@ -156,7 +157,7 @@ func TestValidateHandleAllResponses(t *testing.T) {
 
 func TestValidateHandleAllResponsesError(t *testing.T) {
 	counter := validateHandleAllResponses(openapi{
-		options:      DefaultOptions(),
+		options:      DefaultTestOptions(),
 		contentTypes: DefaultContentTypes(),
 	}, PropagateError, operation{
 		handler: handler{
@@ -179,7 +180,7 @@ func TestValidateHandleAllResponsesError(t *testing.T) {
 
 func TestValidateHandleAllResponsesInvalidStatusError(t *testing.T) {
 	counter := validateHandleAllResponses(openapi{
-		options:      DefaultOptions(),
+		options:      DefaultTestOptions(),
 		contentTypes: DefaultContentTypes(),
 	}, PropagateError, operation{
 		handler: handler{
@@ -202,7 +203,7 @@ func TestValidateHandleAllResponsesInvalidStatusError(t *testing.T) {
 
 func TestValidateHandleAllResponsesMissingStatusError(t *testing.T) {
 	counter := validateHandleAllResponses(openapi{
-		options:      DefaultOptions(),
+		options:      DefaultTestOptions(),
 		contentTypes: DefaultContentTypes(),
 	}, PropagateError, operation{
 		handler: handler{
@@ -219,7 +220,7 @@ func TestValidateHandleAllResponsesMissingStatusError(t *testing.T) {
 
 func TestValidateRequestBodyType(t *testing.T) {
 	counter := validateRequestBodyType(openapi{
-		options:      DefaultOptions(),
+		options:      DefaultTestOptions(),
 		contentTypes: DefaultContentTypes(),
 	}, PropagateError, handler{
 		request: requestTypes{
@@ -242,7 +243,7 @@ func TestValidateRequestBodyType(t *testing.T) {
 
 func TestValidateRequestBodyTypeIgnoreMissingContentType(t *testing.T) {
 	counter := validateRequestBodyType(openapi{
-		options: DefaultOptions(),
+		options: DefaultTestOptions(),
 	}, PropagateError, handler{
 		request: requestTypes{
 			requestBody: reflect.TypeOf(""),
@@ -264,7 +265,7 @@ func TestValidateRequestBodyTypeIgnoreMissingContentType(t *testing.T) {
 
 func TestValidateRequestBodyTypeErrorWithNoBodyInSpec(t *testing.T) {
 	counter := validateRequestBodyType(openapi{
-		options:      DefaultOptions(),
+		options:      DefaultTestOptions(),
 		contentTypes: DefaultContentTypes(),
 	}, PropagateError, handler{
 		request: requestTypes{
@@ -287,7 +288,7 @@ func TestValidateRequestBodyTypeErrorWithNoBodyInSpec(t *testing.T) {
 
 func TestValidateRequestBodyTypeErrorWithIcompatibleSchema(t *testing.T) {
 	counter := validateRequestBodyType(openapi{
-		options:      DefaultOptions(),
+		options:      DefaultTestOptions(),
 		contentTypes: DefaultContentTypes(),
 	}, PropagateError, handler{
 		request: requestTypes{
@@ -303,7 +304,7 @@ func TestValidateQueryParamsType(t *testing.T) {
 	assert.Equal(t, 0, counter.Errors)
 	assert.Equal(t, 0, counter.Warnings)
 	counter = validateQueryParamsType(openapi{
-		options: DefaultOptions(),
+		options: DefaultTestOptions(),
 	}, PropagateError, handler{
 		request: requestTypes{
 			queryParams: reflect.TypeOf(struct {
@@ -324,7 +325,7 @@ func TestValidateCollidingEmbeddedQueryQueryParamsType(t *testing.T) {
 	assert.Equal(t, 0, counter.Errors)
 	assert.Equal(t, 0, counter.Warnings)
 	counter = validateHandleAllQueryParams(openapi{
-		options: DefaultOptions(),
+		options: DefaultTestOptions(),
 	}, PropagateError, operation{
 		handler: handler{
 			request: requestTypes{
@@ -352,7 +353,7 @@ func TestValidateQueryParamsTypeFailWhenMissingInSpec(t *testing.T) {
 	assert.Equal(t, 0, counter.Errors)
 	assert.Equal(t, 0, counter.Warnings)
 	counter = validateQueryParamsType(openapi{
-		options: DefaultOptions(),
+		options: DefaultTestOptions(),
 	}, PropagateError, handler{
 		request: requestTypes{
 			queryParams: reflect.TypeOf(struct {
@@ -369,7 +370,7 @@ func TestValidateQueryParamsTypeFailWhenIncompatibleType(t *testing.T) {
 	assert.Equal(t, 0, counter.Errors)
 	assert.Equal(t, 0, counter.Warnings)
 	counter = validateQueryParamsType(openapi{
-		options: DefaultOptions(),
+		options: DefaultTestOptions(),
 	}, PropagateError, handler{
 		request: requestTypes{
 			queryParams: reflect.TypeOf(struct {
@@ -381,7 +382,7 @@ func TestValidateQueryParamsTypeFailWhenIncompatibleType(t *testing.T) {
 			Value: openapi3.NewQueryParameter("foo").WithSchema(openapi3.NewIntegerSchema()),
 		},
 	}, "")
-	assert.Equal(t, 1, counter.Errors)
+	assert.Equal(t, 4, counter.Errors)
 	assert.Equal(t, 0, counter.Warnings)
 }
 
@@ -390,7 +391,7 @@ func TestValidatePathParamsType(t *testing.T) {
 	assert.Equal(t, 0, counter.Errors)
 	assert.Equal(t, 0, counter.Warnings)
 	counter = validatePathParamsType(openapi{
-		options: DefaultOptions(),
+		options: DefaultTestOptions(),
 	}, PropagateError, handler{
 		request: requestTypes{
 			pathParams: reflect.TypeOf(struct {
@@ -411,7 +412,7 @@ func TestValidatePathParamsTypeFailWhenMissingInSpec(t *testing.T) {
 	assert.Equal(t, 0, counter.Errors)
 	assert.Equal(t, 0, counter.Warnings)
 	counter = validatePathParamsType(openapi{
-		options: DefaultOptions(),
+		options: DefaultTestOptions(),
 	}, PropagateError, handler{
 		request: requestTypes{
 			pathParams: reflect.TypeOf(struct {
@@ -427,8 +428,9 @@ func TestValidatePathParamsTypeFailWhenIncompatibleType(t *testing.T) {
 	counter := validatePathParamsType(openapi{}, PropagateError, handler{}, openapi3.Parameters{}, "")
 	assert.Equal(t, 0, counter.Errors)
 	assert.Equal(t, 0, counter.Warnings)
+
 	counter = validatePathParamsType(openapi{
-		options:      DefaultOptions(),
+		options:      DefaultTestOptions(),
 		contentTypes: DefaultContentTypes(),
 	}, PropagateError, handler{
 		request: requestTypes{
@@ -441,34 +443,54 @@ func TestValidatePathParamsTypeFailWhenIncompatibleType(t *testing.T) {
 			Value: openapi3.NewPathParameter("foo").WithSchema(openapi3.NewIntegerSchema()),
 		},
 	}, "")
-	assert.Equal(t, 1, counter.Errors)
+	assert.Equal(t, 4, counter.Errors)
 	assert.Equal(t, 0, counter.Warnings)
 }
 
 func TestStructKeys(t *testing.T) {
-	structType := reflect.TypeOf(struct {
+	structType := utils.GetType[struct {
 		Field1 string `json:"field1"`
 		Field2 int    `json:",omitempty"`
 		Field3 bool
-	}{})
-	keys := structKeys(structType, "json")
+	}]()
+	keys := utils.StructKeys(structType, "json")
 	assert.Equal(t, map[string]reflect.StructField{
 		"field1": structType.Field(0),
 		"Field2": structType.Field(1),
 		"Field3": structType.Field(2),
 	}, keys)
 
-	structType2 := reflect.TypeOf(struct {
+	structType2 := utils.GetType[struct {
 		Field1 string `form:"field1"`
 		Field2 int    `form:",omitempty"`
 		Field3 bool
-	}{})
-	keys2 := structKeys(structType2, "form")
+	}]()
+	keys2 := utils.StructKeys(structType2, "form")
 	assert.Equal(t, map[string]reflect.StructField{
 		"field1": structType2.Field(0),
 		"Field2": structType2.Field(1),
 		"Field3": structType2.Field(2),
 	}, keys2)
+
+	type Embedded2 struct {
+		Field3 string `tagName:"field3"`
+	}
+	type Embedded struct {
+		Embedded2
+		IgnoredField string `tagName:"-"`
+	}
+	structType3 := utils.GetType[struct {
+		Field1 string `tagName:"field1"`
+		Field2 int    `tagName:",omitempty"`
+		Embedded
+	}]()
+	keys3 := utils.StructKeys(structType3, "tagName")
+	assert.Equal(t, map[string]reflect.StructField{
+		"field1": structType3.Field(0),
+		"Field2": structType3.Field(1),
+		"field3": structType3.FieldByIndex([]int{2, 0, 0}),
+	}, keys3)
+	assert.Equal(t, keys3["field3"].Name, "Field3")
 }
 
 func TestValidateResponseTypes(t *testing.T) {
@@ -477,6 +499,7 @@ func TestValidateResponseTypes(t *testing.T) {
 	assert.Equal(t, 0, counter.Warnings)
 
 	counter = validateResponseTypes(openapi{
+		options:      DefaultTestOptions(),
 		contentTypes: DefaultContentTypes(),
 	}, PropagateError, handler{
 		responses: handlerResponses{
@@ -513,7 +536,7 @@ func TestValidateResponseTypesIgnoreMissingContentType(t *testing.T) {
 
 func TestValidateResponseTypesMissingStatusErr(t *testing.T) {
 	counter := validateResponseTypes(openapi{
-		options:      DefaultOptions(),
+		options:      DefaultTestOptions(),
 		contentTypes: DefaultContentTypes(),
 	}, PropagateError, handler{
 		responses: handlerResponses{
@@ -531,7 +554,7 @@ func TestValidateResponseTypesMissingStatusErr(t *testing.T) {
 
 func TestValidateResponseTypesIncompatibleTypeErr(t *testing.T) {
 	counter := validateResponseTypes(openapi{
-		options:      DefaultOptions(),
+		options:      DefaultTestOptions(),
 		contentTypes: DefaultContentTypes(),
 	}, PropagateError, handler{
 		responses: handlerResponses{
@@ -545,6 +568,100 @@ func TestValidateResponseTypesIncompatibleTypeErr(t *testing.T) {
 	}, "")
 	assert.Equal(t, 1, counter.Errors)
 	assert.Equal(t, 0, counter.Warnings)
+}
+
+func TestImplementingExcludedOperationErr(t *testing.T) {
+	spec := NewSpec()
+	testOperation := openapi3.NewOperation()
+	testOperation.OperationID = "test"
+	spec.Paths = openapi3.Paths{
+		"/test": &openapi3.PathItem{
+			Get: testOperation,
+		},
+	}
+
+	options := DefaultTestOptions()
+	options.ExcludeOperations = []string{"test"}
+
+	err := validateOpenAPIRouter(&openapi{
+		spec:    spec,
+		options: options,
+	}, []operation{
+		{
+			id: "test",
+			handler: handler{
+				request: requestTypes{
+					requestBody: utils.NilType,
+					pathParams:  utils.NilType,
+					queryParams: utils.NilType,
+				},
+			},
+		},
+	})
+	require.Error(t, err)
+}
+
+func TestImplementingSameOperationMultipleTimesErr(t *testing.T) {
+	spec := NewSpec()
+	testOperation := openapi3.NewOperation()
+	testOperation.OperationID = "test"
+	spec.Paths = openapi3.Paths{
+		"/test": &openapi3.PathItem{
+			Get: testOperation,
+		},
+	}
+
+	opImpl := operation{
+		id: "test",
+		handler: handler{
+			request: requestTypes{
+				requestBody: utils.NilType,
+				pathParams:  utils.NilType,
+				queryParams: utils.NilType,
+			},
+		},
+	}
+	err := validateOpenAPIRouter(&openapi{
+		spec:    spec,
+		options: DefaultTestOptions(),
+	}, []operation{opImpl, opImpl})
+	require.Error(t, err)
+}
+
+func TestMissingOperationImplementationErr(t *testing.T) {
+	spec := NewSpec()
+	testOperation := openapi3.NewOperation()
+	testOperation.OperationID = "test"
+	spec.Paths = openapi3.Paths{
+		"/test": &openapi3.PathItem{
+			Get: testOperation,
+		},
+	}
+
+	err := validateOpenAPIRouter(&openapi{
+		spec:    spec,
+		options: DefaultTestOptions(),
+	}, []operation{})
+	require.Error(t, err)
+}
+
+func TestMissingOperationInSpecErr(t *testing.T) {
+	err := validateOpenAPIRouter(&openapi{
+		spec:    NewSpec(),
+		options: DefaultTestOptions(),
+	}, []operation{
+		{
+			id: "test",
+			handler: handler{
+				request: requestTypes{
+					requestBody: utils.NilType,
+					pathParams:  utils.NilType,
+					queryParams: utils.NilType,
+				},
+			},
+		},
+	})
+	require.Error(t, err)
 }
 
 func testSpecResponse(status string, contentType string, schema *openapi3.Schema) map[string]*openapi3.ResponseRef {
@@ -561,4 +678,10 @@ func testSpecResponse(status string, contentType string, schema *openapi3.Schema
 			},
 		},
 	}
+}
+
+func DefaultTestOptions() Options {
+	options := DefaultOptions()
+	options.LogOutput = bytes.NewBuffer([]byte{})
+	return options
 }

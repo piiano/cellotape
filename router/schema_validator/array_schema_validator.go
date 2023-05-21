@@ -1,16 +1,23 @@
 package schema_validator
 
 import (
-	"fmt"
-	"reflect"
+	"github.com/getkin/kin-openapi/openapi3"
 )
 
-func (c typeSchemaValidatorContext) validateArraySchema() error {
-	if c.schema.Type != arraySchemaType {
-		return nil
+func (c typeSchemaValidatorContext) validateArraySchema() {
+	isGoTypeArray := isArrayGoType(c.goType)
+	if c.schema.Type == openapi3.TypeArray && !isGoTypeArray {
+		c.err(schemaTypeIsIncompatibleWithType(c.schema, c.goType))
 	}
-	if c.goType.Kind() != reflect.Array && c.goType.Kind() != reflect.Slice {
-		return fmt.Errorf(schemaTypeIsIncompatibleWithType(c.schema, c.goType))
+
+	if !isSchemaTypeArrayOrEmpty(c.schema) {
+		if isGoTypeArray && !isSliceOfBytes(c.goType) {
+			c.err(schemaTypeIsIncompatibleWithType(c.schema, c.goType))
+		}
+		return
 	}
-	return c.WithSchemaAndType(*c.schema.Items.Value, c.goType.Elem()).Validate()
+
+	if isGoTypeArray && c.schema.Items != nil {
+		_ = c.WithSchemaAndType(*c.schema.Items.Value, c.goType.Elem()).Validate()
+	}
 }

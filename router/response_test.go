@@ -7,6 +7,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/piiano/cellotape/router/utils"
 )
 
 type EmbeddedResponse struct {
@@ -15,7 +17,7 @@ type EmbeddedResponse struct {
 
 func TestExtractResponses(t *testing.T) {
 	tableTest(t, extractResponses, []testCase[reflect.Type, handlerResponses]{
-		{in: nilType, out: handlerResponses{}},
+		{in: utils.NilType, out: handlerResponses{}},
 		{in: reflect.TypeOf(struct{}{}), out: handlerResponses{}},
 		{in: reflect.TypeOf(struct{ ok string }{}), out: handlerResponses{}},
 		{in: reflect.TypeOf(struct {

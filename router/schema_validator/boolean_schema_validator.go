@@ -1,16 +1,12 @@
 package schema_validator
 
-import (
-	"fmt"
-	"reflect"
-)
+import "github.com/getkin/kin-openapi/openapi3"
 
-func (c typeSchemaValidatorContext) validateBooleanSchema() error {
-	if c.schema.Type != booleanSchemaType {
-		return nil
+func (c typeSchemaValidatorContext) validateBooleanSchema() {
+
+	isTypeBool := isBoolType(c.goType)
+	if (isTypeBool && !isSchemaTypeBooleanOrEmpty(c.schema)) ||
+		(c.schema.Type == openapi3.TypeBoolean && !isTypeBool) {
+		c.err(schemaTypeIsIncompatibleWithType(c.schema, c.goType))
 	}
-	if c.goType.Kind() != reflect.Bool {
-		return fmt.Errorf(schemaTypeIsIncompatibleWithType(c.schema, c.goType))
-	}
-	return nil
 }

@@ -6,13 +6,14 @@ import (
 
 	"github.com/piiano/cellotape/examples/todo_list_app_example/models"
 	r "github.com/piiano/cellotape/router"
+	"github.com/piiano/cellotape/router/utils"
 )
 
 const token = "secret"
 
 var authHeader = fmt.Sprintf("Bearer %s", token)
 
-var AuthMiddleware = r.NewHandler(func(c *r.Context, req r.Request[r.Nil, r.Nil, r.Nil]) (r.Response[authResponses], error) {
+var AuthMiddleware = r.NewHandler(func(c *r.Context, req r.Request[utils.Nil, utils.Nil, utils.Nil]) (r.Response[authResponses], error) {
 	if req.Headers.Get("Authorization") != authHeader {
 		return r.SendJSON(authResponses{Unauthorized: models.HttpError{
 			Error:  "Unauthorized",

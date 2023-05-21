@@ -23,7 +23,6 @@ func TestHelloWorldExample(t *testing.T) {
 	handler, err := router.NewOpenAPIRouter(spec).
 		WithOperation("greet", api.GreetOperationHandler).
 		AsHandler()
-	fmt.Println(err)
 	require.NoError(t, err)
 
 	ts := httptest.NewServer(handler)

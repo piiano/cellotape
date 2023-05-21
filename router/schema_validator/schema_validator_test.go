@@ -93,7 +93,14 @@ func arrayTypes(depth int) []reflect.Type {
 func mapTypes(depth int) []reflect.Type {
 	allTypes := allTypes(depth)
 	comparableTypes := utils.Filter(allTypes, func(t reflect.Type) bool {
-		return t.Comparable()
+		switch t.Kind() {
+		case reflect.String,
+			reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+			reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+			return t.Comparable()
+		default:
+			return false
+		}
 	})
 	results := make([]reflect.Type, len(allTypes)*len(comparableTypes))
 	for i, keyType := range comparableTypes {
@@ -119,6 +126,7 @@ func expectTypeToBeCompatible(t *testing.T, validator TypeSchemaValidator, testT
 		t.Error(err)
 	}
 }
+
 func expectTypeToBeIncompatible(t *testing.T, validator TypeSchemaValidator, testType reflect.Type, errTemplate string, args ...any) {
 	if err := validator.WithType(testType).Validate(); err == nil {
 		t.Errorf(errTemplate, args...)
@@ -126,9 +134,8 @@ func expectTypeToBeIncompatible(t *testing.T, validator TypeSchemaValidator, tes
 }
 
 func TestSchemaValidatorWithOptions(t *testing.T) {
-	logger := utils.NewInMemoryLogger()
 	stringSchema := openapi3.NewStringSchema()
-	validator := NewEmptyTypeSchemaValidator(logger).WithSchema(*stringSchema)
+	validator := NewEmptyTypeSchemaValidator().WithSchema(*stringSchema)
 	errTemplate := "expect string schema with time format to be %s with %s type"
 	expectTypeToBeCompatible(t, validator, stringType, errTemplate, "compatible", stringType)
 	// omit the string type from all defined test types
@@ -143,8 +150,7 @@ func TestSchemaValidatorWithOptions(t *testing.T) {
 }
 
 func emptyValidator() TypeSchemaValidator {
-	logger := utils.NewInMemoryLogger()
-	return NewEmptyTypeSchemaValidator(logger)
+	return NewEmptyTypeSchemaValidator()
 }
 func typeValidator(goType reflect.Type) TypeSchemaValidator {
 	return emptyValidator().WithType(goType)

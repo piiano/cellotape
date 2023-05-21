@@ -1,15 +1,13 @@
 package schema_validator
 
-import (
-	"fmt"
-)
-
-func (c typeSchemaValidatorContext) validateSchemaNot() error {
+func (c typeSchemaValidatorContext) validateSchemaNot() {
 	if c.schema.Not == nil {
-		return nil
+		return
 	}
+	errors := len(*c.errors)
 	if err := c.WithSchema(*c.schema.Not.Value).Validate(); err == nil {
-		return fmt.Errorf("schema with not property is incompatible with type %s", c.goType)
+		c.err("schema with not property is incompatible with type %s", c.goType)
+		return
 	}
-	return nil
+	*c.errors = (*c.errors)[:errors]
 }

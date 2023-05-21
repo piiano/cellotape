@@ -6,39 +6,25 @@
     "OperationValidationOptions": {
       "properties": {
         "validateRequestBody": {
-          "type": "string",
-          "enum": ["propagate-error", "print-warning", "ignore"],
-          "default": "propagate-error"
+          "type": "integer"
         },
         "validatePathParams": {
-          "type": "string",
-          "enum": ["propagate-error", "print-warning", "ignore"],
-          "default": "propagate-error"
+          "type": "integer"
         },
         "handleAllPathParams": {
-          "type": "string",
-          "enum": ["propagate-error", "print-warning", "ignore"],
-          "default": "propagate-error"
+          "type": "integer"
         },
         "validateQueryParams": {
-          "type": "string",
-          "enum": ["propagate-error", "print-warning", "ignore"],
-          "default": "propagate-error"
+          "type": "integer"
         },
         "handleAllQueryParams": {
-          "type": "string",
-          "enum": ["propagate-error", "print-warning", "ignore"],
-          "default": "propagate-error"
+          "type": "integer"
         },
         "validateResponses": {
-          "type": "string",
-          "enum": ["propagate-error", "print-warning", "ignore"],
-          "default": "propagate-error"
+          "type": "integer"
         },
         "handleAllOperationResponses": {
-          "type": "string",
-          "enum": ["propagate-error", "print-warning", "ignore"],
-          "default": "propagate-error"
+          "type": "integer"
         }
       },
       "additionalProperties": false,
@@ -46,16 +32,11 @@
     },
     "Options": {
       "properties": {
-        "$schema": {
-          "type": "string"
-        },
         "recoverOnPanic": {
           "type": "boolean"
         },
         "logLevel": {
-          "type": "string",
-          "enum": ["off", "error", "warn", "info"],
-          "default": "info"
+          "type": "integer"
         },
         "operationValidations": {
           "patternProperties": {
@@ -69,18 +50,23 @@
           "$ref": "#/$defs/OperationValidationOptions"
         },
         "mustHandleAllOperations": {
-          "type": "string",
-          "enum": ["propagate-error", "print-warning", "ignore"],
-          "default": "propagate-error"
+          "type": "integer"
         },
         "handleAllContentTypes": {
-          "type": "string",
-          "enum": ["propagate-error", "print-warning", "ignore"],
-          "default": "propagate-error"
+          "type": "integer"
+        },
+        "ExcludeOperations": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
         }
       },
       "additionalProperties": false,
-      "type": "object"
+      "type": "object",
+      "required": [
+        "ExcludeOperations"
+      ]
     }
   }
 }

@@ -14,84 +14,96 @@ import (
 
 var textMarshallerType = reflect.TypeOf(new(encoding.TextMarshaler)).Elem()
 
-func (c typeSchemaValidatorContext) validateObjectSchema() error {
+func (c typeSchemaValidatorContext) validateObjectSchema() {
 	// TODO: validate required properties, nullable, additionalProperties, etc.
-	l := c.newLogger()
-	if c.schema.Type != objectSchemaType {
-		return nil
+	serializedFromObject := isSerializedFromObject(c.goType)
+
+	if !serializedFromObject {
+		if c.schema.Type == openapi3.TypeObject {
+			c.err(schemaTypeIsIncompatibleWithType(c.schema, c.goType))
+		}
+		return
 	}
+
+	if !isSchemaTypeObjectOrEmpty(c.schema) {
+		c.err(schemaTypeIsIncompatibleWithType(c.schema, c.goType))
+	}
+
+	handleMultiType(func(t reflect.Type) bool {
+		if t.Kind() == reflect.Struct {
+			return c.assertStruct(t)
+		}
+
+		if t.Kind() == reflect.Map {
+			return c.assertMap(t)
+		}
+
+		return false
+	})(c.goType)
+}
+
+func (c typeSchemaValidatorContext) assertStruct(t reflect.Type) bool {
 	properties := c.schema.Properties
 	if properties == nil {
 		properties = make(map[string]*openapi3.SchemaRef, 0)
 	}
-	switch c.goType.Kind() {
-	case reflect.Struct:
-		if properties != nil {
-			// TODO: add support for receiving in options how to extract type keys (to support schema for non-json serializers)
-			fields := structJsonFields(c.goType)
-			for name, field := range fields {
-				property, ok := properties[name]
-				if !ok {
-					if c.schema.AdditionalProperties == nil &&
-						(c.schema.AdditionalPropertiesAllowed == nil || *c.schema.AdditionalPropertiesAllowed) {
-						continue
-					}
+	// TODO: add support for receiving in options how to extract type keys (to support schema for non-json serializers)
+	fields := structJsonFields(t)
 
-					if c.schema.AdditionalPropertiesAllowed != nil && !*c.schema.AdditionalPropertiesAllowed {
-						l.Logf(c.level, fmt.Sprintf("field %q (%q) with type %s not found in object schema properties", field.Name, name, field.Type))
-						continue
-					}
-					if c.schema.AdditionalProperties != nil && c.schema.AdditionalProperties.Value != nil {
-						if err := c.WithSchema(*c.schema.AdditionalProperties.Value).WithType(field.Type).Validate(); err != nil {
-							l.Logf(c.level, fmt.Sprintf("field %q (%q) with type %s not found in object schema properties nor additonal properties", field.Name, name, field.Type))
-						}
-					}
-					continue
-				}
-				if err := c.WithType(field.Type).WithSchema(*property.Value).Validate(); err != nil {
-					l.Logf(c.level, schemaPropertyIsIncompatibleWithFieldType(name, field.Name, field.Type))
-				}
+	validatedFields := utils.NewSet[string]()
+	for name, field := range fields {
+
+		validatedFields.Add(name)
+		if property, ok := properties[name]; !ok {
+			if additionalProperties := additionalPropertiesSchema(c.schema); additionalProperties == nil {
+				c.err(fmt.Sprintf("field %q (%q) with type %s not found in object schema properties", field.Name, name, field.Type))
+			} else if err := c.WithSchema(*additionalProperties).WithType(field.Type).Validate(); err != nil {
+				c.err(fmt.Sprintf("field %q (%q) with type %s not found in object schema properties nor additonal properties", field.Name, name, field.Type))
 			}
-			for name, property := range properties {
-				field, ok := fields[name]
-				if !ok {
-					l.Logf(c.level, schemaPropertyIsNotMappedToFieldInType(name, c.goType))
-					continue
-				}
-				if err := c.WithType(field.Type).WithSchema(*property.Value).Validate(); err != nil {
-					l.Logf(c.level, schemaPropertyIsIncompatibleWithFieldType(name, field.Name, field.Type))
-				}
-			}
+		} else if err := c.WithType(field.Type).WithSchema(*property.Value).Validate(); err != nil {
+			c.err(schemaPropertyIsIncompatibleWithFieldType(name, field.Name, field.Type))
 		}
-	case reflect.Map:
-		keyType := c.goType.Key()
-		mapValueType := c.goType.Elem()
-		switch keyType.Kind() {
-		case reflect.String,
-			reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-			reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		default:
-			if !keyType.Implements(textMarshallerType) {
-				l.Logf(c.level, "object schema with map type must have a string compatible type. %s key is not string compatible", keyType)
-			}
-		}
-		if properties != nil {
-			for name, property := range properties {
-				// check if property name is compatible with the map key type
-				keyName, _ := json.Marshal(name)
-				if err := json.Unmarshal(keyName, reflect.New(keyType).Interface()); err != nil {
-					l.Logf(c.level, "schema property name %q is incompatible with map key type %s", name, keyType)
-				}
-				// check if property schema is compatible with the map value type
-				if err := c.WithType(mapValueType).WithSchema(*property.Value).Validate(); err != nil {
-					l.Logf(c.level, "schema property %q is incompatible with map value type %s", name, mapValueType)
-				}
-			}
-		}
-	default:
-		l.Logf(c.level, "object schema must be a struct type or a map. %s type is incompatible", c.goType)
 	}
-	return formatMustHaveNoError(l.MustHaveNoErrors(), c.schema.Type, c.goType)
+	for name := range properties {
+		if !validatedFields.Has(name) {
+			c.err(schemaPropertyIsNotMappedToFieldInType(name, t))
+		}
+	}
+
+	return len(*c.errors) == 0
+}
+func (c typeSchemaValidatorContext) assertMap(t reflect.Type) bool {
+	keyType := t.Key()
+	mapValueType := t.Elem()
+
+	// From the internal implementation of json.Marshal & json Unmarshal:
+	// Map key must either have string kind, have an integer kind,
+	// or be an encoding.TextUnmarshaler.
+	switch keyType.Kind() {
+	case reflect.String,
+		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+	default:
+		if !keyType.Implements(textMarshallerType) {
+			c.err("object schema with map type must have a string compatible type. %s key is not string compatible", keyType)
+		}
+	}
+	if c.schema.Properties != nil {
+
+		for name, property := range c.schema.Properties {
+			// check if property name is compatible with the map key type
+			keyName, _ := json.Marshal(name)
+			if err := json.Unmarshal(keyName, reflect.New(keyType).Interface()); err != nil {
+				c.err("schema property name %q is incompatible with map key type %s", name, keyType)
+			}
+			// check if property schema is compatible with the map value type
+			if err := c.WithType(mapValueType).WithSchema(*property.Value).Validate(); err != nil {
+				c.err("schema property %q is incompatible with map value type %s", name, mapValueType)
+			}
+		}
+	}
+
+	return len(*c.errors) == 0
 }
 
 // structJsonFields Extract the struct fields that are serializable as JSON corresponding to their JSON key
@@ -139,4 +151,19 @@ func structJsonFields(structType reflect.Type) map[string]reflect.StructField {
 		})
 	}
 	return fields
+}
+
+func additionalPropertiesSchema(schema openapi3.Schema) *openapi3.Schema {
+	// if additional properties schema is defined explicitly return it
+	if schema.AdditionalProperties != nil {
+		return schema.AdditionalProperties.Value
+	}
+
+	// if additional properties is empty (tru by default) or set explicitly to true return an empty schema (schema for any type)
+	if schema.AdditionalPropertiesAllowed == nil || *schema.AdditionalPropertiesAllowed {
+		return openapi3.NewSchema()
+	}
+
+	// return nil if additional properties are not allowed
+	return nil
 }
