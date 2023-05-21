@@ -1,6 +1,7 @@
 package router
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 
@@ -20,6 +21,12 @@ const (
 // validateOpenAPIRouter validates the entire OpenAPI Router structure built with the builder with the spec.
 // This takes into account various options defined and print to the logs relevant errors and warning based on the defined log level.
 func validateOpenAPIRouter(oa *openapi, flatOperations []operation) error {
+	// Validate the spec itself
+	// This step is also crucial to prevent race conditions when accessing the spec concurrently later.
+	if err := (*openapi3.T)(&oa.spec).Validate(context.Background(), openapi3.DisableExamplesValidation()); err != nil {
+		return err
+	}
+
 	l := oa.logger()
 	declaredOperation := utils.NewSet[string]()
 	excludeOperations := utils.NewSet(oa.options.ExcludeOperations...)
