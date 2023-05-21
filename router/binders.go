@@ -63,11 +63,9 @@ func requestBodyBinderFactory[B any](requestBodyType reflect.Type, contentTypes 
 		return nilBinder[B]
 	}
 	return func(ctx *Context, body *B) error {
-		input := requestValidationInput(ctx)
-		if ctx.Operation.RequestBody != nil {
-			if err := openapi3filter.ValidateRequestBody(ctx.Request.Context(), input, ctx.Operation.RequestBody.Value); err != nil {
-				return err
-			}
+		input, err := validateBodyAndPopulateDefaults(ctx)
+		if err != nil {
+			return err
 		}
 
 		contentType, err := requestContentType(input.Request, contentTypes, JSONContentType{})
@@ -84,6 +82,17 @@ func requestBodyBinderFactory[B any](requestBodyType reflect.Type, contentTypes 
 		}
 		return nil
 	}
+}
+
+// validateBodyAndPopulateDefaults validate the request body with the openapi spec and populate the default values.
+func validateBodyAndPopulateDefaults(ctx *Context) (*openapi3filter.RequestValidationInput, error) {
+	input := requestValidationInput(ctx)
+	if ctx.Operation.RequestBody != nil {
+		if err := openapi3filter.ValidateRequestBody(ctx.Request.Context(), input, ctx.Operation.RequestBody.Value); err != nil {
+			return nil, err
+		}
+	}
+	return input, nil
 }
 
 // produce the pathParamInValue pathParams binder that can be used in runtime
