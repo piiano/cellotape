@@ -448,11 +448,11 @@ func TestValidatePathParamsTypeFailWhenIncompatibleType(t *testing.T) {
 }
 
 func TestStructKeys(t *testing.T) {
-	structType := reflect.TypeOf(struct {
+	structType := utils.GetType[struct {
 		Field1 string `json:"field1"`
 		Field2 int    `json:",omitempty"`
 		Field3 bool
-	}{})
+	}]()
 	keys := utils.StructKeys(structType, "json")
 	assert.Equal(t, map[string]reflect.StructField{
 		"field1": structType.Field(0),
@@ -460,17 +460,37 @@ func TestStructKeys(t *testing.T) {
 		"Field3": structType.Field(2),
 	}, keys)
 
-	structType2 := reflect.TypeOf(struct {
+	structType2 := utils.GetType[struct {
 		Field1 string `form:"field1"`
 		Field2 int    `form:",omitempty"`
 		Field3 bool
-	}{})
+	}]()
 	keys2 := utils.StructKeys(structType2, "form")
 	assert.Equal(t, map[string]reflect.StructField{
 		"field1": structType2.Field(0),
 		"Field2": structType2.Field(1),
 		"Field3": structType2.Field(2),
 	}, keys2)
+
+	type Embedded2 struct {
+		Field3 string `tagName:"field3"`
+	}
+	type Embedded struct {
+		Embedded2
+		IgnoredField string `tagName:"-"`
+	}
+	structType3 := utils.GetType[struct {
+		Field1 string `tagName:"field1"`
+		Field2 int    `tagName:",omitempty"`
+		Embedded
+	}]()
+	keys3 := utils.StructKeys(structType3, "tagName")
+	assert.Equal(t, map[string]reflect.StructField{
+		"field1": structType3.Field(0),
+		"Field2": structType3.Field(1),
+		"field3": structType3.FieldByIndex([]int{2, 0, 0}),
+	}, keys3)
+	assert.Equal(t, keys3["field3"].Name, "Field3")
 }
 
 func TestValidateResponseTypes(t *testing.T) {

@@ -126,9 +126,10 @@ func queryBinderFactory[Q any](queryParamsType reflect.Type) binder[Q] {
 	paramFields := utils.StructKeys(queryParamsType, "form")
 	nonArrayParams := utils.NewSet[string]()
 	for param, paramType := range paramFields {
-		if paramType.Type.Kind() == reflect.Slice ||
-			paramType.Type.Kind() == reflect.Array ||
-			(paramType.Type.Kind() == reflect.Pointer &&
+		kind := paramType.Type.Kind()
+		if kind == reflect.Slice ||
+			kind == reflect.Array ||
+			(kind == reflect.Pointer &&
 				(paramType.Type.Elem().Kind() == reflect.Slice ||
 					paramType.Type.Elem().Kind() == reflect.Array)) {
 			continue

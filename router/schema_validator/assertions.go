@@ -83,26 +83,30 @@ func not[T any, A assertion[T]](assertion A) A {
 }
 
 func schemaTypeIs(types ...string) schemaAssertion {
+	set := utils.NewSet(types...)
 	return func(s openapi3.Schema) bool {
-		return utils.NewSet(types...).Has(s.Type)
+		return set.Has(s.Type)
 	}
 }
 
 func schemaFormatIs(types ...string) schemaAssertion {
+	set := utils.NewSet(types...)
 	return func(s openapi3.Schema) bool {
-		return utils.NewSet(types...).Has(s.Format)
+		return set.Has(s.Format)
 	}
 }
 
 func kindIs(kinds ...reflect.Kind) typeAssertion {
+	set := utils.NewSet(kinds...)
 	return handleMultiType(func(t reflect.Type) bool {
-		return utils.NewSet(kinds...).Has(t.Kind())
+		return set.Has(t.Kind())
 	})
 }
 
 func typeIs(types ...reflect.Type) typeAssertion {
+	set := utils.NewSet(types...)
 	return handleMultiType(func(t reflect.Type) bool {
-		return utils.NewSet(types...).Has(t)
+		return set.Has(t)
 	})
 }
 

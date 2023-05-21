@@ -4,11 +4,9 @@ import "github.com/getkin/kin-openapi/openapi3"
 
 func (c typeSchemaValidatorContext) validateBooleanSchema() {
 
-	if isBoolType(c.goType) && !isSchemaTypeBooleanOrEmpty(c.schema) {
-		c.err(schemaTypeIsIncompatibleWithType(c.schema, c.goType))
-	}
-
-	if c.schema.Type == openapi3.TypeBoolean && !isBoolType(c.goType) {
+	isTypeBool := isBoolType(c.goType)
+	if (isTypeBool && !isSchemaTypeBooleanOrEmpty(c.schema)) ||
+		(c.schema.Type == openapi3.TypeBoolean && !isTypeBool) {
 		c.err(schemaTypeIsIncompatibleWithType(c.schema, c.goType))
 	}
 }

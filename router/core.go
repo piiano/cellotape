@@ -41,6 +41,8 @@ func createMainRouterHandler(oa *openapi) (http.Handler, error) {
 		logger.Infof("register handler for operation %q - %s %s", flatOp.id, specOp.Method, specOp.Path)
 	}
 
+	// For Kin-openapi to be able to validate a request and set default values it need to know how to decode and encode
+	// the request body for any supported content type.
 	for _, contentType := range oa.contentTypes {
 		mimeType := contentType.Mime()
 		if openapi3filter.RegisteredBodyEncoder(mimeType) == nil {

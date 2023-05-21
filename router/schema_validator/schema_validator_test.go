@@ -9,27 +9,6 @@ import (
 	"github.com/piiano/cellotape/router/utils"
 )
 
-//
-//func TestSchemaValidation(t *testing.T) {
-//	openapi3.SchemaErrorDetailsDisabled = tr
-//	schema := &openapi3.Schema{}
-//	err := schema.UnmarshalJSON([]byte(`{
-//		"type": "string",
-//		"allOf": [
-//			{ "pattern": "[A-Z]" },
-//			{ "pattern": "[a-z]" },
-//			{ "pattern": "[0-9]" },
-//			{ "pattern": "[!@#$%^&*()_+=-?~]" }
-//		]
-//	}`))
-//	require.NoError(t, err)
-//	err = schema.VisitJSON("secret")
-//	//, openapi3.SetSchemaErrorMessageCustomizer(func(err *openapi3.SchemaError) string {
-//	//	return err.Reason
-//	//})
-//	require.NoError(t, err)
-//}
-
 /* ===============================================================================================================
 # Type Tests Infrastructure
 

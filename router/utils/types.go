@@ -18,6 +18,13 @@ var NilType = GetType[Nil]()
 
 const ignoreFieldTagValue = "-"
 
+// StructKeys returns a map of "key" -> "field" for all the fields in the struct.
+// Key is the field tag if exists or the field name otherwise.
+// Field is the reflect.StructField of the field.
+//
+// Unexported fields or fields with tag value of "-" are ignored.
+//
+// StructKeys will recursively traverse all the embedded structs and return their fields as well.
 func StructKeys(structType reflect.Type, tag string) map[string]reflect.StructField {
 	if structType == nil || structType == NilType {
 		return map[string]reflect.StructField{}
