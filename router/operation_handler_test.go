@@ -24,6 +24,16 @@ func TestHandlerFuncTypeExtraction(t *testing.T) {
 	assert.Equal(t, types.queryParams, utils.NilType)
 }
 
+func TestInitWithInvalidSpec(t *testing.T) {
+	spec, err := NewSpecFromData([]byte(`{}`))
+	require.NoError(t, err)
+	_ = spec
+
+	router := NewOpenAPIRouter(spec)
+	_, err = router.AsHandler()
+	require.ErrorIs(t, err, ErrSpecValidation)
+}
+
 func TestRouterAsHandler(t *testing.T) {
 	type responses struct {
 		Answer int `status:"200"`
