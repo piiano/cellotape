@@ -17,10 +17,6 @@ import (
 )
 
 func createMainRouterHandler(oa *openapi) (http.Handler, error) {
-	// Customize the error message returned by the kin-openapi library to be more user-friendly.
-	openapi3filter.DefaultOptions.WithCustomSchemaErrorFunc(func(err *openapi3.SchemaError) string {
-		return err.Reason
-	})
 	flatOperations := flattenOperations(oa.group)
 	if err := validateOpenAPIRouter(oa, flatOperations); err != nil {
 		return nil, err

@@ -13,9 +13,9 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/getkin/kin-openapi/routers"
-	"github.com/gin-gonic/gin/binding"
 	"github.com/julienschmidt/httprouter"
 
+	"github.com/piiano/cellotape/router/ginbinders"
 	"github.com/piiano/cellotape/router/utils"
 )
 
@@ -111,7 +111,7 @@ func pathBinderFactory[P any](pathParamsType reflect.Type) binder[P] {
 			m[k] = []string{v}
 		}
 
-		if err = binding.Uri.BindUri(m, target); err != nil {
+		if err = ginbinders.BindPath(m, target); err != nil {
 			return err
 		}
 		return nil
@@ -143,7 +143,7 @@ func queryBinderFactory[Q any](queryParamsType reflect.Type) binder[Q] {
 			return err
 		}
 
-		if err = binding.Query.Bind(defaults.Request, queryParams); err != nil {
+		if err = ginbinders.BindQueries(defaults.Request.URL.Query(), queryParams); err != nil {
 			return err
 		}
 
@@ -205,7 +205,7 @@ func validateResponse[R any](ctx *Context, r Response[R], responseBytes []byte) 
 		Status:                 r.status,
 		Header:                 r.headers,
 		Body:                   io.NopCloser(bytes.NewReader(responseBytes)),
-		Options:                openapi3filter.DefaultOptions,
+		Options:                validationOptions(),
 	}
 
 	if err := openapi3filter.ValidateResponse(ctx.Request.Context(), input); err != nil {
@@ -278,7 +278,7 @@ func requestValidationInput(ctx *Context) *openapi3filter.RequestValidationInput
 		Request:     &http.Request{},
 		PathParams:  make(map[string]string),
 		QueryParams: url.Values{},
-		Options:     openapi3filter.DefaultOptions,
+		Options:     validationOptions(),
 		Route: &routers.Route{
 			Operation: ctx.Operation.Operation,
 		},
@@ -302,4 +302,13 @@ func requestValidationInput(ctx *Context) *openapi3filter.RequestValidationInput
 	}
 
 	return &input
+}
+
+func validationOptions() *openapi3filter.Options {
+	options := openapi3filter.Options{}
+	// Customize the error message returned by the kin-openapi library to be more user-friendly.
+	options.WithCustomSchemaErrorFunc(func(err *openapi3.SchemaError) string {
+		return err.Reason
+	})
+	return &options
 }

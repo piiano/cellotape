@@ -2,11 +2,13 @@
 COVERAGE_PROFILE_FILE := profile.cov
 COVERAGE_HTML_FILE    := coverage.html
 SHELL := bash -eo pipefail -c
+# router/ginbinders is currently excluded from coverage because it's copied from gin-gonic/gin.
+EXCLUDE_FROM_COVERAGE := router/ginbinders
 
 $(COVERAGE_PROFILE_FILE): $(shell find router examples)
 	@go test -v -race -failfast \
 		-coverprofile=$@ \
-		-coverpkg=$(shell go list ./router/... | paste -s -d , -) \
+		-coverpkg=$(shell go list ./router/... | grep -v $(EXCLUDE_FROM_COVERAGE) | paste -s -d , -) \
 		./... | grep -v "coverage:" 1>&2 || rm $@
 
 .PHONY: test-coverage

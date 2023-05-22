@@ -1,6 +1,8 @@
 package router
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"reflect"
 
@@ -17,9 +19,21 @@ const (
 	queryParamFieldTag = "form"
 )
 
+var ErrSpecValidation = errors.New("spec validation failed")
+
 // validateOpenAPIRouter validates the entire OpenAPI Router structure built with the builder with the spec.
 // This takes into account various options defined and print to the logs relevant errors and warning based on the defined log level.
 func validateOpenAPIRouter(oa *openapi, flatOperations []operation) error {
+	// Validate the spec itself
+	// This step is also crucial to prevent race conditions when accessing the spec concurrently later.
+	// When kin-openapi is used to validate a request, in runtime and it find a pattern validation, it will compile the regex and cache it.
+	// There is a race condition in how the compiled regex is cached if there are concurrent requests since the cache is not thread safe.
+	// This is a known issue in kin-openapi.
+	// Calling Validate on the spec has the side effect of compiling all regex in the spec and cache them so we don't have to worry about it later.
+	if err := (*openapi3.T)(&oa.spec).Validate(context.Background(), openapi3.DisableExamplesValidation()); err != nil {
+		return fmt.Errorf("%w: %w", ErrSpecValidation, err)
+	}
+
 	l := oa.logger()
 	declaredOperation := utils.NewSet[string]()
 	excludeOperations := utils.NewSet(oa.options.ExcludeOperations...)
