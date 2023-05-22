@@ -12,7 +12,7 @@ import (
 	"unsafe"
 )
 
-// Code copied from Gin
+// This code is originated from Gin
 // https://github.com/gin-gonic/gin/blob/master/binding/form_mapping.go
 // This code is responsible for binding query and path parameters to structs using reflection.
 // We copy this code here to remove the dependency on Gin.

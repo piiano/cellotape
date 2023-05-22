@@ -3,7 +3,6 @@ package router
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -17,12 +16,10 @@ import (
 	"github.com/piiano/cellotape/router/utils"
 )
 
-var ErrSpecValidation = errors.New("spec validation failed")
-
 func createMainRouterHandler(oa *openapi) (http.Handler, error) {
 	flatOperations := flattenOperations(oa.group)
 	if err := validateOpenAPIRouter(oa, flatOperations); err != nil {
-		return nil, fmt.Errorf("%w: %s", ErrSpecValidation, err)
+		return nil, err
 	}
 	router := httprouter.New()
 	router.HandleMethodNotAllowed = false
