@@ -49,6 +49,8 @@ func createMainRouterHandler(oa *openapi) (http.Handler, error) {
 		}
 	}
 
+	registerAdditionalOpenAPIFormatValidations()
+
 	return router, nil
 }
 
