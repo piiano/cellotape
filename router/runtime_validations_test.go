@@ -19,5 +19,5 @@ func TestStringFormatValidation(t *testing.T) {
 
 	// Make sure invalid uuid is now failing after we register the validations.
 	err = uuidSchema.VisitJSON("not-a-uuid", openapi3.EnableFormatValidation())
-	require.Error(t, err)
+	require.ErrorIs(t, err, ErrInvalidUUID)
 }
