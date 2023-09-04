@@ -1,14 +1,18 @@
 package router
 
 import (
+	"bytes"
 	"errors"
 	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"reflect"
 	"testing"
 
 	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/julienschmidt/httprouter"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -229,7 +233,7 @@ func (e errWriter) Write(i []byte) (int, error) {
 func TestErrOnWriterError(t *testing.T) {
 	type R = OKResponse[string]
 	responses := extractResponses(utils.GetType[R]())
-	binder := responseBinderFactory[R](responses, DefaultContentTypes())
+	binder := responseBinderFactory[R](responses, DefaultContentTypes(), DefaultOptions().DefaultOperationValidation.RuntimeValidateResponses)
 	response := SendOK(R{OK: "foo"}).ContentType("unknown")
 
 	testCases := []struct {
@@ -259,6 +263,104 @@ func TestErrOnWriterError(t *testing.T) {
 			)
 			_, err := binder(ctx, response)
 			test.assertion(t, err)
+		})
+	}
+}
+
+func TestRuntimeValidateResponseSchema(t *testing.T) {
+	// Override global logger to capture warnings. Restore at the end of the test.
+	logger := log.Default()
+	var b bytes.Buffer
+	logger.SetOutput(&b)
+	defer func() {
+		logger.SetOutput(os.Stderr)
+	}()
+
+	type R = OKResponse[string]
+	responses := extractResponses(utils.GetType[R]())
+	response := SendOK(R{OK: "foo"})
+
+	badResponses := openapi3.Responses{
+		"200": &openapi3.ResponseRef{
+			Value: openapi3.NewResponse().WithJSONSchema(openapi3.NewBoolSchema()),
+		},
+	}
+	goodResponses := openapi3.Responses{
+		"200": &openapi3.ResponseRef{
+			Value: openapi3.NewResponse().WithJSONSchema(openapi3.NewStringSchema()),
+		},
+	}
+
+	testCases := []struct {
+		name                          string
+		responses                     openapi3.Responses
+		runtimeValidateResponseSchema Behaviour
+		err                           bool
+		warn                          bool
+	}{
+		{
+			name:                          "PropagateError - invalid schema returning error",
+			responses:                     badResponses,
+			runtimeValidateResponseSchema: PropagateError,
+			err:                           true,
+		},
+		{
+			name:                          "PropagateError - valid schema not returning error",
+			responses:                     goodResponses,
+			runtimeValidateResponseSchema: PropagateError,
+		},
+		{
+			name:                          "PrintWarning - invalid schema not returning error, but printing warning",
+			responses:                     badResponses,
+			runtimeValidateResponseSchema: PrintWarning,
+			warn:                          true,
+		},
+		{
+			name:                          "PrintWarning - valid schema not returning error",
+			responses:                     goodResponses,
+			runtimeValidateResponseSchema: PrintWarning,
+		},
+		{
+			name:                          "Ignore - invalid schema doing nothing",
+			responses:                     badResponses,
+			runtimeValidateResponseSchema: Ignore,
+		},
+		{
+			name:                          "Ignore - valid schema doing nothing",
+			responses:                     goodResponses,
+			runtimeValidateResponseSchema: Ignore,
+		},
+	}
+
+	for _, test := range testCases {
+		t.Run(test.name, func(t *testing.T) {
+			testOp := openapi3.NewOperation()
+			testOp.Responses = test.responses
+
+			ctx := testContext(
+				withOperation(testOp),
+			)
+
+			binder := responseBinderFactory[R](responses, DefaultContentTypes(), test.runtimeValidateResponseSchema)
+			_, err := binder(ctx, response)
+
+			if test.err {
+				var respErr *openapi3filter.ResponseError
+				require.ErrorAs(t, err, &respErr)
+				require.Contains(t, respErr.Reason, "response body doesn't match schema")
+			} else {
+				require.NoError(t, err)
+			}
+
+			var assertion func(require.TestingT, any, any, ...any)
+			if test.warn {
+				assertion = require.Contains
+			} else {
+				assertion = require.NotContains
+			}
+			assertion(t, b.String(), "[WARNING] response body doesn't match schema")
+
+			b.Reset()
 		})
 	}
 }
