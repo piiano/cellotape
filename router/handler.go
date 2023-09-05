@@ -117,7 +117,7 @@ func (h HandlerFunc[B, P, Q, R]) sourcePosition() sourcePosition {
 
 func (h HandlerFunc[B, P, Q, R]) handlerFactory(oa openapi, next BoundHandlerFunc) BoundHandlerFunc {
 	bindRequest := requestBinderFactory[B, P, Q](oa, h.requestTypes())
-	bindResponse := responseBinderFactory[R](h.responseTypes(), oa.contentTypes)
+	bindResponse := responseBinderFactory[R](h.responseTypes(), oa.contentTypes, oa.options.DefaultOperationValidation.RuntimeValidateResponses)
 	return func(context *Context) (RawResponse, error) {
 		// when handler will be called, set the next to next
 		context.NextFunc = next

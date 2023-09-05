@@ -157,7 +157,7 @@ func queryBinderFactory[Q any](queryParamsType reflect.Type) binder[Q] {
 }
 
 // responseBinderFactory creates a responseBinder that can be used in runtime
-func responseBinderFactory[R any](responses handlerResponses, contentTypes ContentTypes) responseBinder[R] {
+func responseBinderFactory[R any](responses handlerResponses, contentTypes ContentTypes, runtimeValidateReponse Behaviour) responseBinder[R] {
 	return func(ctx *Context, r Response[R]) (RawResponse, error) {
 		if ctx.RawResponse.Status != 0 {
 			return *ctx.RawResponse, nil
@@ -192,14 +192,24 @@ func responseBinderFactory[R any](responses handlerResponses, contentTypes Conte
 			return *ctx.RawResponse, err
 		}
 
-		validateResponse(ctx, r, responseBytes)
+		// validate response against spec. Only validate if not explicitly ignored as the validation may be expensive
+		// for large responses.
+		if runtimeValidateReponse != Ignore {
+			if err := validateResponse(ctx, r, responseBytes); err != nil {
+				if runtimeValidateReponse == PrintWarning {
+					log.Printf("[WARNING] %s. response violates the spec\n", err)
+				} else {
+					return RawResponse{}, err
+				}
+			}
+		}
 
 		return *ctx.RawResponse, nil
 	}
 }
 
 // validateResponse validates the response against the spec. It logs a warning if the response violates the spec.
-func validateResponse[R any](ctx *Context, r Response[R], responseBytes []byte) {
+func validateResponse[R any](ctx *Context, r Response[R], responseBytes []byte) error {
 	input := &openapi3filter.ResponseValidationInput{
 		RequestValidationInput: requestValidationInput(ctx),
 		Status:                 r.status,
@@ -208,9 +218,7 @@ func validateResponse[R any](ctx *Context, r Response[R], responseBytes []byte) 
 		Options:                validationOptions(),
 	}
 
-	if err := openapi3filter.ValidateResponse(ctx.Request.Context(), input); err != nil {
-		log.Printf("[WARNING] %s. response violates the spec\n", err)
-	}
+	return openapi3filter.ValidateResponse(ctx.Request.Context(), input)
 }
 
 // bindResponseHeaders copies Response.headers to http.ResponseWriter.Header

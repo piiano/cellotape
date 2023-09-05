@@ -20,9 +20,9 @@ const (
 // Behaviour defines a possible behaviour for a validation error.
 // Possible values are PropagateError, PrintWarning and Ignore.
 //
-// 		- PropagateError - Cause call to OpenAPIRouter.AsHandler to return an error if the validation fails and failure reason is logged with error level.
-// 		- PrintWarning - if the validation fails the failure reason will get logged with warning level. The error won't propagate to OpenAPIRouter.AsHandler return values
-// 		- Ignore - do nothing if the validation fails. don't print anything to the logs and don't propagate the error to OpenAPIRouter.AsHandler return values
+//   - PropagateError - Cause call to OpenAPIRouter.AsHandler to return an error if the validation fails and failure reason is logged with error level.
+//   - PrintWarning - if the validation fails the failure reason will get logged with warning level. The error won't propagate to OpenAPIRouter.AsHandler return values
+//   - Ignore - do nothing if the validation fails. don't print anything to the logs and don't propagate the error to OpenAPIRouter.AsHandler return values
 //
 // By default, Behaviour are initialized to PropagateError as it is essentially Behaviour zero value.
 type Behaviour utils.LogLevel
@@ -150,6 +150,11 @@ type OperationValidationOptions struct {
 
 	// HandleAllOperationResponses describes the behaviour when not every response defined in the spec is handled at least once in the handlers chain
 	HandleAllOperationResponses Behaviour `json:"handleAllOperationResponses,omitempty"`
+
+	// RuntimeValidateResponses defines the behaviour when validating operation response body at runtime. Printing a warning to
+	// the log by default. It is recommended to turn this option to Ignore in production as it can impact performance for large
+	// responses, and to be used in development and testing environments.
+	RuntimeValidateResponses Behaviour `json:"runtimeValidateResponses,omitempty"`
 }
 
 // SchemaValidationOptions defines options to control schema validations
@@ -176,6 +181,7 @@ func DefaultOptions() Options {
 			ValidateQueryParams:         PropagateError,
 			ValidateResponses:           PropagateError,
 			HandleAllOperationResponses: PropagateError,
+			RuntimeValidateResponses:    PrintWarning,
 		},
 		MustHandleAllOperations: PropagateError,
 		HandleAllContentTypes:   PropagateError,

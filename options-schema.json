@@ -25,6 +25,9 @@
         },
         "handleAllOperationResponses": {
           "type": "integer"
+        },
+        "runtimeValidateResponses": {
+          "type": "integer"
         }
       },
       "additionalProperties": false,
