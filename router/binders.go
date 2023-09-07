@@ -14,6 +14,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/getkin/kin-openapi/routers"
 	"github.com/julienschmidt/httprouter"
+	"golang.org/x/exp/slices"
 
 	"github.com/piiano/cellotape/router/ginbinders"
 	"github.com/piiano/cellotape/router/utils"
@@ -35,7 +36,7 @@ type responseBinder[R any] func(*Context, Response[R]) (RawResponse, error)
 
 // produce the binder function that can be called at runtime to create the httpRequest object for the handler.
 func requestBinderFactory[B, P, Q any](oa openapi, types requestTypes) requestBinder[B, P, Q] {
-	requestBodyBinder := requestBodyBinderFactory[B](types.requestBody, oa.contentTypes)
+	requestBodyBinder := requestBodyBinderFactory[B](types.requestBody, oa.contentTypes, oa.options)
 	pathParamsBinder := pathBinderFactory[P](types.pathParams)
 	queryParamsBinder := queryBinderFactory[Q](types.queryParams)
 
@@ -58,25 +59,27 @@ func requestBinderFactory[B, P, Q any](oa openapi, types requestTypes) requestBi
 }
 
 // produce the httpRequest Body binder that can be used in runtime
-func requestBodyBinderFactory[B any](requestBodyType reflect.Type, contentTypes ContentTypes) binder[B] {
+func requestBodyBinderFactory[B any](requestBodyType reflect.Type, contentTypes ContentTypes, options Options) binder[B] {
 	if requestBodyType == utils.NilType {
 		return nilBinder[B]
 	}
 	return func(ctx *Context, body *B) error {
-		input, err := validateBodyAndPopulateDefaults(ctx)
+		contentType, err := requestContentType(ctx.Request, contentTypes, JSONContentType{})
 		if err != nil {
 			return err
 		}
 
-		contentType, err := requestContentType(input.Request, contentTypes, JSONContentType{})
+		contentTypesToIgnoreBody := options.operationValidationOptions(ctx.Operation.OperationID).RuntimeValidateRequestContentTypeToIgnore
+		var bodyBytes []byte
+		if ctx.Operation.RequestBody == nil || (contentTypesToIgnoreBody != nil && slices.Contains(contentTypesToIgnoreBody, contentType.Mime())) {
+			bodyBytes, err = io.ReadAll(ctx.Request.Body)
+		} else {
+			bodyBytes, err = validateBodyAndPopulateDefaults(ctx)
+		}
 		if err != nil {
 			return err
 		}
-		defer func() { _ = input.Request.Body.Close() }()
-		bodyBytes, err := io.ReadAll(input.Request.Body)
-		if err != nil {
-			return err
-		}
+
 		if err = contentType.Decode(bodyBytes, body); err != nil {
 			return err
 		}
@@ -85,14 +88,14 @@ func requestBodyBinderFactory[B any](requestBodyType reflect.Type, contentTypes 
 }
 
 // validateBodyAndPopulateDefaults validate the request body with the openapi spec and populate the default values.
-func validateBodyAndPopulateDefaults(ctx *Context) (*openapi3filter.RequestValidationInput, error) {
+func validateBodyAndPopulateDefaults(ctx *Context) ([]byte, error) {
 	input := requestValidationInput(ctx)
-	if ctx.Operation.RequestBody != nil {
-		if err := openapi3filter.ValidateRequestBody(ctx.Request.Context(), input, ctx.Operation.RequestBody.Value); err != nil {
-			return nil, err
-		}
+	if err := openapi3filter.ValidateRequestBody(ctx.Request.Context(), input, ctx.Operation.RequestBody.Value); err != nil {
+		return nil, err
 	}
-	return input, nil
+
+	defer func() { _ = input.Request.Body.Close() }()
+	return io.ReadAll(input.Request.Body)
 }
 
 // produce the pathParamInValue pathParams binder that can be used in runtime

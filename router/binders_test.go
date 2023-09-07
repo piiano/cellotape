@@ -92,7 +92,7 @@ func TestPathBinderFactoryError(t *testing.T) {
 }
 
 func TestRequestBodyBinderFactory(t *testing.T) {
-	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes())
+	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes(), DefaultOptions())
 	var param int
 	err := requestBodyBinder(testContext(withBody("42")), &param)
 	require.NoError(t, err)
@@ -104,7 +104,7 @@ func TestRequestBodyBinderFactoryWithSchema(t *testing.T) {
 	testOp.RequestBody = &openapi3.RequestBodyRef{
 		Value: openapi3.NewRequestBody().WithJSONSchema(openapi3.NewIntegerSchema()),
 	}
-	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes())
+	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes(), DefaultOptions())
 	var param int
 	err := requestBodyBinder(testContext(
 		withBody("42"),
@@ -115,7 +115,7 @@ func TestRequestBodyBinderFactoryWithSchema(t *testing.T) {
 }
 
 func TestRequestBodyBinderFactoryError(t *testing.T) {
-	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes())
+	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes(), DefaultOptions())
 	var param int
 
 	err := requestBodyBinder(testContext(withBody(`"foo"`)), &param)
@@ -131,7 +131,7 @@ func (r readerWithError) Read(_ []byte) (int, error) {
 }
 
 func TestRequestBodyBinderFactoryReaderError(t *testing.T) {
-	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes())
+	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes(), DefaultOptions())
 	var param int
 	err := requestBodyBinder(testContext(
 		withBodyReader(io.NopCloser(readerWithError(`42`)))), &param)
@@ -139,7 +139,7 @@ func TestRequestBodyBinderFactoryReaderError(t *testing.T) {
 }
 
 func TestRequestBodyBinderFactoryContentTypeError(t *testing.T) {
-	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes())
+	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes(), DefaultOptions())
 	var param int
 
 	err := requestBodyBinder(testContext(
@@ -149,7 +149,7 @@ func TestRequestBodyBinderFactoryContentTypeError(t *testing.T) {
 }
 
 func TestRequestBodyBinderFactoryContentTypeWithCharset(t *testing.T) {
-	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes())
+	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes(), DefaultOptions())
 	var param int
 	err := requestBodyBinder(testContext(
 		withBody("42"),
@@ -159,7 +159,7 @@ func TestRequestBodyBinderFactoryContentTypeWithCharset(t *testing.T) {
 }
 
 func TestRequestBodyBinderFactoryInvalidContentType(t *testing.T) {
-	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes())
+	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes(), DefaultOptions())
 	var param int
 	err := requestBodyBinder(testContext(
 		withBody("42"),
@@ -168,7 +168,7 @@ func TestRequestBodyBinderFactoryInvalidContentType(t *testing.T) {
 }
 
 func TestRequestBodyBinderFactoryContentTypeAnyWithCharset(t *testing.T) {
-	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes())
+	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes(), DefaultOptions())
 	var param int
 	err := requestBodyBinder(testContext(
 		withBody("42"),

@@ -151,6 +151,8 @@ type OperationValidationOptions struct {
 	// HandleAllOperationResponses describes the behaviour when not every response defined in the spec is handled at least once in the handlers chain
 	HandleAllOperationResponses Behaviour `json:"handleAllOperationResponses,omitempty"`
 
+	RuntimeValidateRequestContentTypeToIgnore []string `json:"runtimeValidateRequestContentTypeToIgnore,omitempty"`
+
 	// RuntimeValidateResponses defines the behaviour when validating operation response body at runtime. Printing a warning to
 	// the log by default. It is recommended to turn this option to Ignore in production as it can impact performance for large
 	// responses, and to be used in development and testing environments.
@@ -176,12 +178,13 @@ func DefaultOptions() Options {
 		LogLevel:       LogLevelInfo,
 		LogOutput:      os.Stderr,
 		DefaultOperationValidation: OperationValidationOptions{
-			ValidateRequestBody:         PropagateError,
-			ValidatePathParams:          PropagateError,
-			ValidateQueryParams:         PropagateError,
-			ValidateResponses:           PropagateError,
-			HandleAllOperationResponses: PropagateError,
-			RuntimeValidateResponses:    PrintWarning,
+			ValidateRequestBody:                       PropagateError,
+			ValidatePathParams:                        PropagateError,
+			ValidateQueryParams:                       PropagateError,
+			ValidateResponses:                         PropagateError,
+			HandleAllOperationResponses:               PropagateError,
+			RuntimeValidateRequestContentTypeToIgnore: []string{PlainTextContentType{}.Mime(), OctetStreamContentType{}.Mime()},
+			RuntimeValidateResponses:                  PrintWarning,
 		},
 		MustHandleAllOperations: PropagateError,
 		HandleAllContentTypes:   PropagateError,

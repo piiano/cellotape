@@ -26,6 +26,12 @@
         "handleAllOperationResponses": {
           "type": "integer"
         },
+        "runtimeValidateRequestContentTypeToIgnore": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "runtimeValidateResponses": {
           "type": "integer"
         }
