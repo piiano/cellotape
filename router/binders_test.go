@@ -364,3 +364,61 @@ func TestRuntimeValidateResponseSchema(t *testing.T) {
 		})
 	}
 }
+
+func TestRequestBodyWithContentLengthFactory(t *testing.T) {
+	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes(), DefaultOptions())
+
+	type test struct {
+		name           string
+		in             string
+		ContentLength  int64
+		expectedOutput int
+		expectedErr    error
+	}
+
+	tests := []test{
+		{
+			name:           "sanity",
+			in:             "42",
+			ContentLength:  2,
+			expectedOutput: 42,
+			expectedErr:    nil,
+		},
+		{
+			name:           "missing content length",
+			in:             "42",
+			expectedOutput: 42,
+			expectedErr:    nil,
+		},
+		{
+			name:           "shorter content length",
+			in:             "123456789",
+			ContentLength:  5,
+			expectedOutput: 12345,
+			expectedErr:    nil,
+		},
+		{
+			name:           "longer content length",
+			in:             "123456789",
+			ContentLength:  20,
+			expectedOutput: 123456789,
+			expectedErr:    nil,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var param int
+			ctx := testContext(withBody(tc.in))
+			ctx.Request.ContentLength = tc.ContentLength
+			err := requestBodyBinder(ctx, &param)
+
+			if tc.expectedErr != nil {
+				require.ErrorIs(t, err, tc.expectedErr)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tc.expectedOutput, param)
+			}
+		})
+	}
+}

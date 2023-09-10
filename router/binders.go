@@ -2,6 +2,7 @@ package router
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -72,7 +73,10 @@ func requestBodyBinderFactory[B any](requestBodyType reflect.Type, contentTypes 
 		contentTypesToIgnoreBody := options.operationValidationOptions(ctx.Operation.OperationID).RuntimeValidateRequestContentTypeToIgnore
 		var bodyBytes []byte
 		if ctx.Operation.RequestBody == nil || (contentTypesToIgnoreBody != nil && slices.Contains(contentTypesToIgnoreBody, contentType.Mime())) {
-			bodyBytes, err = io.ReadAll(ctx.Request.Body)
+			bodyBytes, err = readBody(ctx, err)
+			if err != nil {
+				return err
+			}
 		} else {
 			bodyBytes, err = validateBodyAndPopulateDefaults(ctx)
 		}
@@ -85,6 +89,23 @@ func requestBodyBinderFactory[B any](requestBodyType reflect.Type, contentTypes 
 		}
 		return nil
 	}
+}
+
+func readBody(ctx *Context, err error) ([]byte, error) {
+	// If there is no content-length, read all without pre-allocating. This
+	// happens at tests.
+	if ctx.Request.ContentLength <= 0 {
+		return io.ReadAll(ctx.Request.Body)
+	}
+
+	// If there is a content-length, pre-allocate the body bytes.
+	bodyBytes := make([]byte, int(ctx.Request.ContentLength))
+	n, err := io.ReadFull(ctx.Request.Body, bodyBytes)
+	if err != nil && !errors.Is(err, io.ErrUnexpectedEOF) {
+		return nil, err
+	}
+
+	return bodyBytes[:n], nil
 }
 
 // validateBodyAndPopulateDefaults validate the request body with the openapi spec and populate the default values.
