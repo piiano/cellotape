@@ -92,7 +92,7 @@ func TestPathBinderFactoryError(t *testing.T) {
 }
 
 func TestRequestBodyBinderFactory(t *testing.T) {
-	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes())
+	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes(), DefaultOptions())
 	var param int
 	err := requestBodyBinder(testContext(withBody("42")), &param)
 	require.NoError(t, err)
@@ -104,7 +104,7 @@ func TestRequestBodyBinderFactoryWithSchema(t *testing.T) {
 	testOp.RequestBody = &openapi3.RequestBodyRef{
 		Value: openapi3.NewRequestBody().WithJSONSchema(openapi3.NewIntegerSchema()),
 	}
-	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes())
+	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes(), DefaultOptions())
 	var param int
 	err := requestBodyBinder(testContext(
 		withBody("42"),
@@ -115,7 +115,7 @@ func TestRequestBodyBinderFactoryWithSchema(t *testing.T) {
 }
 
 func TestRequestBodyBinderFactoryError(t *testing.T) {
-	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes())
+	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes(), DefaultOptions())
 	var param int
 
 	err := requestBodyBinder(testContext(withBody(`"foo"`)), &param)
@@ -131,7 +131,7 @@ func (r readerWithError) Read(_ []byte) (int, error) {
 }
 
 func TestRequestBodyBinderFactoryReaderError(t *testing.T) {
-	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes())
+	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes(), DefaultOptions())
 	var param int
 	err := requestBodyBinder(testContext(
 		withBodyReader(io.NopCloser(readerWithError(`42`)))), &param)
@@ -139,7 +139,7 @@ func TestRequestBodyBinderFactoryReaderError(t *testing.T) {
 }
 
 func TestRequestBodyBinderFactoryContentTypeError(t *testing.T) {
-	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes())
+	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes(), DefaultOptions())
 	var param int
 
 	err := requestBodyBinder(testContext(
@@ -149,7 +149,7 @@ func TestRequestBodyBinderFactoryContentTypeError(t *testing.T) {
 }
 
 func TestRequestBodyBinderFactoryContentTypeWithCharset(t *testing.T) {
-	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes())
+	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes(), DefaultOptions())
 	var param int
 	err := requestBodyBinder(testContext(
 		withBody("42"),
@@ -159,7 +159,7 @@ func TestRequestBodyBinderFactoryContentTypeWithCharset(t *testing.T) {
 }
 
 func TestRequestBodyBinderFactoryInvalidContentType(t *testing.T) {
-	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes())
+	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes(), DefaultOptions())
 	var param int
 	err := requestBodyBinder(testContext(
 		withBody("42"),
@@ -168,7 +168,7 @@ func TestRequestBodyBinderFactoryInvalidContentType(t *testing.T) {
 }
 
 func TestRequestBodyBinderFactoryContentTypeAnyWithCharset(t *testing.T) {
-	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes())
+	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes(), DefaultOptions())
 	var param int
 	err := requestBodyBinder(testContext(
 		withBody("42"),
@@ -361,6 +361,83 @@ func TestRuntimeValidateResponseSchema(t *testing.T) {
 			assertion(t, b.String(), "[WARNING] response body doesn't match schema")
 
 			b.Reset()
+		})
+	}
+}
+
+func TestRequestBodyWithContentLengthFactory(t *testing.T) {
+	requestBodyBinder := requestBodyBinderFactory[int](reflect.TypeOf(0), DefaultContentTypes(), DefaultOptions())
+
+	type test struct {
+		name           string
+		in             string
+		contentLength  int64
+		contentType    string
+		expectedOutput int
+		expectedErrMsg string
+	}
+
+	tests := []test{
+		{
+			name:           "sanity",
+			in:             "42",
+			contentLength:  2,
+			expectedOutput: 42,
+		},
+		{
+			name:           "missing content length",
+			in:             "42",
+			expectedOutput: 42,
+		},
+		{
+			name:           "shorter content length",
+			in:             "123456789",
+			contentLength:  5,
+			expectedOutput: 12345,
+		},
+		{
+			name:           "longer content length",
+			in:             "123456789",
+			contentLength:  20,
+			expectedOutput: 123456789,
+		},
+		{
+			name:           "content not passing validation",
+			in:             "12345AAAA",
+			contentLength:  20,
+			expectedErrMsg: "invalid character 'A' after top-level value",
+		},
+		{
+			name:          "content not passing validation but validation is skipped",
+			in:            "12345AAAA",
+			contentLength: 20,
+			contentType:   "application/octet-stream",
+			// This error message represents an error that happens AFTER validation, so it means that the validation was skipped.
+			expectedErrMsg: `type *int is incompatible with content type "application/octet-stream". value must be a *[]byte`,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var param int
+
+			if tc.contentType == "" {
+				tc.contentType = "application/json"
+			}
+
+			ctx := testContext(
+				withBody(tc.in),
+				withHeader("Content-Type", tc.contentType),
+			)
+			ctx.Request.ContentLength = tc.contentLength
+			err := requestBodyBinder(ctx, &param)
+
+			if tc.expectedErrMsg != "" {
+				require.Equal(t, err.Error(), tc.expectedErrMsg)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tc.expectedOutput, param)
+			}
 		})
 	}
 }
