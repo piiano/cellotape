@@ -70,28 +70,29 @@ func requestBodyBinderFactory[B any](requestBodyType reflect.Type, contentTypes 
 			return err
 		}
 
-		contentTypesToIgnoreBody := options.operationValidationOptions(ctx.Operation.OperationID).RuntimeValidateRequestContentTypeToIgnore
-		var bodyBytes []byte
-		if ctx.Operation.RequestBody == nil || (contentTypesToIgnoreBody != nil && slices.Contains(contentTypesToIgnoreBody, contentType.Mime())) {
-			bodyBytes, err = readBody(ctx, err)
-			if err != nil {
-				return err
-			}
-		} else {
-			bodyBytes, err = validateBodyAndPopulateDefaults(ctx)
-		}
+		contentTypesToIgnore := options.operationValidationOptions(ctx.Operation.OperationID).ContentTypesToSkipRuntimeValidation
+		bodyBytes, err := readBodyBytes(ctx, contentTypesToIgnore, contentType)
 		if err != nil {
 			return err
 		}
 
-		if err = contentType.Decode(bodyBytes, body); err != nil {
-			return err
-		}
-		return nil
+		return contentType.Decode(bodyBytes, body)
 	}
 }
 
-func readBody(ctx *Context, err error) ([]byte, error) {
+func readBodyBytes(ctx *Context, contentTypesToIgnoreBody []string, contentType ContentType) ([]byte, error) {
+	skipValidation := ctx.Operation.RequestBody == nil || contentTypeValidationIsSkipped(contentTypesToIgnoreBody, contentType)
+	if skipValidation {
+		return readBody(ctx)
+	}
+	return validateBodyAndPopulateDefaults(ctx)
+}
+
+func contentTypeValidationIsSkipped(contentTypesToIgnore []string, contentType ContentType) bool {
+	return contentTypesToIgnore != nil && slices.Contains(contentTypesToIgnore, contentType.Mime())
+}
+
+func readBody(ctx *Context) ([]byte, error) {
 	// If there is no content-length, read all without pre-allocating. This
 	// happens at tests.
 	if ctx.Request.ContentLength <= 0 {

@@ -26,7 +26,7 @@
         "handleAllOperationResponses": {
           "type": "integer"
         },
-        "runtimeValidateRequestContentTypeToIgnore": {
+        "contentTypesToSkipRuntimeValidation": {
           "items": {
             "type": "string"
           },

@@ -371,50 +371,69 @@ func TestRequestBodyWithContentLengthFactory(t *testing.T) {
 	type test struct {
 		name           string
 		in             string
-		ContentLength  int64
+		contentLength  int64
+		contentType    string
 		expectedOutput int
-		expectedErr    error
+		expectedErrMsg string
 	}
 
 	tests := []test{
 		{
 			name:           "sanity",
 			in:             "42",
-			ContentLength:  2,
+			contentLength:  2,
 			expectedOutput: 42,
-			expectedErr:    nil,
 		},
 		{
 			name:           "missing content length",
 			in:             "42",
 			expectedOutput: 42,
-			expectedErr:    nil,
 		},
 		{
 			name:           "shorter content length",
 			in:             "123456789",
-			ContentLength:  5,
+			contentLength:  5,
 			expectedOutput: 12345,
-			expectedErr:    nil,
 		},
 		{
 			name:           "longer content length",
 			in:             "123456789",
-			ContentLength:  20,
+			contentLength:  20,
 			expectedOutput: 123456789,
-			expectedErr:    nil,
+		},
+		{
+			name:           "content not passing validation",
+			in:             "12345AAAA",
+			contentLength:  20,
+			expectedErrMsg: "invalid character 'A' after top-level value",
+		},
+		{
+			name:          "content not passing validation but validation is skipped",
+			in:            "12345AAAA",
+			contentLength: 20,
+			contentType:   "application/octet-stream",
+			// This error message represents an error that happens AFTER validation, so it means that the validation was skipped.
+			expectedErrMsg: `type *int is incompatible with content type "application/octet-stream". value must be a *[]byte`,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			var param int
-			ctx := testContext(withBody(tc.in))
-			ctx.Request.ContentLength = tc.ContentLength
+
+			if tc.contentType == "" {
+				tc.contentType = "application/json"
+			}
+
+			ctx := testContext(
+				withBody(tc.in),
+				withHeader("Content-Type", tc.contentType),
+			)
+			ctx.Request.ContentLength = tc.contentLength
 			err := requestBodyBinder(ctx, &param)
 
-			if tc.expectedErr != nil {
-				require.ErrorIs(t, err, tc.expectedErr)
+			if tc.expectedErrMsg != "" {
+				require.Equal(t, err.Error(), tc.expectedErrMsg)
 			} else {
 				require.NoError(t, err)
 				assert.Equal(t, tc.expectedOutput, param)
