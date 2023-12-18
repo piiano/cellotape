@@ -22,7 +22,6 @@ func createMainRouterHandler(oa *openapi) (http.Handler, error) {
 		return nil, err
 	}
 	router := httprouter.New()
-	router.HandleMethodNotAllowed = false
 
 	logger := oa.logger()
 	pathParamsMatcher := regexp.MustCompile(`\{([^/}]*)}`)
@@ -36,6 +35,8 @@ func createMainRouterHandler(oa *openapi) (http.Handler, error) {
 		router.Handle(specOp.Method, path, httpRouterHandler)
 		logger.Infof("register handler for operation %q - %s %s", flatOp.id, specOp.Method, specOp.Path)
 	}
+
+	setGlobalHandlers(router, oa)
 
 	// For Kin-openapi to be able to validate a request and set default values it need to know how to decode and encode
 	// the request body for any supported content type.
@@ -52,6 +53,14 @@ func createMainRouterHandler(oa *openapi) (http.Handler, error) {
 	registerAdditionalOpenAPIFormatValidations()
 
 	return router, nil
+}
+
+// setGlobalHandlers sets the OPTIONS handlers for the router.
+func setGlobalHandlers(router *httprouter.Router, oa *openapi) {
+	router.HandleMethodNotAllowed = false
+	router.NotFound = http.HandlerFunc(notFoundHandler)
+	router.HandleOPTIONS = oa.options.OptionsHandler != nil
+	router.GlobalOPTIONS = oa.options.OptionsHandler
 }
 
 func createDecoder(contentType ContentType) func(reader io.Reader, _ http.Header, schema *openapi3.SchemaRef, enc openapi3filter.EncodingFn) (any, error) {
@@ -149,4 +158,14 @@ func defaultRecoverBehaviour(writer http.ResponseWriter) {
 		log.Printf("[Error] recovered from panic. %v. respond with status 500\n", r)
 		debug.PrintStack()
 	}
+}
+
+// DefaultOptionsHandler This handler is the default OPTIONS handler provided when using DefaultOptions.
+// It will respond to each OPTIONS request with an "Allow" header that will include all the methods that are defined for the path and respond with 204 status.
+func DefaultOptionsHandler(writer http.ResponseWriter, _ *http.Request) {
+	writer.WriteHeader(http.StatusNoContent)
+}
+
+func notFoundHandler(writer http.ResponseWriter, _ *http.Request) {
+	writer.WriteHeader(http.StatusNotFound)
 }

@@ -3,6 +3,7 @@ package router
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 
 	"github.com/piiano/cellotape/router/utils"
@@ -126,6 +127,12 @@ type Options struct {
 	// One use for this option is when your spec defines the entire API of your app but the implementation is spread to multiple microservices.
 	// With this option you can define list of operations that are to be implemented by other microservices.
 	ExcludeOperations []string
+
+	// OptionsHandler defines a handler that is called for every OPTIONS request of any path that is defined in the spec.
+	// This handler allows you to define a response for OPTIONS preflight requests and control the allowed methods or set CORS headers.
+	// The handler will receive the allowed methods in the `Allow` header based on the spec.
+	// Set to nil to disable the automatic handling of OPTIONS requests.
+	OptionsHandler http.Handler `json:"-"`
 }
 
 // OperationValidationOptions defines options to control operation validations
@@ -189,6 +196,7 @@ func DefaultOptions() Options {
 		},
 		MustHandleAllOperations: PropagateError,
 		HandleAllContentTypes:   PropagateError,
+		OptionsHandler:          http.HandlerFunc(DefaultOptionsHandler),
 	}
 }
 
