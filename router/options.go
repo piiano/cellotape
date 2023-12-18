@@ -129,9 +129,8 @@ type Options struct {
 	ExcludeOperations []string
 
 	// OptionsHandler defines a handler that is called for every OPTIONS request of any path that is defined in the spec.
-	// This handler allows you to define a response for the OPTIONS preflight request and control the allowed methods or set CORS headers.
-	// The handler will receive the allowed methods as a slice of strings computed by the router based on the spec.
-	// If not set the router will default to a handler that will set the allowed methods as an `Allow` header.
+	// This handler allows you to define a response for OPTIONS preflight requests and control the allowed methods or set CORS headers.
+	// The handler will receive the allowed methods in the `Allow` header based on the spec.
 	// Set to nil to disable the automatic handling of OPTIONS requests.
 	OptionsHandler http.Handler `json:"-"`
 }

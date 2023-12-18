@@ -22,7 +22,6 @@ func createMainRouterHandler(oa *openapi) (http.Handler, error) {
 		return nil, err
 	}
 	router := httprouter.New()
-	router.HandleMethodNotAllowed = false
 
 	logger := oa.logger()
 	pathParamsMatcher := regexp.MustCompile(`\{([^/}]*)}`)
@@ -37,7 +36,7 @@ func createMainRouterHandler(oa *openapi) (http.Handler, error) {
 		logger.Infof("register handler for operation %q - %s %s", flatOp.id, specOp.Method, specOp.Path)
 	}
 
-	setOptionsHandlers(router, oa)
+	setGlobalHandlers(router, oa)
 
 	// For Kin-openapi to be able to validate a request and set default values it need to know how to decode and encode
 	// the request body for any supported content type.
@@ -56,24 +55,12 @@ func createMainRouterHandler(oa *openapi) (http.Handler, error) {
 	return router, nil
 }
 
-// setOptionsHandlers sets the OPTIONS handlers for the router.
-func setOptionsHandlers(router *httprouter.Router, oa *openapi) {
+// setGlobalHandlers sets the OPTIONS handlers for the router.
+func setGlobalHandlers(router *httprouter.Router, oa *openapi) {
+	router.HandleMethodNotAllowed = false
+	router.NotFound = http.HandlerFunc(notFoundHandler)
 	router.HandleOPTIONS = oa.options.OptionsHandler != nil
-
-	// If HandleOptions is nil, NotFound simply return 404 for any request.
-	// When HandleOptions is not nil, NotFound for any OPTIONS request will call the global OPTIONS handler to return the "Allow: OPTIONS" header.
-	// For any other request it will return 404
-	router.NotFound = notFoundHandler(oa)
-
-	if !router.HandleOPTIONS {
-		return
-	}
-
-	// GlobalOPTIONS is used for the OPTIONS handler for all paths.
-	// It receives all registered methods for a path in the "Allow" header.
-	router.GlobalOPTIONS = http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		oa.options.OptionsHandler.ServeHTTP(writer, request)
-	})
+	router.GlobalOPTIONS = oa.options.OptionsHandler
 }
 
 func createDecoder(contentType ContentType) func(reader io.Reader, _ http.Header, schema *openapi3.SchemaRef, enc openapi3filter.EncodingFn) (any, error) {
@@ -173,26 +160,12 @@ func defaultRecoverBehaviour(writer http.ResponseWriter) {
 	}
 }
 
-// DefaultOptionsHandler This handler will be called for any OPTIONS request with an "Allow" header that will include all the methods that are defined for the path.
+// DefaultOptionsHandler This handler is the default OPTIONS handler provided when using DefaultOptions.
+// It will respond to each OPTIONS request with an "Allow" header that will include all the methods that are defined for the path and respond with 204 status.
 func DefaultOptionsHandler(writer http.ResponseWriter, _ *http.Request) {
 	writer.WriteHeader(http.StatusNoContent)
 }
 
-func notFoundHandler(oa *openapi) http.HandlerFunc {
-	if oa.options.OptionsHandler == nil {
-		return func(writer http.ResponseWriter, request *http.Request) {
-			writer.WriteHeader(http.StatusNotFound)
-		}
-	}
-
-	return func(writer http.ResponseWriter, request *http.Request) {
-		if request.Method != http.MethodOptions {
-			writer.WriteHeader(http.StatusNotFound)
-			return
-		}
-
-		// If we get to NotFound it means that the path does not exist so we can set the "Allow" header to "OPTIONS" only and call the OPTIONS handler.
-		writer.Header().Set("Allow", "OPTIONS")
-		oa.options.OptionsHandler.ServeHTTP(writer, request)
-	}
+func notFoundHandler(writer http.ResponseWriter, _ *http.Request) {
+	writer.WriteHeader(http.StatusNotFound)
 }

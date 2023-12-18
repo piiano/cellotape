@@ -71,7 +71,7 @@ func TestOptionsHandler(t *testing.T) {
 	router.HandleMethodNotAllowed = false
 	options := DefaultOptions()
 
-	setOptionsHandlers(router, &openapi{
+	setGlobalHandlers(router, &openapi{
 		spec: OpenAPISpec{
 			Paths: map[string]*openapi3.PathItem{
 				"/foo/{param1}/bar/{param2}": {
@@ -127,17 +127,15 @@ func TestOptionsHandler(t *testing.T) {
 	router.ServeHTTP(writer, httptest.NewRequest("GET", "/non-existing-path", nil))
 	response = writer.Result()
 
-	// NotFound handler is working as expected for non OPTIONS requests
 	require.Equal(t, 404, response.StatusCode)
 	require.ElementsMatch(t, []string{}, utils.Keys(response.Header))
 
 	writer = httptest.NewRecorder()
-	router.ServeHTTP(writer, httptest.NewRequest("OPTIONS", "/foo", nil))
+	router.ServeHTTP(writer, httptest.NewRequest("OPTIONS", "/non-existing-path", nil))
 	response = writer.Result()
 
-	require.Equal(t, 204, response.StatusCode)
-	require.ElementsMatch(t, []string{"Allow"}, utils.Keys(response.Header))
-	require.ElementsMatch(t, []string{"OPTIONS"}, strings.Split(response.Header.Get("Allow"), ", "))
+	require.Equal(t, 404, response.StatusCode)
+	require.ElementsMatch(t, []string{}, utils.Keys(response.Header))
 }
 
 func TestOptionsHandlerIsNil(t *testing.T) {
@@ -146,7 +144,7 @@ func TestOptionsHandlerIsNil(t *testing.T) {
 	options := DefaultOptions()
 	options.OptionsHandler = nil
 
-	setOptionsHandlers(router, &openapi{
+	setGlobalHandlers(router, &openapi{
 		spec: OpenAPISpec{
 			Paths: map[string]*openapi3.PathItem{
 				"/foo/{param1}/bar": {
