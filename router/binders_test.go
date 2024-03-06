@@ -280,20 +280,16 @@ func TestRuntimeValidateResponseSchema(t *testing.T) {
 	responses := extractResponses(utils.GetType[R]())
 	response := SendOK(R{OK: "foo"})
 
-	badResponses := openapi3.Responses{
-		"200": &openapi3.ResponseRef{
-			Value: openapi3.NewResponse().WithJSONSchema(openapi3.NewBoolSchema()),
-		},
-	}
-	goodResponses := openapi3.Responses{
-		"200": &openapi3.ResponseRef{
-			Value: openapi3.NewResponse().WithJSONSchema(openapi3.NewStringSchema()),
-		},
-	}
+	badResponses := openapi3.NewResponses(openapi3.WithStatus(200, &openapi3.ResponseRef{
+		Value: openapi3.NewResponse().WithJSONSchema(openapi3.NewBoolSchema()),
+	}))
+	goodResponses := openapi3.NewResponses(openapi3.WithStatus(200, &openapi3.ResponseRef{
+		Value: openapi3.NewResponse().WithJSONSchema(openapi3.NewStringSchema()),
+	}))
 
 	testCases := []struct {
 		name                          string
-		responses                     openapi3.Responses
+		responses                     *openapi3.Responses
 		runtimeValidateResponseSchema Behaviour
 		err                           bool
 		warn                          bool

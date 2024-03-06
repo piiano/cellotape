@@ -25,15 +25,15 @@ func TestValidateContentTypesWithJSONContentType(t *testing.T) {
 		options:      DefaultTestOptions(),
 		contentTypes: DefaultContentTypes(),
 		spec: OpenAPISpec(openapi3.T{
-			Paths: openapi3.Paths{
-				"/": &openapi3.PathItem{
+			Paths: openapi3.NewPaths(
+				openapi3.WithPath("/", &openapi3.PathItem{
 					Get: &openapi3.Operation{
 						RequestBody: &openapi3.RequestBodyRef{
 							Value: openapi3.NewRequestBody().WithJSONSchema(openapi3.NewSchema()),
 						},
 					},
-				},
-			},
+				}),
+			),
 		}),
 	}, utils.NewSet[string]())
 	require.NoError(t, err)
@@ -44,16 +44,16 @@ func TestValidateContentTypesWithExcludedOperation(t *testing.T) {
 		options:      DefaultTestOptions(),
 		contentTypes: DefaultContentTypes(),
 		spec: OpenAPISpec(openapi3.T{
-			Paths: openapi3.Paths{
-				"/": &openapi3.PathItem{
+			Paths: openapi3.NewPaths(
+				openapi3.WithPath("/", &openapi3.PathItem{
 					Get: &openapi3.Operation{
 						OperationID: "foo",
 						RequestBody: &openapi3.RequestBodyRef{
 							Value: openapi3.NewRequestBody().WithJSONSchema(openapi3.NewSchema()),
 						},
 					},
-				},
-			},
+				}),
+			),
 		}),
 	}, utils.NewSet[string]("foo"))
 	require.NoError(t, err)
@@ -64,15 +64,14 @@ func TestValidateContentTypesErrorWithMissingJSONContentType(t *testing.T) {
 		options:      DefaultTestOptions(),
 		contentTypes: ContentTypes{},
 		spec: OpenAPISpec(openapi3.T{
-			Paths: openapi3.Paths{
-				"/": &openapi3.PathItem{
+			Paths: openapi3.NewPaths(
+				openapi3.WithPath("/", &openapi3.PathItem{
 					Get: &openapi3.Operation{
 						RequestBody: &openapi3.RequestBodyRef{
 							Value: openapi3.NewRequestBody().WithJSONSchema(openapi3.NewSchema()),
 						},
 					},
-				},
-			},
+				})),
 		}),
 	}, utils.NewSet[string]())
 	require.Error(t, err)
@@ -148,7 +147,7 @@ func TestValidateHandleAllResponses(t *testing.T) {
 		},
 	}, SpecOperation{
 		Operation: &openapi3.Operation{
-			Responses: testSpecResponse("200", "application/json", openapi3.NewStringSchema()),
+			Responses: testSpecResponse(200, "application/json", openapi3.NewStringSchema()),
 		},
 	})
 	assert.Equal(t, 0, counter.Errors)
@@ -171,7 +170,7 @@ func TestValidateHandleAllResponsesError(t *testing.T) {
 		},
 	}, SpecOperation{
 		Operation: &openapi3.Operation{
-			Responses: testSpecResponse("200", "application/json", openapi3.NewStringSchema()),
+			Responses: testSpecResponse(200, "application/json", openapi3.NewStringSchema()),
 		},
 	})
 	assert.Equal(t, 0, counter.Errors)
@@ -179,6 +178,10 @@ func TestValidateHandleAllResponsesError(t *testing.T) {
 }
 
 func TestValidateHandleAllResponsesInvalidStatusError(t *testing.T) {
+	invalidResponses := openapi3.NewResponsesWithCapacity(1)
+	invalidResponses.Set("20x", &openapi3.ResponseRef{
+		Value: openapi3.NewResponse().WithJSONSchema(openapi3.NewStringSchema()),
+	})
 	counter := validateHandleAllResponses(openapi{
 		options:      DefaultTestOptions(),
 		contentTypes: DefaultContentTypes(),
@@ -194,7 +197,7 @@ func TestValidateHandleAllResponsesInvalidStatusError(t *testing.T) {
 		},
 	}, SpecOperation{
 		Operation: &openapi3.Operation{
-			Responses: testSpecResponse("20x", "application/json", openapi3.NewStringSchema()),
+			Responses: invalidResponses,
 		},
 	})
 	assert.Equal(t, 1, counter.Errors)
@@ -211,7 +214,7 @@ func TestValidateHandleAllResponsesMissingStatusError(t *testing.T) {
 		},
 	}, SpecOperation{
 		Operation: &openapi3.Operation{
-			Responses: testSpecResponse("200", "application/json", openapi3.NewStringSchema()),
+			Responses: testSpecResponse(200, "application/json", openapi3.NewStringSchema()),
 		},
 	})
 	assert.Equal(t, 1, counter.Errors)
@@ -509,7 +512,7 @@ func TestValidateResponseTypes(t *testing.T) {
 			},
 		},
 	}, &openapi3.Operation{
-		Responses: testSpecResponse("200", "application/json", openapi3.NewStringSchema()),
+		Responses: testSpecResponse(200, "application/json", openapi3.NewStringSchema()),
 	}, "")
 	assert.Equal(t, 0, counter.Errors)
 	assert.Equal(t, 0, counter.Warnings)
@@ -528,7 +531,7 @@ func TestValidateResponseTypesIgnoreMissingContentType(t *testing.T) {
 			},
 		},
 	}, &openapi3.Operation{
-		Responses: testSpecResponse("200", "application/json", openapi3.NewStringSchema()),
+		Responses: testSpecResponse(200, "application/json", openapi3.NewStringSchema()),
 	}, "")
 	assert.Equal(t, 0, counter.Errors)
 	assert.Equal(t, 0, counter.Warnings)
@@ -546,7 +549,7 @@ func TestValidateResponseTypesMissingStatusErr(t *testing.T) {
 			},
 		},
 	}, &openapi3.Operation{
-		Responses: testSpecResponse("200", "application/json", openapi3.NewStringSchema()),
+		Responses: testSpecResponse(200, "application/json", openapi3.NewStringSchema()),
 	}, "")
 	assert.Equal(t, 1, counter.Errors)
 	assert.Equal(t, 0, counter.Warnings)
@@ -564,7 +567,7 @@ func TestValidateResponseTypesIncompatibleTypeErr(t *testing.T) {
 			},
 		},
 	}, &openapi3.Operation{
-		Responses: testSpecResponse("200", "application/json", openapi3.NewIntegerSchema()),
+		Responses: testSpecResponse(200, "application/json", openapi3.NewIntegerSchema()),
 	}, "")
 	assert.Equal(t, 1, counter.Errors)
 	assert.Equal(t, 0, counter.Warnings)
@@ -574,11 +577,11 @@ func TestImplementingExcludedOperationErr(t *testing.T) {
 	spec := NewSpec()
 	testOperation := openapi3.NewOperation()
 	testOperation.OperationID = "test"
-	spec.Paths = openapi3.Paths{
-		"/test": &openapi3.PathItem{
+	spec.Paths = openapi3.NewPaths(
+		openapi3.WithPath("/test", &openapi3.PathItem{
 			Get: testOperation,
-		},
-	}
+		}),
+	)
 
 	options := DefaultTestOptions()
 	options.ExcludeOperations = []string{"test"}
@@ -605,11 +608,11 @@ func TestImplementingSameOperationMultipleTimesErr(t *testing.T) {
 	spec := NewSpec()
 	testOperation := openapi3.NewOperation()
 	testOperation.OperationID = "test"
-	spec.Paths = openapi3.Paths{
-		"/test": &openapi3.PathItem{
+	spec.Paths = openapi3.NewPaths(
+		openapi3.WithPath("/test", &openapi3.PathItem{
 			Get: testOperation,
-		},
-	}
+		}),
+	)
 
 	opImpl := operation{
 		id: "test",
@@ -632,11 +635,11 @@ func TestMissingOperationImplementationErr(t *testing.T) {
 	spec := NewSpec()
 	testOperation := openapi3.NewOperation()
 	testOperation.OperationID = "test"
-	spec.Paths = openapi3.Paths{
-		"/test": &openapi3.PathItem{
+	spec.Paths = openapi3.NewPaths(
+		openapi3.WithPath("/test", &openapi3.PathItem{
 			Get: testOperation,
-		},
-	}
+		}),
+	)
 
 	err := validateOpenAPIRouter(&openapi{
 		spec:    spec,
@@ -664,20 +667,10 @@ func TestMissingOperationInSpecErr(t *testing.T) {
 	require.Error(t, err)
 }
 
-func testSpecResponse(status string, contentType string, schema *openapi3.Schema) map[string]*openapi3.ResponseRef {
-	return map[string]*openapi3.ResponseRef{
-		status: {
-			Value: &openapi3.Response{
-				Content: openapi3.Content{
-					contentType: &openapi3.MediaType{
-						Schema: &openapi3.SchemaRef{
-							Value: schema,
-						},
-					},
-				},
-			},
-		},
-	}
+func testSpecResponse(status int, contentType string, schema *openapi3.Schema) *openapi3.Responses {
+	return openapi3.NewResponses(openapi3.WithStatus(status, &openapi3.ResponseRef{
+		Value: openapi3.NewResponse().WithContent(openapi3.NewContentWithSchema(schema, []string{contentType})),
+	}))
 }
 
 func DefaultTestOptions() Options {

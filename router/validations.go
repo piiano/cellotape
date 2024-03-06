@@ -55,7 +55,7 @@ func validateOpenAPIRouter(oa *openapi, flatOperations []operation) error {
 // validateMustHandleAllOperations checks that all operations defined in the spec have an implementation on the router.
 func validateMustHandleAllOperations(oa *openapi, declaredOperations utils.Set[string], excludeOperations utils.Set[string]) error {
 	l := oa.logger()
-	for _, pathItem := range oa.spec.Paths {
+	for _, pathItem := range oa.spec.Paths.Map() {
 		for _, specOp := range pathItem.Operations() {
 			if excludeOperations.Has(specOp.OperationID) {
 				continue
@@ -145,7 +145,7 @@ func validateHandleAllResponses(oa openapi, behaviour Behaviour, operation opera
 	responseCodes := utils.NewSet[int](utils.ConcatSlices[int](utils.Map(handlers, func(h handler) []int {
 		return utils.Keys(h.responses)
 	})...)...)
-	for statusStr := range specOp.Responses {
+	for statusStr := range specOp.Responses.Map() {
 		status, err := parseStatus(statusStr)
 		if err != nil {
 			l.Logf(level, invalidStatusInSpecResponses(statusStr, operation.id))
@@ -231,7 +231,7 @@ func validateResponseTypes(oa openapi, behaviour Behaviour, handler handler, spe
 	l := oa.logger()
 	level := utils.LogLevel(behaviour)
 	for status, response := range handler.responses {
-		specResponse := specOperation.Responses.Get(status)
+		specResponse := specOperation.Responses.Status(status)
 		if specResponse == nil {
 			l.Logf(level, handlerDefinesResponseThatIsMissingInTheSpec(status, operationId))
 			continue
