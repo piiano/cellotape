@@ -33,7 +33,7 @@ func NewSpec() OpenAPISpec {
 // Operations returns all operations declared in the spec as a map of operation ID to SpecOperation.
 func (s *OpenAPISpec) Operations() map[string]SpecOperation {
 	operations := make(map[string]SpecOperation, 0)
-	for path, pathItem := range s.Paths {
+	for path, pathItem := range s.Paths.Map() {
 		for method, specOp := range pathItem.Operations() {
 			operations[specOp.OperationID] = SpecOperation{
 				Path:      path,
@@ -46,7 +46,7 @@ func (s *OpenAPISpec) Operations() map[string]SpecOperation {
 }
 
 func (s *OpenAPISpec) findSpecOperationByID(id string) (SpecOperation, bool) {
-	for path, pathItem := range s.Paths {
+	for path, pathItem := range s.Paths.Map() {
 		for method, specOp := range pathItem.Operations() {
 			if specOp.OperationID == id {
 				return SpecOperation{Path: path, Method: method, Operation: specOp}, true
@@ -59,7 +59,7 @@ func (s *OpenAPISpec) findSpecOperationByID(id string) (SpecOperation, bool) {
 // findSpecContentTypes find all content types declared in the spec for both request body and responses
 func (s *OpenAPISpec) findSpecContentTypes(excludeOperations utils.Set[string]) []string {
 	contentTypes := make([]string, 0)
-	for _, pathItem := range s.Paths {
+	for _, pathItem := range s.Paths.Map() {
 		for _, specOp := range pathItem.Operations() {
 			if excludeOperations.Has(specOp.OperationID) {
 				continue
@@ -69,7 +69,7 @@ func (s *OpenAPISpec) findSpecContentTypes(excludeOperations utils.Set[string]) 
 					contentTypes = append(contentTypes, contentType)
 				}
 			}
-			for _, response := range specOp.Responses {
+			for _, response := range specOp.Responses.Map() {
 				if response.Value == nil {
 					continue
 				}

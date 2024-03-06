@@ -2,6 +2,7 @@ package router
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"testing"
 
@@ -16,6 +17,7 @@ func TestSchema(t *testing.T) {
 	schema := jsonschema.Reflect(&Options{})
 	bytes, _ := json.MarshalIndent(schema, "", "  ")
 
+	fmt.Println(string(bytes))
 	schemaFile, err := os.ReadFile("../options-schema.json")
 	assert.NoError(t, err)
 

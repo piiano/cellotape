@@ -58,25 +58,25 @@ func TestFindSpecOperationByIDPass(t *testing.T) {
 
 func TestFindSpecContentTypes(t *testing.T) {
 	spec := OpenAPISpec(openapi3.T{
-		Paths: openapi3.Paths{
-			"/1": &openapi3.PathItem{
+		Paths: openapi3.NewPaths(
+			openapi3.WithPath("/1", &openapi3.PathItem{
 				Get: &openapi3.Operation{
 					RequestBody: &openapi3.RequestBodyRef{
 						Value: openapi3.NewRequestBody().WithSchema(openapi3.NewSchema(), []string{"text/plain"}),
 					},
 				},
-			},
-			"/2": &openapi3.PathItem{
+			}),
+			openapi3.WithPath("/2", &openapi3.PathItem{
 				Get: &openapi3.Operation{
-					Responses: openapi3.Responses{
-						"200": &openapi3.ResponseRef{
+					Responses: openapi3.NewResponses(
+						openapi3.WithStatus(200, &openapi3.ResponseRef{
 							Value: openapi3.NewResponse().WithJSONSchema(openapi3.NewSchema()),
-						},
-						"500": &openapi3.ResponseRef{},
-					},
+						}),
+						openapi3.WithStatus(500, &openapi3.ResponseRef{}),
+					),
 				},
-			},
-		},
+			}),
+		),
 	})
 
 	contentTypes := spec.findSpecContentTypes(utils.NewSet[string]())

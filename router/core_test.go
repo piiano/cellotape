@@ -73,20 +73,20 @@ func TestOptionsHandler(t *testing.T) {
 
 	setGlobalHandlers(router, &openapi{
 		spec: OpenAPISpec{
-			Paths: map[string]*openapi3.PathItem{
-				"/foo/{param1}/bar/{param2}": {
+			Paths: openapi3.NewPaths(
+				openapi3.WithPath("/foo/{param1}/bar/{param2}", &openapi3.PathItem{
 					Get:  &openapi3.Operation{},
 					Post: &openapi3.Operation{},
-				},
-				"/foo/{param1}/bar": {
+				}),
+				openapi3.WithPath("/foo/{param1}/bar", &openapi3.PathItem{
 					Delete: &openapi3.Operation{},
 					Patch:  &openapi3.Operation{},
-				},
-				"/foo/{param1}": {
+				}),
+				openapi3.WithPath("/foo/{param1}", &openapi3.PathItem{
 					Get:     &openapi3.Operation{},
 					Options: &openapi3.Operation{},
-				},
-			},
+				}),
+			),
 		},
 		options: options,
 	})
@@ -146,16 +146,16 @@ func TestOptionsHandlerIsNil(t *testing.T) {
 
 	setGlobalHandlers(router, &openapi{
 		spec: OpenAPISpec{
-			Paths: map[string]*openapi3.PathItem{
-				"/foo/{param1}/bar": {
+			Paths: openapi3.NewPaths(
+				openapi3.WithPath("/foo/{param1}/bar", &openapi3.PathItem{
 					Get:  &openapi3.Operation{},
 					Post: &openapi3.Operation{},
-				},
-				"/foo/{param1}": {
+				}),
+				openapi3.WithPath("/foo/{param1}", &openapi3.PathItem{
 					Get:     &openapi3.Operation{},
 					Options: &openapi3.Operation{},
-				},
-			},
+				}),
+			),
 		},
 		options: options,
 	})

@@ -48,10 +48,8 @@
           "type": "integer"
         },
         "operationValidations": {
-          "patternProperties": {
-            ".*": {
-              "$ref": "#/$defs/OperationValidationOptions"
-            }
+          "additionalProperties": {
+            "$ref": "#/$defs/OperationValidationOptions"
           },
           "type": "object"
         },
