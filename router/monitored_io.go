@@ -13,6 +13,8 @@ type HTTPDurations interface {
 	WriteDuration() time.Duration
 }
 
+// monitoredHTTP is a wrapper around http.ResponseWriter and io.ReadCloser that monitors the duration of read and write operations.
+// monitoredHTTP assume that read and write operations are not concurrent.
 type monitoredHTTP struct {
 	reader        io.ReadCloser
 	writer        http.ResponseWriter
@@ -49,17 +51,18 @@ func (mr *monitoredHTTP) Close() error {
 	return mr.reader.Close()
 }
 
-func (mr *monitoredHTTP) initWriteStart() {
+func (mr *monitoredHTTP) calcWriteDuration() func() {
 	if mr.writeStart == nil {
 		mr.writeStart = utils.Ptr(time.Now())
 	}
+
+	return func() { mr.writeDuration = time.Since(*mr.writeStart) }
 }
 
 func (mr *monitoredHTTP) Write(p []byte) (int, error) {
-	mr.initWriteStart()
+	defer mr.calcWriteDuration()()
 
 	n, err := mr.writer.Write(p)
-	mr.writeDuration += time.Since(*mr.writeStart)
 	return n, err
 }
 
@@ -68,7 +71,7 @@ func (mr *monitoredHTTP) Header() http.Header {
 }
 
 func (mr *monitoredHTTP) WriteHeader(statusCode int) {
-	mr.initWriteStart()
+	defer mr.calcWriteDuration()()
 
 	mr.writer.WriteHeader(statusCode)
 }

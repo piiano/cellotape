@@ -17,7 +17,7 @@ func loggerHandler(c *r.Context) error {
 		Read    time.Duration
 		Write   time.Duration
 	}{
-		Handler: time.Since(start) - c.Durations.ReadDuration(),
+		Handler: time.Since(start) - c.Durations.ReadDuration() - c.Durations.WriteDuration(),
 		Read:    c.Durations.ReadDuration(),
 		Write:   c.Durations.WriteDuration(),
 	}
