@@ -75,7 +75,7 @@ func createDecoder(contentType ContentType) func(reader io.Reader, _ http.Header
 			return nil, err
 		}
 
-		// For kin-openapi to be able to validate a request it requires that the decoded value will on of
+		// For kin-openapi to be able to validate a request it requires that the decoded value will be one of
 		// the values received when decoding JSON to any.
 		// e.g. any, []any, []map[string]any, etc.
 		//
@@ -133,15 +133,20 @@ func chainHandlers(oa openapi, handlers ...handler) (head BoundHandlerFunc) {
 
 func asHttpRouterHandler(oa openapi, specOp SpecOperation, head BoundHandlerFunc) httprouter.Handle {
 	return func(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+		monitoredHTTPIO := NewMonitoredHTTP(writer, request.Body)
+
+		request.Body = monitoredHTTPIO
+
 		if oa.options.RecoverOnPanic {
 			defer defaultRecoverBehaviour(writer)
 		}
 		ctx := &Context{
 			Operation:   specOp,
-			Writer:      writer,
+			Writer:      monitoredHTTPIO,
 			Request:     request,
 			Params:      &params,
 			RawResponse: &RawResponse{Status: 0},
+			Durations:   monitoredHTTPIO,
 		}
 
 		_, err := head(ctx)

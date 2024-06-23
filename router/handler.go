@@ -37,6 +37,7 @@ type Context struct {
 	Params      *httprouter.Params
 	RawResponse *RawResponse
 	NextFunc    BoundHandlerFunc
+	Durations   HTTPDurations
 }
 
 func (c *Context) Next() (RawResponse, error) {
