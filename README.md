@@ -2,7 +2,7 @@
 
 # Cellotape - Beta - OpenAPI Router for Go
 
-![98.7%](https://badgen.net/badge/coverage/98.7%25/green?icon=github)
+![](https://badgen.net/badge/coverage/25/green?icon=github)
 
 Cellotape requires Go 1.18 or above.
 
