@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
+	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
@@ -341,7 +342,8 @@ func validationOptions() *openapi3filter.Options {
 	options := openapi3filter.Options{}
 	// Customize the error message returned by the kin-openapi library to be more user-friendly.
 	options.WithCustomSchemaErrorFunc(func(err *openapi3.SchemaError) string {
-		return err.Reason
+		p := err.JSONPointer()
+		return fmt.Sprintf("Error at \"%s\": %s", "/"+strings.Join(p, "/"), err.Reason)
 	})
 	return &options
 }
