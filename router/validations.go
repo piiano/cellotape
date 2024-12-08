@@ -178,6 +178,11 @@ func validateRequestBodyType(oa openapi, behaviour Behaviour, handler handler, s
 			continue
 		}
 
+		// If body type is "any", there is no need to validate because it can be anything.
+		if bodyType.Kind() == reflect.Interface {
+			continue
+		}
+
 		if err := contentType.ValidateTypeSchema(l.NewCounter(), level, bodyType, *mediaType.Schema.Value); err != nil {
 			l.Logf(level, incompatibleRequestBodyType(operationID, bodyType))
 		}
@@ -241,6 +246,11 @@ func validateResponseTypes(oa openapi, behaviour Behaviour, handler handler, spe
 			contentType, ok := oa.contentTypes[mimeType]
 			if !ok {
 				// handled by validateContentTypes
+				continue
+			}
+
+			// If responsse body is "any", there is no need to validate because it can be anything.
+			if response.responseType.Kind() == reflect.Interface {
 				continue
 			}
 
