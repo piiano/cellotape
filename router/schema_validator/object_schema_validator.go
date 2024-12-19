@@ -19,7 +19,7 @@ func (c typeSchemaValidatorContext) validateObjectSchema() {
 	serializedFromObject := isSerializedFromObject(c.goType)
 
 	if !serializedFromObject {
-		if c.schema.Type == openapi3.TypeObject {
+		if c.schema.Type.Is(openapi3.TypeObject) {
 			c.err(schemaTypeIsIncompatibleWithType(c.schema, c.goType))
 		}
 		return

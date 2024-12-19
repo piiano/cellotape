@@ -51,7 +51,7 @@ func (t OctetStreamContentType) ValidateTypeSchema(
 	if goType != reflect.TypeOf([]byte{}) {
 		logger.Logf(level, "type %s is incompatible with content type %q", goType, t.Mime())
 	}
-	if schema.Type != "string" || schema.Format != "binary" {
+	if !schema.Type.Is(openapi3.TypeString) || schema.Format != "binary" {
 		logger.Logf(level, `schema must have a "string" type with a "binary" format when content type is %q`, t.Mime())
 	}
 	return logger.MustHaveNoErrors()
@@ -91,7 +91,7 @@ func (t PlainTextContentType) ValidateTypeSchema(
 	default:
 		logger.Logf(level, "type %s is incompatible with content type %q", goType, t.Mime())
 	}
-	if schema.Type != "string" {
+	if !schema.Type.Is(openapi3.TypeString) {
 		logger.Logf(level, "schema type %s is incompatible with content type %q", schema.Type, t.Mime())
 	}
 	return logger.MustHaveNoErrors()

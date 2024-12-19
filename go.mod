@@ -5,7 +5,7 @@ go 1.20
 retract v1.0.0 // Published accidentally.
 
 require (
-	github.com/getkin/kin-openapi v0.123.0
+	github.com/getkin/kin-openapi v0.128.0
 	github.com/google/uuid v1.6.0
 	github.com/invopop/jsonschema v0.12.0
 	github.com/julienschmidt/httprouter v1.3.0
@@ -17,11 +17,11 @@ require (
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/go-openapi/jsonpointer v0.20.3 // indirect
-	github.com/go-openapi/swag v0.22.10 // indirect
+	github.com/go-openapi/jsonpointer v0.21.0 // indirect
+	github.com/go-openapi/swag v0.23.0 // indirect
 	github.com/go-test/deep v1.1.0 // indirect
 	github.com/iancoleman/orderedmap v0.3.0 // indirect
-	github.com/invopop/yaml v0.2.0 // indirect
+	github.com/invopop/yaml v0.3.1 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect

@@ -29,15 +29,12 @@ var (
 
 	isSerializedFromObject = allOf(kindIs(reflect.Struct, reflect.Map), not(isTimeCompatible))
 
-	isSchemaTypeStringOrEmpty  = schemaTypeIs(openapi3.TypeString, "")
-	isSchemaTypeBooleanOrEmpty = schemaTypeIs(openapi3.TypeBoolean, "")
-	isSchemaTypeObjectOrEmpty  = schemaTypeIs(openapi3.TypeObject, "")
-	isSchemaTypeArrayOrEmpty   = schemaTypeIs(openapi3.TypeArray, "")
-	isSchemaTypeNumberOrEmpty  = schemaTypeIs(openapi3.TypeNumber, "")
+	isSchemaTypeStringOrEmpty  = schemaTypeIsOrNil(openapi3.TypeString)
+	isSchemaTypeBooleanOrEmpty = schemaTypeIsOrNil(openapi3.TypeBoolean)
+	isSchemaTypeObjectOrEmpty  = schemaTypeIsOrNil(openapi3.TypeObject)
+	isSchemaTypeArrayOrEmpty   = schemaTypeIsOrNil(openapi3.TypeArray)
 
 	isBoolType    = kindIs(reflect.Bool)
-	isInt32       = kindIs(reflect.Int32)
-	isInt64       = kindIs(reflect.Int64)
 	isFloat32     = kindIs(reflect.Float32)
 	isFloat64     = kindIs(reflect.Float64)
 	isNumericType = kindIs(reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
@@ -82,10 +79,14 @@ func not[T any, A assertion[T]](assertion A) A {
 	}
 }
 
-func schemaTypeIs(types ...string) schemaAssertion {
-	set := utils.NewSet(types...)
+func schemaTypeIsOrNil(types ...string) schemaAssertion {
 	return func(s openapi3.Schema) bool {
-		return set.Has(s.Type)
+		for _, t := range types {
+			if s.Type == nil || s.Type.Is(t) {
+				return true
+			}
+		}
+		return false
 	}
 }
 

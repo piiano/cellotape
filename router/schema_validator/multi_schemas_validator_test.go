@@ -113,7 +113,7 @@ func TestMultiSchemaValidator(t *testing.T) {
 							&openapi3.Schema{MultipleOf: utils.Ptr(3.0)},
 							&openapi3.Schema{MultipleOf: utils.Ptr(5.0)},
 						)
-						schema.Type = openapi3.TypeNumber
+						schema.Type = &openapi3.Types{openapi3.TypeNumber}
 						return schema
 					}(),
 					errAssertion: require.NoError,
@@ -129,7 +129,7 @@ func TestMultiSchemaValidator(t *testing.T) {
 							&openapi3.Schema{Format: "uuid"},
 							&openapi3.Schema{Format: "date-time"},
 						)
-						schema.Type = openapi3.TypeString
+						schema.Type = &openapi3.Types{openapi3.TypeString}
 						return schema
 					}(),
 					errAssertion: require.NoError,
@@ -142,7 +142,7 @@ func TestMultiSchemaValidator(t *testing.T) {
 							&openapi3.Schema{Format: int64Format},
 							&openapi3.Schema{Format: int32Format},
 						)
-						schema.Type = openapi3.TypeInteger
+						schema.Type = &openapi3.Types{openapi3.TypeInteger}
 						return schema
 					}(),
 					errAssertion: require.NoError,
@@ -158,7 +158,7 @@ func TestMultiSchemaValidator(t *testing.T) {
 							&openapi3.Schema{Properties: openapi3.Schemas{"A": openapi3.NewStringSchema().NewRef()}},
 							&openapi3.Schema{Properties: openapi3.Schemas{"B": openapi3.NewStringSchema().NewRef()}},
 						)
-						schema.Type = openapi3.TypeObject
+						schema.Type = &openapi3.Types{openapi3.TypeObject}
 						return schema
 					}(),
 					errAssertion: require.NoError,
@@ -174,7 +174,7 @@ func TestMultiSchemaValidator(t *testing.T) {
 							&openapi3.Schema{Properties: openapi3.Schemas{"A": openapi3.NewStringSchema().NewRef()}},
 							&openapi3.Schema{Properties: openapi3.Schemas{"B": openapi3.NewStringSchema().NewRef()}},
 						)
-						schema.Type = openapi3.TypeObject
+						schema.Type = &openapi3.Types{openapi3.TypeObject}
 						return schema
 					}(),
 					errAssertion: require.Error,
@@ -190,7 +190,7 @@ func TestMultiSchemaValidator(t *testing.T) {
 							&openapi3.Schema{Items: openapi3.NewStringSchema().NewRef()},
 							&openapi3.Schema{Items: openapi3.NewBoolSchema().NewRef()},
 						)
-						schema.Type = openapi3.TypeArray
+						schema.Type = &openapi3.Types{openapi3.TypeArray}
 						return schema
 					}(),
 					errAssertion: require.NoError,

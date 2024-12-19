@@ -8,7 +8,7 @@ import (
 
 func (c typeSchemaValidatorContext) validateIntegerSchema() {
 
-	if c.schema.Type != openapi3.TypeInteger {
+	if !c.schema.Type.Is(openapi3.TypeInteger) {
 		return
 	}
 	switch c.goType.Kind() {

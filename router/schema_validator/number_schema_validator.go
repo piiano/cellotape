@@ -8,7 +8,7 @@ func (c typeSchemaValidatorContext) validateNumberSchema() {
 	isGoTypeNumeric := isNumericType(c.goType)
 
 	if !isGoTypeNumeric {
-		if c.schema.Type != openapi3.TypeNumber {
+		if !c.schema.Type.Is(openapi3.TypeNumber) {
 			return
 		}
 
