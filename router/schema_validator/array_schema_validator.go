@@ -6,7 +6,7 @@ import (
 
 func (c typeSchemaValidatorContext) validateArraySchema() {
 	isGoTypeArray := isArrayGoType(c.goType)
-	if c.schema.Type == openapi3.TypeArray && !isGoTypeArray {
+	if c.schema.Type != nil && c.schema.Type.Is(openapi3.TypeArray) && !isGoTypeArray {
 		c.err(schemaTypeIsIncompatibleWithType(c.schema, c.goType))
 	}
 

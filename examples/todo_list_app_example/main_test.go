@@ -90,7 +90,7 @@ func TestRequestQueryParamViolateSchemaValidations(t *testing.T) {
 	response, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 	assert.Equal(t,
-		`invalid request query param. parameter "pageSize" in query has an error: number must be at most 20`,
+		`invalid request query param. parameter "pageSize" in query has an error: Error at "/": number must be at most 20`,
 		string(response))
 }
 
@@ -107,7 +107,7 @@ func TestRequestPathParamViolateSchemaValidations(t *testing.T) {
 	response, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 	assert.Equal(t,
-		`invalid request path param. parameter "id" in path has an error: minimum string length is 36`,
+		`invalid request path param. parameter "id" in path has an error: Error at "/": minimum string length is 36`,
 		string(response))
 }
 
@@ -132,7 +132,7 @@ func TestRequestBodyViolateSchemaValidations(t *testing.T) {
 	response, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 	assert.Equal(t,
-		`invalid request body. request body has an error: doesn't match schema #/components/schemas/Task: value is not one of the allowed values ["open","in progress","closed"]`,
+		`invalid request body. request body has an error: doesn't match schema #/components/schemas/Task: Error at "/status": value is not one of the allowed values ["open","in progress","closed"]`,
 		string(response))
 }
 

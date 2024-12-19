@@ -3,7 +3,7 @@ package schema_validator
 import "github.com/getkin/kin-openapi/openapi3"
 
 func (c typeSchemaValidatorContext) validateStringSchema() {
-	if c.schema.Type == openapi3.TypeString && !isSerializedFromString(c.goType) {
+	if c.schema.Type.Is(openapi3.TypeString) && !isSerializedFromString(c.goType) {
 		c.err(schemaTypeIsIncompatibleWithType(c.schema, c.goType))
 	}
 
@@ -27,7 +27,7 @@ func (c typeSchemaValidatorContext) validateStringSchema() {
 
 	// if schema format is "byte" expect type to be compatible with []byte
 	if c.schema.Format == byteFormat {
-		if (c.schema.Type == openapi3.TypeString || isSerializedFromString(c.goType)) && !isSliceOfBytes(c.goType) {
+		if (c.schema.Type.Is(openapi3.TypeString) || isSerializedFromString(c.goType)) && !isSliceOfBytes(c.goType) {
 			c.err(schemaTypeWithFormatIsIncompatibleWithType(c.schema, c.goType))
 		}
 		return
@@ -35,7 +35,7 @@ func (c typeSchemaValidatorContext) validateStringSchema() {
 
 	// if schema format is "uuid" expect type to be compatible with UUID
 	if c.schema.Format == uuidFormat {
-		if (c.schema.Type == openapi3.TypeString || isSerializedFromString(c.goType)) && !isUUIDCompatible(c.goType) {
+		if (c.schema.Type.Is(openapi3.TypeString) || isSerializedFromString(c.goType)) && !isUUIDCompatible(c.goType) {
 			c.err(schemaTypeWithFormatIsIncompatibleWithType(c.schema, c.goType))
 		}
 		return
@@ -43,14 +43,14 @@ func (c typeSchemaValidatorContext) validateStringSchema() {
 
 	// if schema format is "date-time" or "time" expect type to be compatible with Time
 	if isTimeFormat(c.schema) {
-		if (c.schema.Type == openapi3.TypeString || isSerializedFromString(c.goType)) && !isTimeCompatible(c.goType) {
+		if (c.schema.Type.Is(openapi3.TypeString) || isSerializedFromString(c.goType)) && !isTimeCompatible(c.goType) {
 			c.err(schemaTypeWithFormatIsIncompatibleWithType(c.schema, c.goType))
 		}
 		return
 	}
 
 	// if schema format is any other string format expect go type to be string
-	if isSchemaStringFormat(c.schema) && (c.schema.Type == openapi3.TypeString || isSerializedFromString(c.goType)) && !isString(c.goType) {
+	if isSchemaStringFormat(c.schema) && (c.schema.Type.Is(openapi3.TypeString) || isSerializedFromString(c.goType)) && !isString(c.goType) {
 		c.err(schemaTypeWithFormatIsIncompatibleWithType(c.schema, c.goType))
 		return
 	}
